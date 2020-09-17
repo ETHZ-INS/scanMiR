@@ -1,4 +1,4 @@
-#' scan.server
+#' scanMiR.server
 #'
 #' @param modlists A named list of `CompressedKdModelList`
 #' @param targetlists An optional list of aggregated targets, named as `modlists`
