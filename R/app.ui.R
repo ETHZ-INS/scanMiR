@@ -1,5 +1,5 @@
 #' @export
-enrichMiR.ui <- function(){
+scanMiR.ui <- function(){
   library(shiny)
   library(shinydashboard)
   library(shinycssloaders)

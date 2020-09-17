@@ -1,4 +1,4 @@
-#' enrichMiR.server
+#' scan.server
 #'
 #' @param modlists A named list of `CompressedKdModelList`
 #' @param targetlists An optional list of aggregated targets, named as `modlists`
@@ -11,7 +11,7 @@
 #' @return A shiny server function
 #' @importFrom digest digest
 #' @export
-enrichMiR.server <- function(modlists, targetlists=list(), ensdbs=list(), genomes=list(),
+scanMiR.server <- function(modlists, targetlists=list(), ensdbs=list(), genomes=list(),
                              maxCacheSize=100*10^6 ){
   library(DT)
   library(stringr)
