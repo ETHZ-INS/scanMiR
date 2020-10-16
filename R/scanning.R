@@ -180,7 +180,7 @@ sequences should be in DNA format.")
   library(Biostrings)
 
   if(!is.null(types) && length(types)>0){
-    types <- match.arg(types, c("8mer","7mer-m8","7mer-A1","6mer","offset 6mer",
+    types <- match.arg(types, c("8mer","7mer-m8","7mer-a1","6mer","6mer-m8","6mer-a1","offset 6mer",
                                 "non-canonical"),
                        several.ok = TRUE)
   }else{
@@ -341,7 +341,7 @@ characterizeSeedMatches <- function(x, seed=NULL){
                    type=vapply( as.character(x), seed=sseed, 
                                 FUN=.getMatchType, FUN.VALUE=character(1) ) )
   d$type <- factor(d$type, 
-                   c("8mer","7mer-m8","7mer-A1","6mer","offset 6mer","non-canonical"))
+                   c("8mer","7mer-m8","7mer-a1","6mer","6mer-m8","6mer-a1","offset 6mer","non-canonical"))
   if(!is.null(kd.model)) d$log_kd <- predictKD(row.names(d), kd.model)
   d
 }
@@ -350,8 +350,12 @@ characterizeSeedMatches <- function(x, seed=NULL){
   if(grepl(paste0(seed,"A"),x,fixed=TRUE)) return("8mer")
   if(grepl(seed,x,fixed=TRUE)) return("7mer-m8")
   seed6 <- substr(seed,2,7)
-  if(grepl(paste0("[ACGT]",seed6,"A"),x)) return("7mer-A1")
+  if(grepl(paste0("[ACGT]",seed6,"A"),x)) return("7mer-a1")
   if(grepl(paste0("[ACGT]",seed6),x)) return("6mer")
+  seed5m <- substr(seed,1,6)
+  if(grepl(paste0(seed5m,"[ACGT]","[ACGT]"),x)) return("6mer-m8")
+  seed5 <- substr(seed,3,7)
+  if(grepl(paste0("[ACGT]","[ACGT]",seed5,"A"),x)) return("6mer-a1")
   if(grepl(seed6,x,fixed=TRUE)) return("offset 6mer")
   "non-canonical"
 }
