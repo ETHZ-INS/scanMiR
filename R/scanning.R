@@ -171,7 +171,7 @@ sequences should be in DNA format.")
   c(ret, list(seqs=seqs))
 }
 
-.find1SeedMatches <- function(seqs, seed, keepMatchSeq=FALSE, types=NULL, minLogKd=0,
+.find1SeedMatches <- function(seqs, seed, keepMatchSeq=keepMatchSeq, types=NULL, minLogKd=0,
                               max.noncanonical.motifs=Inf, minDist=1, 
                               fastRemoveOverlaps=FALSE, verbose=FALSE){
   library(GenomicRanges)
