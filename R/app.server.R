@@ -25,7 +25,6 @@ scanMiR.server <- function(modlists, targetlists=list(), ensdbs=list(), genomes=
                             buttons=c('copy', 'csv', 'excel', 'csvHtml5') ) )
   }
   
-  
   function(input, output, session){
     
     ##############################
@@ -150,7 +149,7 @@ scanMiR.server <- function(modlists, targetlists=list(), ensdbs=list(), genomes=
     customTarget <- reactive({
       if(is.null(input$customseq) || input$customseq=="") return(NULL)
       seqtype <- suppressWarnings(scanMiR:::.guessSeqType(input$customseq))
-      seq <- input$customseq
+      seq <- gsub("[^ACGTUN]","", toupper(input$customseq))
       if(input$circular) seq <- paste0(seq,substr(seq,1,min(nchar(seq),11)))
       if(seqtype=="DNA") return(DNAString(seq))
       return(RNAString(seq))
