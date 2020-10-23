@@ -149,7 +149,7 @@ scanMiR.server <- function(modlists, targetlists=list(), ensdbs=list(), genomes=
     
     customTarget <- reactive({
       if(is.null(input$customseq) || input$customseq=="") return(NULL)
-      seqtype <- suppressWarnings(enrichMiR:::.guessSeqType(input$customseq))
+      seqtype <- suppressWarnings(scanMiR:::.guessSeqType(input$customseq))
       seq <- input$customseq
       if(input$circular) seq <- paste0(seq,substr(seq,1,min(nchar(seq),11)))
       if(seqtype=="DNA") return(DNAString(seq))
