@@ -4,10 +4,20 @@
 \alias{findSeedMatches}
 \title{findSeedMatches}
 \usage{
-findSeedMatches(seqs, seeds, seedtype = c("auto", "RNA", "DNA"),
-  shadow = 0, minLogKd = 1, types = NULL,
-  max.noncanonical.motifs = Inf, keepMatchSeq = FALSE, minDist = 7L,
-  fastRemoveOverlaps = FALSE, BP = NULL, verbose = NULL)
+findSeedMatches(
+  seqs,
+  seeds,
+  seedtype = c("auto", "RNA", "DNA"),
+  shadow = 0,
+  minLogKd = 1,
+  types = NULL,
+  max.noncanonical.motifs = Inf,
+  keepMatchSeq = FALSE,
+  minDist = 7L,
+  fastRemoveOverlaps = FALSE,
+  BP = NULL,
+  verbose = NULL
+)
 }
 \arguments{
 \item{seqs}{A character vector or `XStringSet`` of sequences in which to look.}

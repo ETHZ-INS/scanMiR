@@ -56,16 +56,18 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"), shado
   if(is(seeds,"KdModel") || length(seeds)==1){
     if(all(class(seeds)=="list")) seeds <- seeds[[1]]
     if(is.null(verbose)) verbose <- TRUE
-    m <- .find1SeedMatches(seqs, seeds, keepMatchSeq, minDist=minDist, minLogKd=minLogKd,
-                           types=types, max.noncanonical.motifs=max.noncanonical.motifs,
+    m <- .find1SeedMatches(seqs, seeds, keepMatchSeq=keepMatchSeq, minDist=minDist, 
+                           minLogKd=minLogKd, types=types, 
+                           max.noncanonical.motifs=max.noncanonical.motifs,
                            fastRemoveOverlaps=fastRemoveOverlaps, verbose=verbose)
   }else{
     if(is.null(BP)) BP <- SerialParam()
     if(is.null(verbose)) verbose <- !(bpnworkers(BP)>1 | length(seeds)>5)
-    m <- bplapply( seeds, seqs=seqs, verbose=verbose, minDist=minDist, minLogKd=minLogKd,
-                   types=types, max.noncanonical.motifs=max.noncanonical.motifs,
-                   fastRemoveOverlaps=fastRemoveOverlaps,
-                   FUN=.find1SeedMatches, BPPARAM=BP)
+    m <- bplapply( seeds, seqs=seqs, keepMatchSeq=keepMatchSeq, verbose=verbose, 
+                   minDist=minDist, minLogKd=minLogKd, types=types, 
+                   max.noncanonical.motifs=max.noncanonical.motifs,
+                   fastRemoveOverlaps=fastRemoveOverlaps, BPPARAM=BP,
+                   FUN=.find1SeedMatches)
     m <- m[!sapply(m,is.null)]
     m <- unlist(GRangesList(m))
   }
@@ -171,7 +173,7 @@ sequences should be in DNA format.")
   c(ret, list(seqs=seqs))
 }
 
-.find1SeedMatches <- function(seqs, seed, keepMatchSeq=keepMatchSeq, types=NULL, minLogKd=0,
+.find1SeedMatches <- function(seqs, seed, keepMatchSeq=FALSE, types=NULL, minLogKd=0,
                               max.noncanonical.motifs=Inf, minDist=1, 
                               fastRemoveOverlaps=FALSE, verbose=FALSE){
   library(GenomicRanges)
@@ -259,7 +261,7 @@ sequences should be in DNA format.")
   names(seqs) <- seqnms
   if(is(seed,"KdModel")){
     seed2 <- names(summary(seed))
-    seedtypes <- sapply(seed2, seed=seed$canonical.seed, FUN=.getMatchType)
+    seedtypes <- as.character(.getMatchTypes(seed2, seed=seed$canonical.seed))
     if(max.noncanonical.motifs==0){
       seed2 <- seed2[seedtypes!="non-canonical"]
     }else{
@@ -337,15 +339,28 @@ characterizeSeedMatches <- function(x, seed=NULL){
     row.names(y) <- NULL
     return(y)
   }
-  d <- data.frame( row.names=x, 
-                   type=vapply( as.character(x), seed=sseed, 
-                                FUN=.getMatchType, FUN.VALUE=character(1) ) )
-  d$type <- factor(d$type, 
-                   c("8mer","7mer-m8","7mer-a1","6mer","6mer-m8","6mer-a1","offset 6mer","non-canonical"))
+  d <- data.frame( row.names=x, type=.getMatchTypes(as.character(x), seed=sseed) )
   if(!is.null(kd.model)) d$log_kd <- predictKD(row.names(d), kd.model)
   d
 }
 
+.getMatchTypes <- function(x, seed){
+  x <- as.character(x)
+  y <- rep(1L,length(x))
+  seed <- paste0(seed,"A")
+  seed6 <- substr(seed,2,7)
+  y[grep(seed6,x,fixed=TRUE)] <- 2L # offset 6mer
+  y[grep(paste0("[ACGT]","[ACGT]",substr(seed,3,8)),x)] <- 3L # 6mer-a1
+  y[grep(paste0(substr(seed,1,6),"[ACGT][ACGT]"),x)] <- 4L # 6mer-m8
+  y[grep(paste0("[ACGT]",substr(seed,2,7)),x)] <- 5L # 6mer
+  y[grep(paste0("[ACGT]",substr(seed,2,8)),x)] <- 6L # 7mer-a1
+  y[grep(substr(seed,1,7),x,fixed=TRUE)] <- 7L # 7mer-m8
+  y[grep(seed,x,fixed=TRUE)] <- 8L # 8mer
+  factor(y, levels=8:1, labels=c("8mer","7mer-m8","7mer-a1","6mer","6mer-m8",
+                                 "6mer-a1","offset 6mer","non-canonical"))
+}
+
+# deprecated, to be removed
 .getMatchType <- function(x, seed){
   if(grepl(paste0(seed,"A"),x,fixed=TRUE)) return("8mer")
   if(grepl(seed,x,fixed=TRUE)) return("7mer-m8")
@@ -359,7 +374,6 @@ characterizeSeedMatches <- function(x, seed=NULL){
   if(grepl(seed6,x,fixed=TRUE)) return("offset 6mer")
   "non-canonical"
 }
-
 
 
 #' predictKD
@@ -377,12 +391,15 @@ predictKD <- function(kmer, mod){
   kd
 }
 
+
+.datatable.aware = TRUE
+
 #' aggregateMatches
 #'
 #' @param e A GRanges object as produced by `findSeedMatches`.
 #'
 #' @return An aggregated data.frame
-#' @import data.table
+#' @importFrom data.table data.table as.data.table dcast
 #' @importFrom GenomicRanges mcols
 #' @export
 aggregateMatches <- function(e, fn=agg.repr){
