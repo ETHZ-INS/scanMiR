@@ -12,17 +12,17 @@
 #' @importFrom digest digest
 #' @export
 scanMiR.server <- function(modlists, targetlists=list(), ensdbs=list(), genomes=list(),
-                             maxCacheSize=100*10^6 ){
+                             scans=list(), maxCacheSize=100*10^6 ){
   library(DT)
   library(stringr)
   library(Biostrings)
   library(ggplot2)
   
-  dtwrapper <- function(d, pageLength=25){
+  dtwrapper <- function(d, pageLength=25, ...){
     datatable( d, filter="top", class="compact", extensions=c("Buttons","ColReorder"),
                options=list(pageLength=pageLength, dom = "fltBip", rownames=FALSE,
                             colReorder=TRUE, 
-                            buttons=c('copy', 'csv', 'excel', 'csvHtml5') ) )
+                            buttons=c('copy', 'csv', 'excel', 'csvHtml5') ), ... )
   }
   
   function(input, output, session){
@@ -75,27 +75,38 @@ scanMiR.server <- function(modlists, targetlists=list(), ensdbs=list(), genomes=
       if(is.null(sel_ensdb())) return(NULL)
       g <- genes( sel_ensdb(), columns="gene_name",
                   return.type="data.frame")
-      paste(g[,1], g[,2])
+      gs <- g[,2]
+      names(gs) <- paste(g[,1], g[,2])
+      gs
     })
     
     selgene <- reactive({ # selected gene id
       if(is.null(input$gene) || input$gene=="") return(NULL)
-      strsplit(input$gene," ")[[1]][2]
+      changeFlag()
+      input$gene
+    })
+    
+    output$gene_link <- renderUI({
+      if(is.null(selgene())) return(NULL)
+      tags$a(href=paste0("https://www.ensembl.org/Mus_musculus/Gene/Summary?db=core;g=", selgene()),
+             "view on ensembl", target="_blank")
     })
     
     alltxs <- reactive({ # all tx from selected gene
       if(is.null(selgene())) return(NULL)
       tx <- transcripts(sel_ensdb(), columns=c("tx_id","tx_biotype"),
                         filter=~gene_id==selgene(), return.type="data.frame")
-      paste0(tx$tx_id, " (", tx$tx_biotype,")")
+      txs <- tx$tx_id
+      names(txs) <- paste0(tx$tx_id, " (", tx$tx_biotype,")")
+      changeFlag()
+      txs
     })
     
     seltx <- reactive({ # the selected transcript
-      if(is.null(selgene()) || is.null(input$transcript) || 
-         input$transcript=="") return(NULL)
-      tx <- strsplit(input$transcript, " ")[[1]][[1]]
-      if(tx=="" || is.na(tx)) return(NULL)
-      tx
+      if(is.null(input$transcript) || input$transcript=="" || is.na(input$transcript))
+        return(NULL)
+      changeFlag()
+      input$transcript
     })
     
     # when the ensembldb is updated, update the gene input
@@ -114,7 +125,7 @@ scanMiR.server <- function(modlists, targetlists=list(), ensdbs=list(), genomes=
     }
     
     seqs <- reactive({ # returns the selected sequence(s)
-      if(is.null(selgene())) return(NULL)
+      if(is.null(selgene()) && is.null(seltx())) return(NULL)
       if(is.null(seltx())){
         gid <- selgene()
         filt <- ~gene_id==gid
@@ -122,19 +133,22 @@ scanMiR.server <- function(modlists, targetlists=list(), ensdbs=list(), genomes=
         txid <- seltx()
         filt <- ~tx_id==txid
       }
-      db <- sel_ensdb()
       if(input$utr_only){
-        gr <- suppressWarnings(threeUTRsByTranscript(db, filter=filt))
+        gr <- suppressWarnings(threeUTRsByTranscript(sel_ensdb(), filter=filt))
       }else{
-        gr <- exonsBy(db, by="tx", filter=filt)
+        gr <- exonsBy(sel_ensdb(), by="tx", filter=filt)
       }
+      get_seq(gr)
+    })
+    
+    get_seq <- function(gr){
       if(length(gr)==0) return(NULL)
       if(is.null(genomes[[input$annotation]])) return(NULL)
       seqs <- extractTranscriptSeqs(getGenome(genomes[[input$annotation]]), gr)
       seqs <- seqs[lengths(seqs)>6]
       if(length(seqs)==0) return(NULL)
       seqs
-    })
+    }
     
     output$tx_overview <- renderPrint({ # overview of the selected transcript
       if(is.null(seqs())) return(NULL)
@@ -168,6 +182,7 @@ scanMiR.server <- function(modlists, targetlists=list(), ensdbs=list(), genomes=
         return(as.character(DNAStringSet(customTarget())))
       }   
       if(is.null(seqs()) || length(seqs())>1) return(NULL)
+      changeFlag()
       as.character(seqs())
     })
     
@@ -211,6 +226,8 @@ scanMiR.server <- function(modlists, targetlists=list(), ensdbs=list(), genomes=
     
     cached.hits <- reactiveValues() # actual and past scanning results are stored in this object
     
+    changeFlag <- reactiveVal(0)
+    
     cached.checksums <- reactive({
       ch <- reactiveValuesToList(cached.hits)
       ch <- ch[!sapply(ch, is.null)]
@@ -227,6 +244,7 @@ scanMiR.server <- function(modlists, targetlists=list(), ensdbs=list(), genomes=
     })
     
     checksum <- reactive({ # generate a unique hash for the given input
+      changeFlag()
       paste( digest::digest(selmods()),
              digest::digest(list(target=target(), shadow=input$shadow,
                                  keepMatchSeq=input$keepMatchSeq, 
@@ -257,38 +275,45 @@ scanMiR.server <- function(modlists, targetlists=list(), ensdbs=list(), genomes=
       if(is.null(selmods()) || is.null(target()) || nchar(target())==0) 
         return(NULL)
       cs <- checksum()
-      if(!(cs %in% names(cached.checksums()))){
-        msg <- paste0("Scanning sequence for ",length(selmods())," miRNAS")
-        detail <- NULL
-        if(length(selmods())>4) detail <- "This might take a while..."
-        if(input$circular) detail <- "'Ribosomal Shadow' is ignored when scanning circRNAs"
-        withProgress(message=msg, detail=detail, value=1, max=3, {
-          cached.hits[[cs]]$hits <- findSeedMatches( target(), selmods(),
-                                                     keepMatchSeq=input$keepmatchseq,
-                                                     minDist=input$minDist,
-                                                     shadow=ifelse(input$circular,0,input$shadow),
-                                                     max.noncanonical.motifs=ifelse(input$scanNonCanonical,Inf,0),
-                                                     BP=MulticoreParam(2, progressbar=TRUE) )
-          if(length(cached.hits[[cs]])>0){
-            cached.hits[[cs]]$hits$miRNA <- cached.hits[[cs]]$hits$seed
-            cached.hits[[cs]]$hits$seed <- NULL
-          }
-        })
-        cached.hits[[cs]]$cs <- cs
-        cached.hits[[cs]]$last <- cached.hits[[cs]]$time <- Sys.time()
-        cached.hits[[cs]]$size <- object.size(cached.hits[[cs]]$hits)
-        cached.hits[[cs]]$nsel <- nm <- length(selmods())
-        cached.hits[[cs]]$sel <- ifelse(nm>1,paste(nm,"models"),input$mirnas)
-        cached.hits[[cs]]$target_length <- nchar(target())
-        if(input$subjet_type=="custom"){
-          cached.hits[[cs]]$target <- "custom sequence"
-        }else{
-          cached.hits[[cs]]$target <- paste(input$gene, "-", seltx(),
-                                            ifelse(input$utr_only, "(UTR)",""))
-        }
-        cleanCache()
-      }
+      cached.hits[[cs]] <- do.scan()
       current.cs(cs)
+    })
+    
+    do.scan <- reactive({
+      if(is.null(selmods()) || is.null(target()) || nchar(target())==0) return(NULL)
+      tmp <- changeFlag()
+      cs <- checksum()
+      if(cs %in% names(cached.checksums())) return(cached.hits[[cs]])
+      res <- list()
+      msg <- paste0("Scanning sequence for ",length(selmods())," miRNAS")
+      message(msg)
+      detail <- NULL
+      if(length(selmods())>4) detail <- "This might take a while..."
+      if(input$circular) detail <- "'Ribosomal Shadow' is ignored when scanning circRNAs"
+      withProgress(message=msg, detail=detail, value=1, max=3, {
+        res$hits = findSeedMatches(target(), selmods(),
+                                   keepMatchSeq=input$keepmatchseq,
+                                   minDist=input$minDist,
+                                   shadow=ifelse(input$circular,0,input$shadow),
+                                   max.noncanonical.motifs=ifelse(input$scanNonCanonical,Inf,0),
+                                   BP=MulticoreParam(2, progressbar=TRUE) )
+        if(length(res$hits)>0){
+          res$hits$miRNA <- res$hits$seed
+          res$hits$seed <- NULL
+        }
+      })
+      res$cs <- cs
+      res$last <- res$time <- Sys.time()
+      res$size <- object.size(res$hits)
+      res$nsel <- nm <- length(selmods())
+      res$sel <- ifelse(nm>1,paste(nm,"models"),input$mirnas)
+      res$target_length <- nchar(target())
+      if(input$subjet_type=="custom"){
+        res$target <- "custom sequence"
+      }else{
+        res$target <- paste(input$gene,"-", seltx(), ifelse(input$utr_only, "(UTR)",""))
+      }
+      return(res)
     })
     
     output$scan_target <- renderText({
@@ -330,6 +355,25 @@ scanMiR.server <- function(modlists, targetlists=list(), ensdbs=list(), genomes=
       dtwrapper(h)
     })
     
+    output$dl_hits <- downloadHandler(
+      filename = function() {
+        if(is.null(hits()$hits)) return(NULL)
+        fn <- paste0("hits-",gsub("\\.[09]+","",cached.hits[[current.cs()]]$target))
+        if(hits()$nsel == 1){
+          fn <- paste0(fn,"-",cached.hits[[cs]]$sel,".csv")
+        }else{
+          fn <- paste0(fn,"-",Sys.Date(),".csv")
+        }
+        fn
+      },
+      content = function(con) {
+        if(is.null(hits()$hits)) return(NULL)
+        h <- as.data.frame(hits()$hits)
+        h <- h[,setdiff(colnames(h), c("seqnames","width","strand") )]
+        write.csv(h, con, col.names=TRUE)
+      }
+    )
+    
     ## end scan hits and cache 
     
     output$manhattan <- renderPlotly({
@@ -341,12 +385,11 @@ scanMiR.server <- function(modlists, targetlists=list(), ensdbs=list(), genomes=
       if(!is.null(input$manhattan_ordinal) && input$manhattan_ordinal){
         h$position <- seq_len(nrow(h))
         xlab <- "Position (ordinal)"
-        xlim <- c(0,nchar(hits()$target_length))
       }else{
         h$position <- round(rowMeans(h[,2:3]))
         xlab <- "Position (nt) in sequence"
-        xlim <- NULL
       }
+      xlim <- c(0,nchar(hits()$target_length))
       if("sequence" %in% colnames(h)){
         p <- ggplot(h, aes(position, -log_kd, colour=miRNA, seq=sequence, kmer_type=type))
       }else{
@@ -390,7 +433,7 @@ scanMiR.server <- function(modlists, targetlists=list(), ensdbs=list(), genomes=
       as.data.frame(tx[,c("symbol","tx_id","tx_biotype")])
     })
     
-    output$mirna_targets <- renderDT({
+    mirtargets_prepared <- reactive({
       tl <- paste0(input$mirlist, ifelse(input$targetlist_utronly, ".utrs", ".full"))
       if(is.null(targetlists[[tl]]) || is.null(mod())) return(NULL)
       d <- targetlists[[tl]][[input$mirna]]
@@ -404,9 +447,52 @@ scanMiR.server <- function(modlists, targetlists=list(), ensdbs=list(), genomes=
       d$log_kd <- -d$log_kd
       d$log_kd.canonical <- -d$log_kd.canonical
       d <- d[which(d$log_kd <= -1.5),]
-      colnames(d) <- gsub("^n\\.","",colnames(d))
-      dtwrapper(d)
+      d[order(d$log_kd),]
     })
+    
+    output$mirna_targets <- renderDT({
+      d <- mirtargets_prepared()
+      if(is.null(d)) return(NULL)
+      colnames(d) <- gsub("^n\\.","",colnames(d))
+      dtwrapper(d, selection="single", callback=JS('
+      table.on("dblclick.dt","tr", function() {
+        Shiny.onInputChange("dblClickSubject", table.row(this).data()[1])
+      })
+    '))
+    })
+    
+    ## double-click on a transcript in miRNA targets:
+    observeEvent(input$dblClickSubject, {
+      sub <- input$dblClickSubject
+      if(input$targetlist_gene) return(NULL)
+      tx <- transcripts(sel_ensdb(), columns=c("tx_id", "gene_id"),
+                          filter=~tx_id==sub, return.type="data.frame")
+      updateSelectizeInput(session, "gene", selected=as.character(tx$gene_id[1]), choices=allgenes(), server=TRUE)
+      updateCheckboxInput(session, "utr_only", value=input$targetlist_utronly)
+      updateSelectizeInput(session, "transcript", selected=sub, choices=alltxs())
+      updateSelectizeInput(session, "mirnas", selected=input$mirna)
+      updateTabItems(session, "subject_type", "transcript")
+      updateTabItems(session, "main_tabs", "tab_subject")
+      newflag <- changeFlag()+1
+      changeFlag(newflag)
+      observe({
+        tmp <- changeFlag()
+        cs <- checksum()
+        cached.hits[[cs]] <- do.scan()
+        current.cs(cs)
+      })
+      updateTabItems(session, "main_tabs", "tab_hits")
+    })
+    
+    output$dl_mirTargets <- downloadHandler(
+      filename = function() {
+        if(is.null(input$mirna)) return(NULL)
+        paste0(input$mirna, ifelse(input$targetlist_utronly,"-utr-","-"), "targets.csv")
+      },
+      content = function(con) {
+        write.csv(mirtargets_prepared(), con, col.names=TRUE)
+      }
+    )
     
   }
 }

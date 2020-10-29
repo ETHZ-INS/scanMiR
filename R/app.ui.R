@@ -11,7 +11,7 @@ scanMiR.ui <- function(){
     
     ## Sidebar content
     dashboardSidebar(width = "300px",
-                     sidebarMenu(
+                     sidebarMenu(id="main_tabs",
                        menuItem("Species Collection", tabName="tab_collection"),
                        menuItem("Search in\ngene/sequence", 
                                 menuSubItem("subject", "tab_subject"),
@@ -48,6 +48,7 @@ scanMiR.ui <- function(){
                        tabPanel(title="Transcript", value="transcript",
                                 selectizeInput("annotation", "Genome & Annotation", choices=c()),
                                 selectizeInput("gene", "Gene", choices=c()),
+                                htmlOutput("gene_link"),
                                 selectizeInput("transcript", "Transcript", choices=c()),
                                 checkboxInput("utr_only", "UTR only", value = TRUE),
                                 withSpinner(verbatimTextOutput("tx_overview"))
@@ -86,7 +87,8 @@ scanMiR.ui <- function(){
                     column(6, checkboxInput("manhattan_ordinal", "Ordinal position", value=FALSE))
                 ),
                 box(width=12, title="Table", collapsible=TRUE,
-                    withSpinner(DTOutput("hits_table"))
+                    withSpinner(DTOutput("hits_table")),
+                    downloadLink('dl_hits', label = "Download all")
                 ),
                 #box(width=12, title="Visualization on sequence", collapsible=TRUE, 
                 #    collapsed=TRUE
@@ -104,7 +106,7 @@ scanMiR.ui <- function(){
                 column(5, selectizeInput("mirna", "miRNA", choices=c())),
                 column(4, tags$strong("Status"), textOutput("modconservation")),
                 column(3, htmlOutput("mirbase_link")),
-                box(width=12, title="Affinity plot", collapsible=TRUE, collapsed=FALSE,
+                box(width=12, title="Affinity plot", collapsible=TRUE, collapsed=TRUE,
                     withSpinner(plotOutput("modplot")),
                     numericInput("modplot_height", "Plot height (px)", value=400,
                                  min=200, max=1000, step=50)
@@ -113,7 +115,8 @@ scanMiR.ui <- function(){
                     fluidRow(
                       column(6, checkboxInput("targetlist_utronly", "Show only 3'UTR Binding Sites", value=TRUE)),
                       column(6, checkboxInput("targetlist_gene", "Aggregate by gene", value=FALSE))),
-                    withSpinner(DTOutput("mirna_targets"))
+                    withSpinner(DTOutput("mirna_targets")),
+                    downloadLink('dl_mirTargets', label = "Download all")
                 )
         ),
         
