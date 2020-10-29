@@ -60,6 +60,7 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"), shado
                            minLogKd=minLogKd, types=types, 
                            max.noncanonical.motifs=max.noncanonical.motifs,
                            fastRemoveOverlaps=fastRemoveOverlaps, verbose=verbose)
+    if(length(m)==0) return(NULL)
   }else{
     if(is.null(BP)) BP <- SerialParam()
     if(is.null(verbose)) verbose <- !(bpnworkers(BP)>1 | length(seeds)>5)
@@ -69,6 +70,7 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"), shado
                    fastRemoveOverlaps=fastRemoveOverlaps, BPPARAM=BP,
                    FUN=.find1SeedMatches)
     m <- m[!sapply(m,is.null)]
+    if(length(m)==0) return(NULL)
     m <- unlist(GRangesList(m))
   }
 
