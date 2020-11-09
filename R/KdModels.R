@@ -1,135 +1,87 @@
 #' @exportClass KdModel
 setClass(
   "KdModel",
-  contains="lm",
+  contains="list",
   validity=function(object){
-    if(is.null(object$name) || !is.character(object$name) ||
-       length(object$name)!=1)
-      stop("The model should have a `name` slot.")
-    if(is.null(object$canonical.seed) || !is.character(object$canonical.seed) ||
-       length(object$canonical.seed)!=1)
-      stop("The model should have a `canonical.seed` slot (character).")
+    for(f in c("name","canonical.seed","mirseq")){
+      if(is.null(object[[f]]) || !is.character(object[[f]]) || length(object[[f]])!=1)
+        stop("The model should have a `",f,"` slot (character of length 1).")
+    }
+    if(is.null(object$mer8) || length(object$mer8) != 1024 || !is.integer(object$mer8)){
+      stop("The `mer8` slot should be an integer vector of length 1024.")
+    }
+    if(is.null(object$fl) || length(object$fl) != 1024 || !is.integer(object$fl)){
+      stop("The `fl` slot should be an integer vector of length 1024.")
+    }
   }
 )
 
 
 #' @export
 setMethod("show", "KdModel", function(object){
-  cat(paste0("A `KdModel` for ", object$name, " (", object$canonical.seed,")"))
+  cat(paste0("A `KdModel` for ", object$name, "\n  Sequence: ", object$mirseq,
+             "\n  Canonical seed: ", object$canonical.seed,"\n"))
 })
 
 #' @export
 setMethod("summary", "KdModel", function(object){
-  co <- coefficients(object)
-  co <- co[grep("^sr", names(co))]
-  co <- co[grep(":",names(co),invert=TRUE)]
-  names(co) <- gsub("^sr","",names(co))
-  sort(co)
+  show(object)
 })
 
-#' @export
-setMethod("predict", signature(object="KdModel"), function(object, kmers){
-  predictKD(kmers, object)
-})
-
-#' getKdModel
-#' 
-#' Summarizes the binding affinity of 12-mers using linear models.
-#'
-#' @param kd A data.frame with at least the columns "X12mer" and "log_kd", or the path to
-#' such a data.frame
-#' @param name The optional name of the miRNA
-#'
-#' @return A linear model of class `KdModel`
-#' @export
-getKdModel <- function(kd, name=NULL){
+getKdModel <- function(kd, mirseq=NULL, name=NULL, ...){
   if(is.character(kd) && length(kd)==1){
-    if(is.null(name)) name <- gsub("\\.rds$","",basename(kd),ignore.case=TRUE)
+    if(is.null(name)) name <- basename(kd)
     kd <- read.delim(kd, header=TRUE)
   }
-  if("mirseq" %in% colnames(kd)){
-    mirseq <- as.character(kd$mirseq[1])
-    seed <- as.character(reverseComplement(DNAString(substr(mirseq, 2,8))))
-    name <- as.character(kd$mir[1])
-    kd <- kd[,c("X12mer","log_kd")]
-  }else{
-    mirseq <- seed <- NULL
-  }
-  kd <- kd[grep("X",kd$X12mer,invert=TRUE),]
+  if(is.null(mirseq)) mirseq <- as.character(kd$mirseq[1])
+  if(is.null(name)) name <- as.character(kd$mir[1])
+  seed <- paste0(as.character(reverseComplement(DNAString(substr(mirseq, 2,8)))),"A")
+  kd <- kd[,c("X12mer","log_kd")]
+  w <- grepl("X|N",kd$X12mer)
   pwm <- Biostrings::consensusMatrix(
-    as.character(rep(kd$X12mer, floor( (10^(-kd$log_kd))/10 ))),
+    as.character(rep(kd$X12mer[-w], floor( (exp(-kd$log_kd[-w]))/3 ))),
     as.prob=TRUE
   )
-  fields <- c("sr","A","fl")
+  fields <- c("mer8","fl.score")
   if(!all(fields %in% colnames(kd)))
-    kd <- prep12mers(kd)
+    kd <- prep12mers(kd, seed=seed)
   fields <- c(fields, "log_kd")
   if(!all(fields %in% colnames(kd))) stop("Malformed `kd` data.frame.")
-  w <- (1-kd$log_kd)^2
-  w[which(w<0.5)] <- 0.5
-  mod <- lm( log_kd~sr*A+fl, data=kd, model=FALSE, x=FALSE, y=FALSE )
-  mod$cor.with.cnn <- cor(mod$fitted.values, kd$log_kd)
-  mod$mae.with.cnn <- median(abs(mod$residuals))
-  mod$residuals <- NULL
-  mod$fitted.values <- NULL
-  mod$weights <- NULL
-  mod$assign <- NULL
-  mod$effects <- NULL
-  mod$qr <- list(pivot=mod$qr$pivot)
-  mod$name <- name
-  mod$mirseq <- mirseq
-  mod$canonical.seed <- seed
-  mod$pwm <- pwm
-  class(mod) <- c("KdModel", class(mod))
-  new("KdModel", mod)
+  kd$mer8 <- factor(kd$mer8, as.character(1:1024))
+  mod <- speedglm::speedlm(log_kd~0+mer8+mer8:fl.score, data=kd, fitted=TRUE)
+  co <- mod$coefficients
+  w <- grep("fl\\.score$",names(co))
+  co.fl <- as.integer(round(co[w]*1000))
+  co <- as.integer(round(as.numeric(co[-w]*1000)))
+  new("KdModel", list(mer8=co, fl=co.fl, name=name, mirseq=mirseq, canonical.seed=seed,
+                      pwm=pwm, cor=cor(mod$fitted.values, kd$log_kd),
+                      mae=median(abs(kd$log_kd-mod$fitted.values)), ... ))
 }
 
-#' prep12mers
-#'
-#' @param x A vector of 12-mers, or a data.frame containing at least the columns
-#' "X12mer" and "log_kd"
-#' @param mod An optional linear model summarizing the kd activity.
-#' @param maxSeedMedian Max median log_kd for alternative seed inclusion.
-#' @param maxNSeeds Maximum number of seeds to include in the model
-#'
-#' @return A data.frame
-#' @export
-prep12mers <- function(x, mod=NULL, maxSeedMedian=-1.2, maxNSeeds=30){
+prep12mers <- function(x, seed){
   if(is.data.frame(x)){
     if(!all(c("X12mer","log_kd") %in% colnames(x)))
       stop("`x` should be a character vector or a data.frame with the columns ",
            "'X12mer' and 'log_kd'")
-    x <- x[grep("X",x$X12mer,invert=TRUE),]
-    x <- cbind( x[,intersect(c("log_kd","energy"), colnames(x)),drop=FALSE], 
-                prep12mers(x$X12mer) )
-    ag <- aggregate(x$log_kd, by=list(seed=x$sr), FUN=median)
-    seedMed <- ag$x
-    names(seedMed) <- ag[,1]
-    seedMed <- sort(seedMed[seedMed<=maxSeedMedian])
-    seedMed <- names(seedMed)[seq_len(min(length(seedMed), maxNSeeds))]
-    d <- data.frame( log_kd=0, sr="other", A=FALSE, fl=levels(x$fl)[1] )
-    if("energy" %in% colnames(x)) d$energy <- 0
-    return( rbind( d[,colnames(x)], x[x$sr %in% seedMed,] ) )
+    x <- x[grep("N|X",substr(x$X12mer, 3,10),invert=TRUE),]
+    x <- cbind(x[,"log_kd",drop=FALSE], prep12mers(x$X12mer, seed=seed))
+    return(x[!is.na(x$mer8),])
   }
-  x <- as.character(x)
-  sr <- sapply(x, FUN=function(x) substr(x, 3,9))
-  if(!is.null(mod)){
-    if(is.null(mod$xlevels$sr)) stop("The model contains no seed levels.")
-    sr.lvls <- mod$xlevels$sr
-    sr[!(sr %in% sr.lvls)] <- "other"
-  }else{
-    sr.lvls <- c("other",unique(sr))
-  }
-  sr <- factor(sr, sr.lvls)
-  fl <- paste0(substr(x,1,2), substr(x,11,12))
-  d <- data.frame( sr=sr, A=as.logical(substr(x, 10, 10)=="A"),
-                   fl=factor(fl, levels=getKmers(4)), row.names=NULL )
-  d$A[is.na(d$A)] <- FALSE
-  if(!is.null(mod) && any(is.na(d$fl))){
-    fl <- sort(coef(mod)[grep("fl",names(coef(mod)))])
-    d$fl[is.na(d$fl)] <- gsub("^fl","",names(fl)[floor(length(fl)/2)])
-  }
-  d
+  x <- gsub("X","N",as.character(x))
+  y <- .getFlankingScore(x)
+  data.frame(mer8=as.integer(factor(substr(x, 3,10), levels=getSeed8mers(seed))), 
+             fl.score=y$score, fl.ratio=y$ratio)
+}
+
+.getFlankingScore <- function(x){
+  fl.s <- matrix(c(-0.24, -0.14, 0, 0.1, 0.28, -0.24, -0.3, 0, 0.13, 0.42, -0.075, -0.18, 
+                   0, 0, 0.25, -0.1, -0.1, 0, 0, 0.26), 
+                 nrow=5, dimnames=list(c("A","T","N","C","G")))
+  fl.m <- cbind(substr(x,1,1), substr(x,2,2), substr(x,11,11),substr(x,12,12))
+  fl.m <- matrix(as.integer(factor(fl.m, row.names(fl.s))), ncol=4)
+  fl.score <- rowSums(sapply(1:4, FUN=function(i) fl.s[fl.m[,i],i]))
+  fl.ratio <- rowSums( (fl.m-3)>0 ) - rowSums( (fl.m-3)<0 )
+  return(list(score=fl.score, ratio=fl.ratio)  )
 }
 
 #' getKmers
@@ -144,11 +96,47 @@ prep12mers <- function(x, mod=NULL, maxSeedMedian=-1.2, maxNSeeds=30){
 #'
 #' @examples
 #' getKmers(3)
-getKmers <- function(n=4, from=c("G", "C", "T", "A")){
+getKmers <- function(n=4, from=c("A", "C", "G", "T")){
   apply(expand.grid(lapply(seq_len(n), FUN=function(x) from)),
         1,collapse="",FUN=paste)
 }
 
+#' getSeed8mers
+#' 
+#' Generates all possible 8mers with 4 consecutive and positioned matches to a given
+#' seed.
+#'
+#' @param seed The miRNA seed (target DNA sequence), a character vector of length 8 (if 
+#' of length 7, a "A" will be added on the right)
+#'
+#' @return A vector of 1024 8mers.
+#' @export
+#'
+#' @examples
+#' head(getSeed8mers("ACACTCCA"))
+getSeed8mers <- function(seed){
+  a <- strsplit(as.character(seed),"")[[1]]
+  if(length(a)==7) a <- c(a, "A")
+  nts <- c("A","C","G","T")
+  kmers <- expand.grid(nts,nts,nts,nts)
+  unique(unlist(lapply(0:4, FUN=function(x){
+    paste0(
+      do.call(paste0,kmers[,seq_len(x),drop=FALSE]),
+      paste(a[x+1:4],collapse=""),
+      do.call(paste0,kmers[,x+seq_len(4-x),drop=FALSE])
+    )
+  })))
+}
+
+.build4mersRegEx <- function(seed){
+  a <- strsplit(as.character(seed),"")[[1]]
+  if(length(a)==7) a <- c(a, "A")
+  paste(sapply(0:4, FUN=function(x){
+    paste0(paste(rep("[^N]",x), collapse=""),
+           paste(a[x+1:4],collapse=""),
+           paste(rep(".",4-x), collapse=""))
+  }), collapse="|")
+}
 
 #' plotKdModel
 #'
@@ -157,27 +145,26 @@ getKmers <- function(n=4, from=c("G", "C", "T", "A")){
 #'
 #' @return A plot
 #' @export
-plotKdModel <- function(mod, what=c("both","seeds","logo")){
+plotKdModel <- function(mod, what=c("both","seeds","logo"), n=10){
   library(ggplot2)
   what <- match.arg(what)
   if(what=="seeds"){
-    coe <- coefficients(mod)
-    medfl <- median(coe[grep("^fl",names(coe),value=TRUE)],na.rm=TRUE)
-    co <- -coe["(Intercept)"]-coe[paste0("sr",mod$xlevels$sr[-1])]-medfl
-    names(co) <- gsub("^sr","",names(co))
-    co <- sort(co)
-    co <- data.frame(seed=factor(names(co), names(co)), log_kd=as.numeric(co))
-    co$type <- sapply(as.character(co$seed), seed=mod$canonical.seed, .getMatchType)
-    coA <- co
-    aint <- coe[paste0("sr",coA$seed,":ATRUE")]
-    aint[is.na(aint)] <- 0
-    coA$log_kd <- - coe["ATRUE"] - aint
-    coA$type <- "+A"
-    co <- rbind(co,coA)
-    co$type <- factor(co$type, c("+A","7mer-m8","6mer","offset 6mer","non-canonical"))
-    p <- ggplot(co, aes(seed, log_kd, fill=type)) + geom_col() + 
-      coord_flip() + ylab("-log_kd")
-    if(!is.null(mod$name)) p <- p + ggtitle(mod$name)
+    mer8 <- getSeed8mers(mod$canonical.seed)
+    wA <- which(substr(mer8,8,8)=="A")
+    mer7 <- substr(mer8,1,7)
+    As <- mod$mer8[wA]
+    names(As) <- mer7[wA]
+    mer.mean <- rowsum(mod$mer8[-wA],mer7[-wA])[,1]/3
+    As <- As-mer.mean[names(As)]
+    d <- data.frame(seed=names(mer.mean), base=mer.mean/-1000, "A"=As[names(mer.mean)]/-1000,
+                    type=.getMatchTypes(names(mer.mean),mod$canonical.seed), row.names=NULL)
+    d <- d[head(order(d$base+d$A, decreasing=TRUE),n=n),]
+    d$seed <- factor(as.character(d$seed), rev(as.character(d$seed)))
+    levels(d$type) <- c(rep("7mer",2),rep("6mer",3),rep("non-canonical",3))
+    d2 <- data.frame(seed=rep(d$seed,2), log_kd=c(d$base,d$A), type=c(as.character(d$type), rep("+A",n)))
+    p <- ggplot(d2, aes(seed, log_kd, fill=type)) + geom_col() + coord_flip() + 
+      ylab("-log_kd") + ggtitle(mod$name)
+    if(mod$name != mod$mirseq) p <- p + labs(subtitle=mod$mirseq)
     return( p )
   }
   if(what=="logo") return(seqLogo::seqLogo(mod$pwm, xfontsize=12, yfontsize=12))
