@@ -4,7 +4,7 @@
 \alias{plotKdModel}
 \title{plotKdModel}
 \usage{
-plotKdModel(mod, what = c("both", "seeds", "logo"))
+plotKdModel(mod, what = c("both", "seeds", "logo"), n = 10)
 }
 \arguments{
 \item{mod}{A `KdModel`}

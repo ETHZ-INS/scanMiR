@@ -7,7 +7,7 @@
 conservation(x)
 }
 \arguments{
-\item{x}{A CompressedKdModelList, or a KdModel}
+\item{x}{A KdModelList, or a KdModel}
 }
 \value{
 A vector of the conservation status for each miRNA

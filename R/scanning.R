@@ -40,7 +40,8 @@
 #' findSeedMatches(seqs, seeds)
 findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"), shadow=0L, 
                              minLogKd=1, keepMatchSeq=FALSE, maxLoop=10L, mir3p.nts=8L, 
-                             minDist=7L, fastRemoveOverlaps=FALSE, BP=NULL, verbose=NULL){
+                             minDist=7L, onlyCanonical=FALSE, fastRemoveOverlaps=FALSE, 
+                             BP=NULL, verbose=NULL){
   
   if(is.null(verbose)) verbose <- is(seeds,"KdModel") || length(seeds)==1 || is.null(BP)
   if(verbose) message("Preparing sequences...")
@@ -55,7 +56,8 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"), shado
     if(is.null(verbose)) verbose <- TRUE
     m <- .find1SeedMatches(seqs, seeds, keepMatchSeq=keepMatchSeq, minDist=minDist, 
                            minLogKd=minLogKd, maxLoop=maxLoop, mir3p.nts=mir3p.nts,
-                           fastRemoveOverlaps=fastRemoveOverlaps, verbose=verbose)
+                           fastRemoveOverlaps=fastRemoveOverlaps, verbose=verbose,
+                           onlyCanonical=onlyCanonical)
     if(length(m)==0) return(m)
   }else{
     if(is.null(BP)) BP <- SerialParam()
@@ -63,7 +65,7 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"), shado
     m <- bplapply( seeds, seqs=seqs, keepMatchSeq=keepMatchSeq, verbose=verbose, 
                    minDist=minDist, minLogKd=minLogKd, maxLoop=maxLoop, 
                    mir3p.nts=mir3p.nts, fastRemoveOverlaps=fastRemoveOverlaps,
-                   BPPARAM=BP, FUN=.find1SeedMatches)
+                   onlyCanonical=onlyCanonical, BPPARAM=BP, FUN=.find1SeedMatches)
     m <- GRangesList(m)
     if(is.null(names(m))){
       if(!is.character(seeds)) seeds <- sapply(seeds, FUN=function(x){
@@ -81,7 +83,7 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"), shado
   gc(verbose = FALSE, full = TRUE)
   
   names(m) <- row.names(m) <- NULL
-  m <- shift(m, offset)
+  m <- shift(m, -offset)
 
   metadata(m)$call.params <- list(
     shadow=shadow,
@@ -166,13 +168,12 @@ sequences should be in DNA format.")
   seqnms <- names(seqs)
   if(is.character(seqs)) seqs <- DNAStringSet(seqs)
   names(seqs) <- seqnms
-  seqs <- seqs[lengths(seqs)>=(shadow+7)]
-  if(shadow>0){
-    seqs <- subseq(seqs, shadow+1-min(c(shadow,pad[1],2)))
-    pad[1] <- pad[1]-min(shadow,pad[1])
-  }
-  ret$offset <- shadow-pad[1]
-  seqs <- padAndClip(seqs, views=IRanges(start=1-pad[1], width=lengths(seqs)+pad[1]+pad[2]), 
+  shadow <- max(c(0,shadow-1))
+  ret$offset <- max(c(0,pad[1]-max(0,shadow)))
+  seqs <- seqs[lengths(seqs)>=(shadow+8)]
+  seqs <- subseq(seqs,1+shadow,lengths(seqs))
+  seqs <- padAndClip(seqs, views=IRanges( start=1-shadow-ret$offset,
+                                          width=lengths(seqs)+shadow+ret$offset+pad[2] ),
                      Lpadding.letter = "N", Rpadding.letter = "N")
   c(ret, list(seqs=seqs))
 }
@@ -180,7 +181,7 @@ sequences should be in DNA format.")
 
 .find1SeedMatches <- function(seqs, seed, keepMatchSeq=FALSE, minLogKd=0, maxLoop=10, 
                               mir3p.nts=8, minDist=1, fastRemoveOverlaps=FALSE, 
-                              verbose=FALSE){
+                              onlyCanonical=FALSE, verbose=FALSE){
   if(verbose) message("Scanning for matches...")
 
   if(isPureSeed <- is.character(seed)){
@@ -188,7 +189,12 @@ sequences should be in DNA format.")
   }else{
     mod <- seed
     seed <- mod$canonical.seed
-    pos <- gregexpr(paste0("(?=",.build4mersRegEx(seed),")"), seqs, perl=TRUE)
+    if(onlyCanonical){
+      patt <- paste0(".",substr(seed,2,7),".")
+    }else{
+      patt <- .build4mersRegEx(seed)
+    }
+    pos <- gregexpr(paste0("(?=",patt,")"), seqs, perl=TRUE)
   }
   pos <- lapply(lapply(pos, as.numeric), y=-1, setdiff)
   if(sum(lengths(pos))==0){
@@ -199,7 +205,7 @@ sequences should be in DNA format.")
   m <- keepSeqlevels(m, seqlevelsInUse(m))
   m <- m[order(seqnames(m))]
   
-  if(verbose) message("Exctracting sequences and characterizing matches...")
+  if(verbose) message("Extracting sequences and characterizing matches...")
   seqs <- seqs[seqlevels(m)]
   r <- ranges(m)
 
@@ -209,6 +215,7 @@ sequences should be in DNA format.")
     ms <- as.factor(unlist(extractAt(seqs, r)))
     if(keepMatchSeq) mcols(m)$sequence <- ms
     mcols(m)$type <- characterizeSeedMatches(ms, substr(seed,1,7))[,"type"]
+    m <- m[order(seqnames(m), m$type)]
   }else{
     start(r) <- start(r)-1-maxLoop-mir3p.nts
     end(r) <- end(r)+2
@@ -224,27 +231,22 @@ sequences should be in DNA format.")
     rm(al)
     ms <- subseq(ms, maxLoop+mir3p.nts, 11+maxLoop+mir3p.nts)
     if(keepMatchSeq) mcols(m)$sequence <- as.factor(ms)
-    fl.score <- as.numeric(.getFlankingScore(ms)$score)
-    mer8 <- factor(as.character(subseq(ms, 3,10)), levels=getSeed8mers(seed))
-    type <- .getMatchTypes(levels(mer8), seed)
-    mer8 <- as.integer(mer8)
-    mcols(m)$type <- type[mer8]
-    mcols(m)$log_kd <- as.integer(round(mod$mer8[mer8] + fl.score*mod$fl[mer8]))
+    mcols(m) <- cbind(mcols(m), assignKdType(ms, mod))
+    if(!is.null(minLogKd) && "log_kd" %in% colnames(mcols(m))){
+      if(minLogKd>0) minLogKd <- -minLogKd
+      if(minLogKd < -10) minLogKd <- minLogKd*1000
+      m <- m[which(m$log_kd <= as.integer(round(minLogKd)))]
+    }else{
+      m <- m[!is.na(m$log_kd)]
+    }
+    m <- m[order(seqnames(m), m$log_kd, m$type)]
   }
   rm(ms)
-  
-  if(!is.null(minLogKd) && "log_kd" %in% colnames(mcols(m))){
-    if(minLogKd>0) minLogKd <- -minLogKd
-    if(minLogKd < -10) minLogKd <- minLogKd*1000
-    m <- m[which(m$log_kd <= as.integer(round(minLogKd)))]
-  }
-  
   if(minDist>-Inf){
     if(verbose) message("Removing overlaps...")
     m <- removeOverlappingMatches(m, minDist=minDist, 
                                   method=ifelse(fastRemoveOverlaps,"fast","exact"))
   }
-  
   names(m) <- NULL
   m
 }
@@ -339,6 +341,72 @@ characterizeSeedMatches <- function(x, seed=NULL){
   if(grepl(seed6,x,fixed=TRUE)) return("offset 6mer")
   "non-canonical"
 }
+
+runFullScan <- function(species, UTRonly=TRUE, shadow=15, cores=8, minLogKd=0, mods=NULL, ...){
+  start <- Sys.time()
+  message("Loading annotation")
+  suppressPackageStartupMessages({
+    library(ensembldb)
+    library(AnnotationHub)
+    library(BSgenome)
+  })
+  ah <- AnnotationHub()
+  species <- match.arg(species, c("mmu","hsa","rno"))
+  if(species=="hsa"){
+    library(BSgenome.Hsapiens.UCSC.hg38)
+    genome <- BSgenome.Hsapiens.UCSC.hg38
+    if(is.null(mods)) mods <- readRDS(file = "/mnt/schratt/miRNA_KD/Data_Output/mods_hsa_comp.rds")
+    ahid <- rev(query(ah, c("EnsDb", "Homo sapiens"))$ah_id)[1]
+  }else if(species=="mmu"){
+    library(BSgenome.Mmusculus.UCSC.mm10)
+    genome <- BSgenome.Mmusculus.UCSC.mm10
+    if(is.null(mods)) mods <- readRDS(file = "/mnt/schratt/miRNA_KD/Data_Output/mods_mmu_comp.rds")
+    ahid <- rev(query(ah, c("EnsDb", "Mus musculus"))$ah_id)[1]
+  }else if(species=="rno"){
+    library(BSgenome.Rnorvegicus.UCSC.rn6)
+    genome <- BSgenome.Rnorvegicus.UCSC.rn6
+    if(is.null(mods)) mods <- readRDS(file = "/mnt/schratt/miRNA_KD/Data_Output/mods_rno_comp.rds")
+    ahid <- rev(query(ah, c("EnsDb", "Rattus norvegicus"))$ah_id)[1]
+  }
+  ensdb <- ah[[ahid]]
+  seqlevelsStyle(genome) <- "Ensembl"
+  
+  # restrict to canonical chromosomes
+  canonical_chroms <- seqlevels(genome)[!grepl('_', seqlevels(genome))]
+  filt <- SeqNameFilter(canonical_chroms)
+  
+  message("Preparing sequences")
+  grl_UTR <- suppressWarnings(threeUTRsByTranscript(ensdb, filter=filt))
+  seqs <- extractTranscriptSeqs(genome, grl_UTR)
+  utr.len <- lengths(seqs)
+  if(!UTRonly){
+    grl_ORF <- cdsBy(ensdb, by="tx", filter=filt)
+    seqs_ORF <- extractTranscriptSeqs(genome, grl_ORF)
+    tx_info <- data.frame(strand=unlist(unique(strand(grl_ORF))))
+    orf.len <- lengths(seqs_ORF)
+    tx_info$ORF.length <- orf.len[row.names(tx_info)]
+    seqs_ORF[names(seqs)] <- xscat(seqs_ORF[names(seqs)],seqs)
+    seqs <- seqs_ORF
+    rm(seqs_ORF)
+  }else{
+    tx_info <- data.frame(strand=unlist(unique(strand(grl_UTR))))
+  }
+  tx_info$UTR.length <- utr.len[row.names(tx_info)]
+  
+  message("Scanning")
+  m <- findSeedMatches(seqs, mods, shadow=ifelse(UTRonly,shadow,0), minLogKd=minLogKd,
+                       BP=MulticoreParam(cores, progress=TRUE), ...)
+  if(!UTRonly)
+    m$ORF <- start(m) < orf.len[seqlevels(m)][as.integer(seqnames(m))] + shadow
+
+  metadata(m)$tx_info <- tx_info
+  metadata(m)$ah_id <- ahid
+  saveRDS(m, file=paste(species, ifelse(UTRonly,"utrs","full"), "matches.rds", sep="."))
+  end <- Sys.time()
+  return(end-start)
+}
+
+
 
 .datatable.aware = TRUE
 

@@ -4,7 +4,7 @@
 \alias{getKmers}
 \title{getKmers}
 \usage{
-getKmers(n = 4, from = c("G", "C", "T", "A"))
+getKmers(n = 4, from = c("A", "C", "G", "T"))
 }
 \arguments{
 \item{n}{Number of elements}

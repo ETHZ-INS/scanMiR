@@ -8,12 +8,13 @@ findSeedMatches(
   seqs,
   seeds,
   seedtype = c("auto", "RNA", "DNA"),
-  shadow = 0,
+  shadow = 0L,
   minLogKd = 1,
-  types = NULL,
-  max.noncanonical.motifs = Inf,
   keepMatchSeq = FALSE,
+  maxLoop = 10L,
+  mir3p.nts = 8L,
   minDist = 7L,
+  onlyCanonical = FALSE,
   fastRemoveOverlaps = FALSE,
   BP = NULL,
   verbose = NULL
@@ -34,11 +35,6 @@ hidden at the beginning of the sequence (default 0)}
 
 \item{minLogKd}{Minimum log_kd value to keep (default 1). Set to 0 to disable.}
 
-\item{types}{The type of sites to return (default all)}
-
-\item{max.noncanonical.motifs}{The maximum number of non-canonical motifs to search 
-for (default all)}
-
 \item{keepMatchSeq}{Logical; whether to keep the sequence (including flanking
 dinucleotides) for each seed match (default FALSE).}
 
@@ -55,6 +51,11 @@ multithreading.}
 
 \item{verbose}{Logical; whether to print additional progress messages (default on if 
 not multithreading)}
+
+\item{types}{The type of sites to return (default all)}
+
+\item{max.noncanonical.motifs}{The maximum number of non-canonical motifs to search 
+for (default all)}
 }
 \value{
 A GRanges of all matches
