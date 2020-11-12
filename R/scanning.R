@@ -461,9 +461,9 @@ agg.repr <- function(x, b=1.8, ag=10^-2){
 #' @param e A GRanges object as produced by `findSeedMatches`.
 #' @param kd_cut_off A cutoff value for log_kd values
 #' @param ag The 'ag' value for the aggregation, corresponding to the free
-#'   concentration of AGO
+#' concentration of AGO
 #' @param keepSiteInfo An option on wether to also keep info concerning the
-#'   number of Binding Sites
+#' number of Binding Sites
 #'
 #' @return An aggregated data.frame
 #' @importFrom data.table data.table as.data.table dcast
