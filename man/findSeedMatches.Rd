@@ -9,31 +9,30 @@ findSeedMatches(
   seeds,
   seedtype = c("auto", "RNA", "DNA"),
   shadow = 0L,
-  minLogKd = 1,
+  minLogKd = 0,
   keepMatchSeq = FALSE,
   maxLoop = 10L,
   mir3p.nts = 8L,
   minDist = 7L,
   onlyCanonical = FALSE,
-  fastRemoveOverlaps = FALSE,
   BP = NULL,
   verbose = NULL
 )
 }
 \arguments{
-\item{seqs}{A character vector or `XStringSet`` of sequences in which to look.}
+\item{seqs}{A character vector or `XStringSet` of sequences in which to look.}
 
 \item{seeds}{A character vector of 7-nt seeds to look for. If RNA, will be 
 reversed and complemented before matching. If DNA, they are assumed to be
 the target sequence to look for. Alternatively, a list of objects of class
-`KdModel` or an object of class `CompressedKdModelList` can be given.}
+`KdModel` or an object of class `KdModelList` can be given.}
 
 \item{seedtype}{Either RNA, DNA or 'auto' (default)}
 
 \item{shadow}{Integer giving the shadow, i.e. the number of nucleotides
 hidden at the beginning of the sequence (default 0)}
 
-\item{minLogKd}{Minimum log_kd value to keep (default 1). Set to 0 to disable.}
+\item{minLogKd}{Minimum log_kd value to keep (default 0). Set to Inf to disable.}
 
 \item{keepMatchSeq}{Logical; whether to keep the sequence (including flanking
 dinucleotides) for each seed match (default FALSE).}
@@ -42,23 +41,19 @@ dinucleotides) for each seed match (default FALSE).}
 miRNA (default 1). Closer matches will be reduced to the highest-affinity. To 
 disable the removal of overlapping features, use `minDist=-Inf`.}
 
-\item{fastRemoveOverlaps}{Whether to use the fast (rather than exact) method to remove 
-overlaps. Will improve speed, but some matching sites near stronger ones (but beyond 
-minDist) might be lost when more than two sites overlap. Not recommended.}
+\item{onlyCanonical}{Logical; whether to restrict the search only to canonical
+binding sites.}
 
 \item{BP}{Pass `BiocParallel::MulticoreParam(ncores, progressbar=TRUE)` to enable 
 multithreading.}
 
 \item{verbose}{Logical; whether to print additional progress messages (default on if 
 not multithreading)}
-
-\item{types}{The type of sites to return (default all)}
-
-\item{max.noncanonical.motifs}{The maximum number of non-canonical motifs to search 
-for (default all)}
 }
 \value{
-A GRanges of all matches
+A GRanges of all matches. If `seeds` is a `KdModel` or `KdModelList`, the 
+`log_kd` column will report the ln(Kd) multiplied by 1000, rounded and saved as an 
+integer.
 }
 \description{
 findSeedMatches

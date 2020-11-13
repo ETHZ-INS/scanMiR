@@ -1,34 +1,32 @@
 #' findSeedMatches
 #'
-#' @param seqs A character vector or `XStringSet`` of sequences in which to look.
+#' @param seqs A character vector or `XStringSet` of sequences in which to look.
 #' @param seeds A character vector of 7-nt seeds to look for. If RNA, will be 
 #' reversed and complemented before matching. If DNA, they are assumed to be
 #' the target sequence to look for. Alternatively, a list of objects of class
-#' `KdModel` or an object of class `CompressedKdModelList` can be given.
+#' `KdModel` or an object of class `KdModelList` can be given.
 #' @param seedtype Either RNA, DNA or 'auto' (default)
 #' @param shadow Integer giving the shadow, i.e. the number of nucleotides
 #'  hidden at the beginning of the sequence (default 0)
-#' @param minLogKd Minimum log_kd value to keep (default 1). Set to 0 to disable.
-#' @param types The type of sites to return (default all)
-#' @param max.noncanonical.motifs The maximum number of non-canonical motifs to search 
-#' for (default all)
+#' @param minLogKd Minimum log_kd value to keep (default 0). Set to Inf to disable.
 #' @param keepMatchSeq Logical; whether to keep the sequence (including flanking
 #' dinucleotides) for each seed match (default FALSE).
+#' @param onlyCanonical Logical; whether to restrict the search only to canonical
+#' binding sites.
 #' @param minDist Integer specifying the minimum distance between matches of the same 
 #' miRNA (default 1). Closer matches will be reduced to the highest-affinity. To 
 #' disable the removal of overlapping features, use `minDist=-Inf`.
-#' @param fastRemoveOverlaps Whether to use the fast (rather than exact) method to remove 
-#' overlaps. Will improve speed, but some matching sites near stronger ones (but beyond 
-#' minDist) might be lost when more than two sites overlap. Not recommended.
 #' @param BP Pass `BiocParallel::MulticoreParam(ncores, progressbar=TRUE)` to enable 
 #' multithreading.
 #' @param verbose Logical; whether to print additional progress messages (default on if 
 #' not multithreading)
 #'
-#' @return A GRanges of all matches
+#' @return A GRanges of all matches. If `seeds` is a `KdModel` or `KdModelList`, the 
+#' `log_kd` column will report the ln(Kd) multiplied by 1000, rounded and saved as an 
+#' integer.
 #' 
 #' @importFrom BiocParallel bplapply SerialParam bpnworkers
-#' @import BiocParallel Biostrings GenomicRanges
+#' @import Biostrings GenomicRanges
 #' @export
 #'
 #' @examples
@@ -39,9 +37,8 @@
 #' seeds <- c("AAACCAC", "AAACCUU")
 #' findSeedMatches(seqs, seeds)
 findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"), shadow=0L, 
-                             minLogKd=1, keepMatchSeq=FALSE, maxLoop=10L, mir3p.nts=8L, 
-                             minDist=7L, onlyCanonical=FALSE, fastRemoveOverlaps=FALSE, 
-                             BP=NULL, verbose=NULL){
+                             minLogKd=0, keepMatchSeq=FALSE, maxLoop=10L, mir3p.nts=8L, 
+                             minDist=7L, onlyCanonical=FALSE, BP=NULL, verbose=NULL){
   
   if(is.null(verbose)) verbose <- is(seeds,"KdModel") || length(seeds)==1 || is.null(BP)
   if(verbose) message("Preparing sequences...")
@@ -56,16 +53,15 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"), shado
     if(is.null(verbose)) verbose <- TRUE
     m <- .find1SeedMatches(seqs, seeds, keepMatchSeq=keepMatchSeq, minDist=minDist, 
                            minLogKd=minLogKd, maxLoop=maxLoop, mir3p.nts=mir3p.nts,
-                           fastRemoveOverlaps=fastRemoveOverlaps, verbose=verbose,
-                           onlyCanonical=onlyCanonical)
+                           onlyCanonical=onlyCanonical, verbose=verbose)
     if(length(m)==0) return(m)
   }else{
     if(is.null(BP)) BP <- SerialParam()
     if(is.null(verbose)) verbose <- !(bpnworkers(BP)>1 | length(seeds)>5)
     m <- bplapply( seeds, seqs=seqs, keepMatchSeq=keepMatchSeq, verbose=verbose, 
                    minDist=minDist, minLogKd=minLogKd, maxLoop=maxLoop, 
-                   mir3p.nts=mir3p.nts, fastRemoveOverlaps=fastRemoveOverlaps,
-                   onlyCanonical=onlyCanonical, BPPARAM=BP, FUN=.find1SeedMatches)
+                   mir3p.nts=mir3p.nts, onlyCanonical=onlyCanonical, 
+                   BPPARAM=BP, FUN=.find1SeedMatches)
     m <- GRangesList(m)
     if(is.null(names(m))){
       if(!is.character(seeds)) seeds <- sapply(seeds, FUN=function(x){
@@ -94,48 +90,119 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"), shado
   m
 }
 
+# scan for a single seed
+.find1SeedMatches <- function(seqs, seed, keepMatchSeq=FALSE, minLogKd=0, maxLoop=10, 
+                              mir3p.nts=8, minDist=1, onlyCanonical=FALSE, verbose=FALSE){
+  if(verbose) message("Scanning for matches...")
+  
+  if(isPureSeed <- is.character(seed)){
+    pos <- gregexpr(paste0("(?=.",substr(seed,2,7),".)"), seqs, perl=TRUE)
+  }else{
+    mod <- seed
+    seed <- mod$canonical.seed
+    if(onlyCanonical){
+      patt <- paste0(".",substr(seed,2,7),".")
+    }else{
+      patt <- .build4mersRegEx(seed)
+    }
+    pos <- gregexpr(paste0("(?=",patt,")"), seqs, perl=TRUE)
+  }
+  pos <- lapply(lapply(pos, as.numeric), y=-1, setdiff)
+  if(sum(lengths(pos))==0){
+    if(verbose) message("Nothing found!")
+    return(GRanges())
+  }
+  m <- GRanges( rep(names(seqs), lengths(pos)), IRanges( start=unlist(pos), width=8 ) )
+  m <- keepSeqlevels(m, seqlevelsInUse(m))
+  m <- m[order(seqnames(m))]
+  
+  if(verbose) message("Extracting sequences and characterizing matches...")
+  seqs <- seqs[seqlevels(m)]
+  r <- ranges(m)
+  
+  if(isPureSeed){
+    r <- split(r, seqnames(m))
+    names(r) <- NULL
+    ms <- as.factor(unlist(extractAt(seqs, r)))
+    if(keepMatchSeq) mcols(m)$sequence <- ms
+    mcols(m)$type <- getMatchTypes(levels(ms), substr(seed,1,7))[as.integer(ms)]
+    m <- m[order(seqnames(m), m$type)]
+  }else{
+    start(r) <- start(r)-1-maxLoop-mir3p.nts
+    end(r) <- end(r)+2
+    r <- split(r, seqnames(m))
+    names(r) <- NULL
+    ms <- unlist(extractAt(seqs, r))
+    names(ms) <- NULL
+    mir.3p <- as.character(reverseComplement(DNAString(
+      substr(mod$mirseq, 12, min(c(11+mir3p.nts, nchar(mod$mirseq)))) )))
+    al <- pairwiseAlignment(subseq(ms,1,maxLoop+mir3p.nts), mir.3p, 
+                            type="local", scoreOnly=TRUE)
+    mcols(m)$align.3p <- as.integer(round(1000*al))
+    rm(al)
+    ms <- subseq(ms, maxLoop+mir3p.nts, 11+maxLoop+mir3p.nts)
+    if(keepMatchSeq) mcols(m)$sequence <- as.factor(ms)
+    mcols(m) <- cbind(mcols(m), assignKdType(ms, mod))
+    if(!is.null(minLogKd) && minLogKd!=Inf){
+      if(minLogKd>0) minLogKd <- -minLogKd
+      if(minLogKd < -10) minLogKd <- minLogKd*1000
+      m <- m[which(m$log_kd <= as.integer(round(minLogKd)))]
+    }else{
+      m <- m[!is.na(m$log_kd)]
+    }
+    m <- m[order(seqnames(m), m$log_kd, m$type)]
+  }
+  rm(ms)
+  if(minDist>-Inf){
+    if(verbose) message("Removing overlaps...")
+    m <- removeOverlappingRanges(m, minDist=minDist)
+  }
+  names(m) <- NULL
+  m
+}
 
-#' removeOverlappingMatches
+#' removeOverlappingRanges
 #' 
 #' Removes elements from a GRanges that overlap (or are within a given distance of) other 
 #' elements higher up in the list (i.e. assumes that the ranges are sorted in order of
 #' priority). The function handles overlaps between more than two ranges by successively
-#' removing those that overlap higher-priority ones
+#' removing those that overlap higher-priority ones.
 #'
 #' @param x A GRanges, sorted by (decreasing) importance
 #' @param minDist Minimum distance between ranges
 #'
 #' @return A filtered GRanges.
 #' @export
-removeOverlappingMatches <- function(x, minDist=7L, method=c("exact","fast")){
-  method <- match.arg(method)
+#' @examples
+#' gr <- GRanges(seqnames=rep("A",4), IRanges(start=c(10,25,45,35), width=6))
+#' removeOverlappingRanges(gr, minDist=7)
+removeOverlappingRanges <- function(x, minDist=7L){
   red <- GenomicRanges::reduce(x, with.revmap=TRUE, min.gapwidth=minDist)$revmap
   red <- red[lengths(red)>1]
   if(length(red)==0) return(x)
-  if(method=="fast"){
-    toRemove <- setdiff(unlist(red),min(red))
-  }else{
-    red2 <- red[lengths(red)==2]
-    toRemove <- setdiff(unlist(red2), min(red2))
-    toRemove <- c(toRemove, unlist(lapply( red[lengths(red)>2], FUN=function(i){
-      w <- j <- i <- sort(i)
-      y <- ranges(x)[i]
-      while(length(y)>1 && length(w)>0){
-        # remove anything overlappnig the top one
-        w <- 1+which(overlapsAny(y[-1],y,maxgap=minDist))
-        if(length(w)>0){
-          j <- j[-w]
-          y <- y[-w]
-        }
-      }
-      return(setdiff(i,j))
-    })))
+  i <- seq_along(x)
+  toRemove <- c()
+  while(length(red)>0){
+    ## for each overlap set, we flag the index (relative to i) of the maximum
+    ## (i.e. lowest in the list)
+    torem <- max(red) ## indexes to remove, relative to i
+    toRemove <- c(toRemove, i[torem]) ## relative to x
+    if(length(w <- which(lengths(red)>2))>0){
+      ## if there are sets that will still have more than 1 range after removal,
+      ## we extract the indexes of those elements
+      i <- sort(i[setdiff(unlist(red[w]), torem)])
+      ## and check again overlaps among this subset (revmap indexes are relative to i)
+      red <- GenomicRanges::reduce(x[i], with.revmap=TRUE, min.gapwidth=minDist)$revmap
+      red <- red[lengths(red)>1]
+    }else{
+      red <- c()
+    }
   }
   if(length(toRemove)>0) x <- x[-toRemove]
   x
 }
 
-
+# determines target and seed sequence type, converts if necessary, and adds padding/shadow
 .prepSeqs <- function(seqs, seeds, seedtype=c("auto", "RNA","DNA"), shadow=0, pad=c(0,0)){
   if(is.null(names(seqs))) names(seqs) <- paste0("seq",seq_along(seqs))
   seedtype <- match.arg(seedtype)
@@ -178,170 +245,41 @@ sequences should be in DNA format.")
   c(ret, list(seqs=seqs))
 }
 
-
-.find1SeedMatches <- function(seqs, seed, keepMatchSeq=FALSE, minLogKd=0, maxLoop=10, 
-                              mir3p.nts=8, minDist=1, fastRemoveOverlaps=FALSE, 
-                              onlyCanonical=FALSE, verbose=FALSE){
-  if(verbose) message("Scanning for matches...")
-
-  if(isPureSeed <- is.character(seed)){
-    pos <- gregexpr(paste0("(?=.",substr(seed,2,7),".)"), seqs, perl=TRUE)
-  }else{
-    mod <- seed
-    seed <- mod$canonical.seed
-    if(onlyCanonical){
-      patt <- paste0(".",substr(seed,2,7),".")
-    }else{
-      patt <- .build4mersRegEx(seed)
-    }
-    pos <- gregexpr(paste0("(?=",patt,")"), seqs, perl=TRUE)
-  }
-  pos <- lapply(lapply(pos, as.numeric), y=-1, setdiff)
-  if(sum(lengths(pos))==0){
-    if(verbose) message("Nothing found!")
-    return(GRanges())
-  }
-  m <- GRanges( rep(names(seqs), lengths(pos)), IRanges( start=unlist(pos), width=8 ) )
-  m <- keepSeqlevels(m, seqlevelsInUse(m))
-  m <- m[order(seqnames(m))]
-  
-  if(verbose) message("Extracting sequences and characterizing matches...")
-  seqs <- seqs[seqlevels(m)]
-  r <- ranges(m)
-
-  if(isPureSeed){
-    r <- split(r, seqnames(m))
-    names(r) <- NULL
-    ms <- as.factor(unlist(extractAt(seqs, r)))
-    if(keepMatchSeq) mcols(m)$sequence <- ms
-    mcols(m)$type <- characterizeSeedMatches(ms, substr(seed,1,7))[,"type"]
-    m <- m[order(seqnames(m), m$type)]
-  }else{
-    start(r) <- start(r)-1-maxLoop-mir3p.nts
-    end(r) <- end(r)+2
-    r <- split(r, seqnames(m))
-    names(r) <- NULL
-    ms <- unlist(extractAt(seqs, r))
-    names(ms) <- NULL
-    mir.3p <- as.character(reverseComplement(DNAString(
-      substr(mod$mirseq, 12, min(c(11+mir3p.nts, nchar(mod$mirseq)))) )))
-    al <- pairwiseAlignment(subseq(ms,1,maxLoop+mir3p.nts), mir.3p, 
-                            type="local", scoreOnly=TRUE)
-    mcols(m)$align.3p <- as.integer(round(1000*al))
-    rm(al)
-    ms <- subseq(ms, maxLoop+mir3p.nts, 11+maxLoop+mir3p.nts)
-    if(keepMatchSeq) mcols(m)$sequence <- as.factor(ms)
-    mcols(m) <- cbind(mcols(m), assignKdType(ms, mod))
-    if(!is.null(minLogKd) && "log_kd" %in% colnames(mcols(m))){
-      if(minLogKd>0) minLogKd <- -minLogKd
-      if(minLogKd < -10) minLogKd <- minLogKd*1000
-      m <- m[which(m$log_kd <= as.integer(round(minLogKd)))]
-    }else{
-      m <- m[!is.na(m$log_kd)]
-    }
-    m <- m[order(seqnames(m), m$log_kd, m$type)]
-  }
-  rm(ms)
-  if(minDist>-Inf){
-    if(verbose) message("Removing overlaps...")
-    m <- removeOverlappingMatches(m, minDist=minDist, 
-                                  method=ifelse(fastRemoveOverlaps,"fast","exact"))
-  }
-  names(m) <- NULL
-  m
-}
-
-.guessSeqType <- function(x, use.subset=TRUE){
-  seqs <- x[sample.int(length(x),min(length(x),10))]
-  u <- any(grepl("U",seqs))
-  t <- any(grepl("T",seqs))
-  if(t && u) stop("Sequences contain both T and U!")
-  if(t || u) return(ifelse(u,"RNA","DNA"))
-  if(length(seqs)>10) return(.guessSeqType(x, FALSE))
-  warning("Sequences contain neither T or U - assuming they are DNA...")
-  return("DNA")
-}
-
-#' characterizeSeedMatches
+#' getMatchTypes
+#' 
+#' Given a seed and a set of sequences mathcing it, returns the type of match.
 #'
-#' @param x A factor or character vector of matches, or a data.frame or GRanges
-#' containing a `sequence` column.
-#' @param seed The seed which sequences of `x` should match, or a 'KdModel' object.
+#' @param x A character vector of short sequences.
+#' @param seed A 7 or 8 nucleotides string indicating the seed (5' to 3' sequence of the
+#' target RNA). If of length 7, an "A" will be appended.
 #'
-#' @return A data.frame, or a `GRanges` if `x` is a `GRanges`
+#' @return A factor of match types.
 #' @export
 #'
 #' @examples
-#' characterizeSeedMatches(c("UAAACCACCC","CGAACCACUG"), "AAACCAC")
-characterizeSeedMatches <- function(x, seed=NULL){
-  if(is(seed, "KdModel")){
-    kd.model <- seed
-    sseed <- seed$canonical.seed
-  }else{
-    kd.model <- NULL
-    sseed <- seed
-  }
-  sseed <- as.character(sseed)
-  if(length(sseed)>1 || nchar(sseed)!=7) 
-    stop("`seed` must contain a single string of 7 characters.")
-  if(!is.character(x) && !is.factor(x) && !is(x,"Rle")){
-    y <- characterizeSeedMatches(x$sequence, seed)
-    if(is(x,"GRanges")){
-      mcols(x) <- cbind(mcols(x), y)
-    }else{
-      x <- cbind(x,y)
-    }
-    return(x)
-  }
-  if(is(x,"Rle") || any(duplicated(x))){
-    # we resolve type for unique sequences
-    if(!is.null(levels(x))){
-      levels(x) <- gsub("N","x",levels(x))
-      y <- characterizeSeedMatches(levels(x), seed)
-    }else{
-      x <- gsub("N","x",x)
-      y <- characterizeSeedMatches(unique(x), seed)
-    }
-    y <- y[as.character(x),,drop=FALSE]
-    row.names(y) <- NULL
-    return(y)
-  }
-  d <- data.frame( row.names=x, type=.getMatchTypes(as.character(x), seed=sseed) )
-  if(!is.null(kd.model)) d$log_kd <- predictKD(row.names(d), kd.model)
-  d
-}
-
-.getMatchTypes <- function(x, seed){
+#' x <- c("AACACTCCAG","GACACTCCGC","GTACTCCAT","ACGTACGTAC")
+#' getMatchTypes(x, seed="ACACTCCA")
+getMatchTypes <- function(x, seed){
   x <- as.character(x)
   y <- rep(1L,length(x))
+  seed <- as.character(seed)
+  if(length(seed)!=1 || !(nchar(seed) %in% c(7,8)))
+    stop("'seed' should be a string of 7 or 8 characters")
   if(nchar(seed)==7) seed <- paste0(seed,"A")
   seed6 <- substr(seed,2,7)
-  y[grep(seed6,x,fixed=TRUE)] <- 2L # offset 6mer
-  y[grep(paste0("[ACGT]","[ACGT]",substr(seed,3,8)),x)] <- 3L # 6mer-a1
-  y[grep(paste0(substr(seed,1,6),"[ACGT][ACGT]"),x)] <- 4L # 6mer-m8
-  y[grep(paste0("[ACGT]",substr(seed,2,7)),x)] <- 5L # 6mer
-  y[grep(paste0("[ACGT]",substr(seed,2,8)),x)] <- 6L # 7mer-a1
-  y[grep(substr(seed,1,7),x,fixed=TRUE)] <- 7L # 7mer-m8
-  y[grep(seed,x,fixed=TRUE)] <- 8L # 8mer
-  factor(y, levels=8:1, labels=c("8mer","7mer-m8","7mer-a1","6mer","6mer-m8",
-                                 "6mer-a1","offset 6mer","non-canonical"))
+  y[grep(paste0("[ACGT]","[ACGT]",substr(seed,3,8)),x)] <- 2L # 6mer-a1
+  y[grep(paste0(substr(seed,1,6),"[ACGT][ACGT]"),x)] <- 3L # 6mer-m8
+  y[grep(paste0("[ACGT]",substr(seed,2,7)),x)] <- 4L # 6mer
+  y[grep(paste0("[ACGT]",substr(seed,2,8)),x)] <- 5L # 7mer-a1
+  y[grep(substr(seed,1,7),x,fixed=TRUE)] <- 6L # 7mer-m8
+  y[grep(seed,x,fixed=TRUE)] <- 7L # 8mer
+  factor(y, levels=7:1, labels=c("8mer","7mer-m8","7mer-a1","6mer","6mer-m8",
+                                 "6mer-a1","non-canonical"))
 }
 
-# deprecated, to be removed
-.getMatchType <- function(x, seed){
-  if(grepl(paste0(seed,"A"),x,fixed=TRUE)) return("8mer")
-  if(grepl(seed,x,fixed=TRUE)) return("7mer-m8")
-  seed6 <- substr(seed,2,7)
-  if(grepl(paste0("[ACGT]",seed6,"A"),x)) return("7mer-a1")
-  if(grepl(paste0("[ACGT]",seed6),x)) return("6mer")
-  seed5m <- substr(seed,1,6)
-  if(grepl(paste0(seed5m,"[ACGT]","[ACGT]"),x)) return("6mer-m8")
-  seed5 <- substr(seed,3,7)
-  if(grepl(paste0("[ACGT]","[ACGT]",seed5,"A"),x)) return("6mer-a1")
-  if(grepl(seed6,x,fixed=TRUE)) return("offset 6mer")
-  "non-canonical"
-}
-
+#' runFullScan
+#' 
+#' @export
 runFullScan <- function(species, UTRonly=TRUE, shadow=15, cores=8, minLogKd=0, mods=NULL, ...){
   start <- Sys.time()
   message("Loading annotation")
@@ -353,18 +291,15 @@ runFullScan <- function(species, UTRonly=TRUE, shadow=15, cores=8, minLogKd=0, m
   ah <- AnnotationHub()
   species <- match.arg(species, c("mmu","hsa","rno"))
   if(species=="hsa"){
-    library(BSgenome.Hsapiens.UCSC.hg38)
-    genome <- BSgenome.Hsapiens.UCSC.hg38
+    genome <- BSgenome.Hsapiens.UCSC.hg38::BSgenome.Hsapiens.UCSC.hg38
     if(is.null(mods)) mods <- readRDS(file = "/mnt/schratt/miRNA_KD/Data_Output/mods_hsa_comp.rds")
     ahid <- rev(query(ah, c("EnsDb", "Homo sapiens"))$ah_id)[1]
   }else if(species=="mmu"){
-    library(BSgenome.Mmusculus.UCSC.mm10)
-    genome <- BSgenome.Mmusculus.UCSC.mm10
+    genome <- BSgenome.Mmusculus.UCSC.mm10::BSgenome.Mmusculus.UCSC.mm10
     if(is.null(mods)) mods <- readRDS(file = "/mnt/schratt/miRNA_KD/Data_Output/mods_mmu_comp.rds")
     ahid <- rev(query(ah, c("EnsDb", "Mus musculus"))$ah_id)[1]
   }else if(species=="rno"){
-    library(BSgenome.Rnorvegicus.UCSC.rn6)
-    genome <- BSgenome.Rnorvegicus.UCSC.rn6
+    genome <- BSgenome.Rnorvegicus.UCSC.rn6::BSgenome.Rnorvegicus.UCSC.rn6
     if(is.null(mods)) mods <- readRDS(file = "/mnt/schratt/miRNA_KD/Data_Output/mods_rno_comp.rds")
     ahid <- rev(query(ah, c("EnsDb", "Rattus norvegicus"))$ah_id)[1]
   }
