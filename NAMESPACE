@@ -2,6 +2,7 @@
 
 export(aggregateMatches)
 export(assignKdType)
+export(aggregateMatches_Biochem)
 export(conservation)
 export(findSeedMatches)
 export(getKmers)

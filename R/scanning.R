@@ -345,6 +345,11 @@ runFullScan <- function(species, UTRonly=TRUE, shadow=15, cores=8, minLogKd=0, m
 
 .datatable.aware = TRUE
 
+
+
+
+# deprecated, to be removed
+
 #' aggregateMatches
 #'
 #' @param e A GRanges object as produced by `findSeedMatches`.
@@ -380,3 +385,64 @@ aggregateMatches <- function(e, fn=agg.repr){
 agg.repr <- function(x, b=1.8, ag=10^-2){
   log(1+b*sum(ag/(ag+rep(1,length(x)))))-log(1+b*sum(ag/(ag+10^x)))
 }
+
+
+
+#' aggregateMatches_Biochem
+#'
+#' Aggregates Matches of the findSeedMatches function according to the
+#' "Biochemical Model" of McGeary et al., 2020, Science
+#'
+#' @param e A GRanges object as produced by `findSeedMatches`.
+#' @param kd_cut_off A cutoff value for log_kd values
+#' @param ag The 'ag' value for the aggregation, corresponding to the free
+#' concentration of AGO
+#' @param keepSiteInfo An option on wether to also keep info concerning the
+#' number of Binding Sites
+#' @param ORF Option indicating whether sites in the open reading frame are
+#' included in the scan. If they are included, a column named 'ORF' with
+#' 'TRUE' / 'FALSE' entries should characterize each site.
+#'
+#' @return An aggregated data.frame
+#' @importFrom data.table data.table as.data.table dcast
+#' @importFrom GenomicRanges mcols
+#' @export
+aggregateMatches_Biochem <- function(e , kd_cut_off = 0, ag = -6.5, ORF = TRUE, keepSiteInfo = FALSE){
+  
+  b <- 0.8655766248703003
+  c <- -1.848806619644165
+  m <- as.data.frame(mcols(e))
+  m$transcript <- as.factor(seqnames(e))
+  m <- as.data.table(m)
+  
+  if(ORF) {
+    m$c <- ifelse(m$ORF=="TRUE", c, 0)
+  }else{
+    m$c <- 0
+  }
+  
+  m$ag <- ag
+  m$log_kd <- m$log_kd / 1000
+  m <- m[m$log_kd < kd_cut_off,]
+  m$log_ka <- -m$log_kd
+  m$N <- 1 / (1 + exp(-1 * (m$ag + m$log_ka + m$c)))
+  m$N_bg <- 1 / (1 + exp(-1 * (m$ag  + m$c)))
+  m_agg <- m[,.(N = sum(N),N_bg = sum(N_bg)),by = c("transcript","miRNA")]
+  
+  if(keepSiteInfo){
+    m_agg2 <- dcast( m[,.(N=.N), by=c("transcript","miRNA","type")],
+                     formula=transcript+miRNA~type, value.var="N", fill=0)
+    m_agg <- merge(m_agg, m_agg2, by=c("transcript","miRNA"), all=TRUE)
+  }
+  
+  m_agg$repression <- log(1 + exp(b)*m_agg$N_bg) - log(1 + exp(b)*m_agg$N)
+  return(m_agg)
+} 
+
+
+
+
+
+
+
+
