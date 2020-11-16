@@ -79,7 +79,7 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"), shado
   gc(verbose = FALSE, full = TRUE)
   
   names(m) <- row.names(m) <- NULL
-  m <- shift(m, -offset)
+  m <- IRanges::shift(m, -offset)
 
   metadata(m)$call.params <- list(
     shadow=shadow,
