@@ -37,7 +37,7 @@
 #' seeds <- c("AAACCAC", "AAACCUU")
 #' findSeedMatches(seqs, seeds)
 findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"), shadow=0L, 
-                             minLogKd=0, keepMatchSeq=FALSE, maxLoop=10L, mir3p.nts=8L, 
+                             minLogKd=0, keepMatchSeq=FALSE, maxLoop=10L, mir3p.nts=6L, 
                              minDist=7L, onlyCanonical=FALSE, BP=NULL, verbose=NULL){
   
   if(is.null(verbose)) verbose <- is(seeds,"KdModel") || length(seeds)==1 || is.null(BP)
@@ -185,18 +185,15 @@ removeOverlappingRanges <- function(x, minDist=7L){
   while(length(red)>0){
     ## for each overlap set, we flag the index (relative to i) of the maximum
     ## (i.e. lowest in the list)
-    torem <- max(red) ## indexes to remove, relative to i
-    toRemove <- c(toRemove, i[torem]) ## relative to x
-    if(length(w <- which(lengths(red)>2))>0){
-      ## if there are sets that will still have more than 1 range after removal,
-      ## we extract the indexes of those elements
-      i <- sort(i[setdiff(unlist(red[w]), torem)])
-      ## and check again overlaps among this subset (revmap indexes are relative to i)
-      red <- GenomicRanges::reduce(x[i], with.revmap=TRUE, min.gapwidth=minDist)$revmap
-      red <- red[lengths(red)>1]
-    }else{
-      red <- c()
-    }
+    top <- min(red) ## indexes of the top entry per overlap set, relative to i
+    ## overlap of non-top entries to the top entries:
+    o <- GenomicRanges::overlapsAny(x[i[-top]],x[i[top]],maxgap=minDist)
+    torem <- i[-top][which(o)] ## entries to remove, relative to x
+    toRemove <- c(toRemove, torem) ## relative to x
+    i <- setdiff(i,torem)
+    ## and check again overlaps among this subset (revmap indexes are relative to i)
+    red <- GenomicRanges::reduce(x[i], with.revmap=TRUE, min.gapwidth=minDist)$revmap
+    red <- red[lengths(red)>1]
   }
   if(length(toRemove)>0) x <- x[-toRemove]
   x
