@@ -187,7 +187,7 @@ removeOverlappingRanges <- function(x, minDist=7L){
     ## (i.e. lowest in the list)
     top <- min(red) ## indexes of the top entry per overlap set, relative to i
     ## overlap of non-top entries to the top entries:
-    o <- GenomicRanges::overlapsAny(x[i[-top]],x[i[top]],maxgap=minDist)
+    o <- overlapsAny(x[i[-top]],x[i[top]],maxgap=minDist)
     torem <- i[-top][which(o)] ## entries to remove, relative to x
     toRemove <- c(toRemove, torem) ## relative to x
     i <- setdiff(i,torem)
