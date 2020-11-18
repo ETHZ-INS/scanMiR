@@ -1,5 +1,9 @@
 on:
   push:
+    branches:
+      - master
+    paths:
+      - DESCRIPTION
   pull_request:
     branches:
       - master
