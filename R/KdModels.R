@@ -63,7 +63,7 @@ getKdModel <- function(kd, mirseq=NULL, name=NULL, conservation=NA, ...){
       stop("`x` should be a character vector or a data.frame with the columns ",
            "'X12mer' and 'log_kd'")
     x <- x[grep("N|X",substr(x$X12mer, 3,10),invert=TRUE),]
-    x <- cbind(x[,"log_kd",drop=FALSE], prep12mers(x$X12mer, seed=seed))
+    x <- cbind(x[,"log_kd",drop=FALSE], .prep12mers(x$X12mer, seed=seed))
     return(x[!is.na(x$mer8),])
   }
   x <- gsub("X","N",as.character(x))
