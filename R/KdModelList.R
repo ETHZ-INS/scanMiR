@@ -29,7 +29,7 @@ setMethod("summary", "KdModelList", function(object){
   cat(paste0("A `KdModelList` object", 
             ifelse(is.null(d), "", paste0(" created on ",d,",\n")),
             " containing binding affinity models from ", length(object), " miRNAs.\n"))
-  if(!is.null(desc <- attr(object, "description"))) cat(desc)
+  if(!is.null(desc <- attr(object, "description"))) cat(paste0(desc,"\n"))
   cons <- conservation(object)
   if(!all(is.na(cons))){
     print(table(conservation(object)))
