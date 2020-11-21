@@ -332,7 +332,7 @@ runFullScan <- function(species, mods=NULL, UTRonly=TRUE, shadow=15, cores=8, mi
   }
   tx_info$UTR.length <- utr.len[row.names(tx_info)]
   
-  message("Scanning")
+  message("Scanning with ", cores, " cores")
   m <- findSeedMatches(seqs, mods, shadow=ifelse(UTRonly,shadow,0), minLogKd=minLogKd,
                        BP=MulticoreParam(cores, progress=TRUE), ...)
   if(!UTRonly)
