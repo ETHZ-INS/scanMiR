@@ -155,7 +155,7 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"), shado
   rm(ms)
   if(minDist>-Inf){
     if(verbose) message("Removing overlaps...")
-    m <- removeOverlappingRanges(m, minDist=minDist)
+    m <- removeOverlappingRanges(m, minDist=minDist, ignore.strand=TRUE)
   }
   names(m) <- NULL
   m
@@ -170,16 +170,22 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"), shado
 #'
 #' @param x A GRanges, sorted by (decreasing) importance
 #' @param minDist Minimum distance between ranges
+#' @param retIndices Logical; whether to return the indices of entries to remove, rather
+#' than the filtered GRanges.
 #'
-#' @return A filtered GRanges.
+#' @return A filtered GRanges, or an integer vector of indices to be removed if 
+#' `retIndices==TRUE`.
 #' @export
 #' @examples
 #' gr <- GRanges(seqnames=rep("A",4), IRanges(start=c(10,25,45,35), width=6))
 #' removeOverlappingRanges(gr, minDist=7)
-removeOverlappingRanges <- function(x, minDist=7L){
-  red <- GenomicRanges::reduce(x, with.revmap=TRUE, min.gapwidth=minDist)$revmap
+removeOverlappingRanges <- function(x, minDist=7L, retIndices=FALSE, ignore.strand=FALSE){
+  red <- GenomicRanges::reduce(x, with.revmap=TRUE, min.gapwidth=minDist, ignore.strand=ignore.strand)$revmap
   red <- red[lengths(red)>1]
-  if(length(red)==0) return(x)
+  if(length(red)==0){
+    if(retIndices) return(c())
+    return(x)
+  }
   i <- seq_along(x)
   toRemove <- c()
   while(length(red)>0){
@@ -192,9 +198,10 @@ removeOverlappingRanges <- function(x, minDist=7L){
     toRemove <- c(toRemove, torem) ## relative to x
     i <- setdiff(i,torem)
     ## and check again overlaps among this subset (revmap indexes are relative to i)
-    red <- GenomicRanges::reduce(x[i], with.revmap=TRUE, min.gapwidth=minDist)$revmap
+    red <- GenomicRanges::reduce(x[i], with.revmap=TRUE, min.gapwidth=minDist, ignore.strand=ignore.strand)$revmap
     red <- red[lengths(red)>1]
   }
+  if(retIndices) return(toRemove)
   if(length(toRemove)>0) x <- x[-toRemove]
   x
 }
@@ -277,13 +284,13 @@ getMatchTypes <- function(x, seed){
 #' runFullScan
 #' 
 #' @export
-runFullScan <- function(species, UTRonly=TRUE, shadow=15, cores=8, minLogKd=0, mods=NULL, ...){
-  start <- Sys.time()
+runFullScan <- function(species, mods=NULL, UTRonly=TRUE, shadow=15, cores=8, minLogKd=0, save.path=NULL, ...){
   message("Loading annotation")
   suppressPackageStartupMessages({
     library(ensembldb)
     library(AnnotationHub)
     library(BSgenome)
+    library(BiocParallel)
   })
   ah <- AnnotationHub()
   species <- match.arg(species, c("mmu","hsa","rno"))
@@ -333,7 +340,11 @@ runFullScan <- function(species, UTRonly=TRUE, shadow=15, cores=8, minLogKd=0, m
 
   metadata(m)$tx_info <- tx_info
   metadata(m)$ah_id <- ahid
-  saveRDS(m, file=paste(species, ifelse(UTRonly,"utrs","full"), "matches.rds", sep="."))
-  end <- Sys.time()
-  return(end-start)
+  if(!is.null(save.path)) save.path <- paste(species, ifelse(UTRonly,"utrs","full"), "matches.rds", sep=".")
+  if(isFALSE(save.path)) return(m)
+  saveRDS(m, file=sva.path)
+  rm(m)
+  gc()
+  message("Saved in:")
+  save.path
 }

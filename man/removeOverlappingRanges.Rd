@@ -4,15 +4,24 @@
 \alias{removeOverlappingRanges}
 \title{removeOverlappingRanges}
 \usage{
-removeOverlappingRanges(x, minDist = 7L)
+removeOverlappingRanges(
+  x,
+  minDist = 7L,
+  retIndices = FALSE,
+  ignore.strand = FALSE
+)
 }
 \arguments{
 \item{x}{A GRanges, sorted by (decreasing) importance}
 
 \item{minDist}{Minimum distance between ranges}
+
+\item{retIndices}{Logical; whether to return the indices of entries to remove, rather
+than the filtered GRanges.}
 }
 \value{
-A filtered GRanges.
+A filtered GRanges, or an integer vector of indices to be removed if 
+`retIndices==TRUE`.
 }
 \description{
 Removes elements from a GRanges that overlap (or are within a given distance of) other 

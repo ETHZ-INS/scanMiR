@@ -12,7 +12,7 @@ findSeedMatches(
   minLogKd = 0,
   keepMatchSeq = FALSE,
   maxLoop = 10L,
-  mir3p.nts = 8L,
+  mir3p.nts = 6L,
   minDist = 7L,
   onlyCanonical = FALSE,
   BP = NULL,

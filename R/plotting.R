@@ -5,10 +5,10 @@
 #'
 #' @return A plot
 #' @export
-#' @import ggplot2
 plotKdModel <- function(mod, what=c("both","seeds","logo"), n=10){
   what <- match.arg(what)
   if(what=="seeds"){
+    library(ggplot2)
     mer8 <- getSeed8mers(mod$canonical.seed)
     wA <- which(substr(mer8,8,8)=="A")
     mer7 <- substr(mer8,1,7)

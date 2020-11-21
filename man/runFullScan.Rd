@@ -6,11 +6,12 @@
 \usage{
 runFullScan(
   species,
+  mods = NULL,
   UTRonly = TRUE,
   shadow = 15,
   cores = 8,
   minLogKd = 0,
-  mods = NULL,
+  save.path = NULL,
   ...
 )
 }
