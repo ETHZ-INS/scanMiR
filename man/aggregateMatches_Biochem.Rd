@@ -4,13 +4,7 @@
 \alias{aggregateMatches_Biochem}
 \title{aggregateMatches_Biochem}
 \usage{
-aggregateMatches_Biochem(
-  e,
-  kd_cut_off = 0,
-  ag = -6.5,
-  ORF = TRUE,
-  keepSiteInfo = FALSE
-)
+aggregateMatches_Biochem(e, kd_cut_off = 0, ag = -6.5, keepSiteInfo = FALSE)
 }
 \arguments{
 \item{e}{A GRanges object as produced by `findSeedMatches`.}
@@ -20,12 +14,12 @@ aggregateMatches_Biochem(
 \item{ag}{The 'ag' value for the aggregation, corresponding to the free
 concentration of AGO}
 
+\item{keepSiteInfo}{An option on whether to also keep info concerning the
+number of Binding Sites}
+
 \item{ORF}{Option indicating whether sites in the open reading frame are
 included in the scan. If they are included, a column named 'ORF' with
 'TRUE' / 'FALSE' entries should characterize each site.}
-
-\item{keepSiteInfo}{An option on wether to also keep info concerning the
-number of Binding Sites}
 }
 \value{
 An aggregated data.frame

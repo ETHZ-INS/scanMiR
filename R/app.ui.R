@@ -51,7 +51,7 @@ scanMiR.ui <- function(){
                                 htmlOutput("gene_link"),
                                 selectizeInput("transcript", "Transcript", choices=c()),
                                 checkboxInput("utr_only", "UTR only", value = TRUE),
-                                withSpinner(verbatimTextOutput("tx_overview"))
+                                withSpinner(tableOutput("tx_overview"))
                        )
                 )
         ),
@@ -73,7 +73,9 @@ scanMiR.ui <- function(){
                     sliderInput("minDist", label="Minimum distance in NT between two binding sites of the same miRNA", 
                                 min = 0, max = 20, value = 7, step = 1),
                     sliderInput(inputId="shadow", label = "Ribosomal shadow at the beginning of the 3'UTR, recommended is 15 NT", 
-                                min = 0, max = 20, value = 15, step = 1)
+                                min = 0, max = 20, value = 15, step = 1),
+                    sliderInput(inputId="maxLogKd", label = "Maximum log_kd to report",
+                                min = -4, max = 0, value = -0.5, step = 0.25)
                 ),
                 box(width=6, checkboxInput("keepmatchseq", "Keep matched sequence"),
                     checkboxInput("scanNonCanonical", "Search also for non-canonical sites", value=TRUE))

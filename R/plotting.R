@@ -1,14 +1,18 @@
 #' plotKdModel
 #'
+#' Plots the summary of an affinity model. Requires the packages `seqLogo` and 
+#' `cow_plot`.
+#'
 #' @param mod A `KdModel`
 #' @param what Either 'seeds', 'logo', or 'both' (default)
 #'
-#' @return A plot
+#' @return If `what="logo"`, returns nothing a plots a position weight matrix.
+#' Otherwise returns a ggplot.
+#' @import ggplot2
 #' @export
 plotKdModel <- function(mod, what=c("both","seeds","logo"), n=10){
   what <- match.arg(what)
   if(what=="seeds"){
-    library(ggplot2)
     mer8 <- getSeed8mers(mod$canonical.seed)
     wA <- which(substr(mer8,8,8)=="A")
     mer7 <- substr(mer8,1,7)
@@ -24,7 +28,7 @@ plotKdModel <- function(mod, what=c("both","seeds","logo"), n=10){
     d2 <- data.frame(seed=rep(d$seed,2), log_kd=c(d$base,d$A), type=c(as.character(d$type), rep("+A",n)))
     p <- ggplot(d2, aes(seed, log_kd, fill=type)) + geom_col() + coord_flip() + 
       ylab("-log_kd") + ggtitle(mod$name)
-    if(mod$name != mod$mirseq) p <- p + labs(subtitle=mod$mirseq)
+    if(mod$name != mod$mirseq) p <- p + labs(subtitle=gsub("T","U",mod$mirseq))
     return( p )
   }
   

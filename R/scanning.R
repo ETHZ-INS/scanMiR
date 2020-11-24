@@ -8,7 +8,7 @@
 #' @param seedtype Either RNA, DNA or 'auto' (default)
 #' @param shadow Integer giving the shadow, i.e. the number of nucleotides
 #'  hidden at the beginning of the sequence (default 0)
-#' @param minLogKd Minimum log_kd value to keep (default 0). Set to Inf to disable.
+#' @param maxLogKd Maximum log_kd value to keep (default 0). Set to Inf to disable.
 #' @param keepMatchSeq Logical; whether to keep the sequence (including flanking
 #' dinucleotides) for each seed match (default FALSE).
 #' @param onlyCanonical Logical; whether to restrict the search only to canonical
@@ -37,8 +37,8 @@
 #' seeds <- c("AAACCAC", "AAACCUU")
 #' findSeedMatches(seqs, seeds)
 findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"), shadow=0L, 
-                             minLogKd=0, keepMatchSeq=FALSE, maxLoop=10L, mir3p.nts=6L, 
-                             minDist=7L, onlyCanonical=FALSE, BP=NULL, verbose=NULL){
+                             maxLogKd=-0.3, keepMatchSeq=FALSE, maxLoop=10L, mir3p.nts=6L, 
+                             minDist=7L, onlyCanonical=FALSE, BP=NULL, verbose=NULL,...){
   
   if(is.null(verbose)) verbose <- is(seeds,"KdModel") || length(seeds)==1 || is.null(BP)
   if(verbose) message("Preparing sequences...")
@@ -52,16 +52,16 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"), shado
     if(is.list(seeds[[1]])) seeds <- seeds[[1]]
     if(is.null(verbose)) verbose <- TRUE
     m <- .find1SeedMatches(seqs, seeds, keepMatchSeq=keepMatchSeq, minDist=minDist, 
-                           minLogKd=minLogKd, maxLoop=maxLoop, mir3p.nts=mir3p.nts,
-                           onlyCanonical=onlyCanonical, verbose=verbose)
+                           maxLogKd=maxLogKd, maxLoop=maxLoop, mir3p.nts=mir3p.nts,
+                           onlyCanonical=onlyCanonical, verbose=verbose, ...)
     if(length(m)==0) return(m)
   }else{
     if(is.null(BP)) BP <- SerialParam()
     if(is.null(verbose)) verbose <- !(bpnworkers(BP)>1 | length(seeds)>5)
     m <- bplapply( seeds, seqs=seqs, keepMatchSeq=keepMatchSeq, verbose=verbose, 
-                   minDist=minDist, minLogKd=minLogKd, maxLoop=maxLoop, 
+                   minDist=minDist, maxLogKd=maxLogKd, maxLoop=maxLoop, 
                    mir3p.nts=mir3p.nts, onlyCanonical=onlyCanonical, 
-                   BPPARAM=BP, FUN=.find1SeedMatches)
+                   BPPARAM=BP, ..., FUN=.find1SeedMatches)
     m <- GRangesList(m)
     if(is.null(names(m))){
       if(!is.character(seeds)) seeds <- sapply(seeds, FUN=function(x){
@@ -91,7 +91,7 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"), shado
 }
 
 # scan for a single seed
-.find1SeedMatches <- function(seqs, seed, keepMatchSeq=FALSE, minLogKd=0, maxLoop=10, 
+.find1SeedMatches <- function(seqs, seed, keepMatchSeq=FALSE, maxLogKd=0, maxLoop=10, 
                               mir3p.nts=8, minDist=1, onlyCanonical=FALSE, verbose=FALSE){
   if(verbose) message("Scanning for matches...")
   
@@ -137,16 +137,18 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"), shado
     mir.3p <- as.character(reverseComplement(DNAString(
       substr(mod$mirseq, 12, min(c(11+mir3p.nts, nchar(mod$mirseq)))) )))
     al <- pairwiseAlignment(subseq(ms,1,maxLoop+mir3p.nts), mir.3p, 
-                            type="local", scoreOnly=TRUE)
-    mcols(m)$align.3p <- as.integer(round(1000*al))
+                            type="local")
+    mcols(m)$align.3p <- as.integer(round(1000*score(al)))
+    mcols(m)$mir.pos.3p <- end(subject(al))
+    mcols(m)$target.pos.3p <- end(pattern(al))
     rm(al)
     ms <- subseq(ms, maxLoop+mir3p.nts, 11+maxLoop+mir3p.nts)
     if(keepMatchSeq) mcols(m)$sequence <- as.factor(ms)
     mcols(m) <- cbind(mcols(m), assignKdType(ms, mod))
-    if(!is.null(minLogKd) && minLogKd!=Inf){
-      if(minLogKd>0) minLogKd <- -minLogKd
-      if(minLogKd < -10) minLogKd <- minLogKd*1000
-      m <- m[which(m$log_kd <= as.integer(round(minLogKd)))]
+    if(!is.null(maxLogKd) && maxLogKd!=Inf){
+      if(maxLogKd>0) maxLogKd <- -maxLogKd
+      if(maxLogKd > -10) maxLogKd <- maxLogKd*1000
+      m <- m[which(m$log_kd <= as.integer(round(maxLogKd)))]
     }else{
       m <- m[!is.na(m$log_kd)]
     }
@@ -314,7 +316,7 @@ runFullScan <- function(species, mods=NULL, UTRonly=TRUE, shadow=15, cores=8, mi
   canonical_chroms <- seqlevels(genome)[!grepl('_', seqlevels(genome))]
   filt <- SeqNameFilter(canonical_chroms)
   
-  message("Preparing sequences")
+  message("Extracting transcripts")
   grl_UTR <- suppressWarnings(threeUTRsByTranscript(ensdb, filter=filt))
   seqs <- extractTranscriptSeqs(genome, grl_UTR)
   utr.len <- lengths(seqs)
@@ -333,8 +335,12 @@ runFullScan <- function(species, mods=NULL, UTRonly=TRUE, shadow=15, cores=8, mi
   tx_info$UTR.length <- utr.len[row.names(tx_info)]
   
   message("Scanning with ", cores, " cores")
-  m <- findSeedMatches(seqs, mods, shadow=ifelse(UTRonly,shadow,0), minLogKd=minLogKd,
-                       BP=MulticoreParam(cores, progress=TRUE), ...)
+  if(cores>1){
+    BP <- MulticoreParam(cores, progress=TRUE)
+  }else{
+    BP <- SerialParam()
+  }
+  m <- findSeedMatches(seqs, mods, shadow=ifelse(UTRonly,shadow,0), minLogKd=minLogKd, BP=BP, ...)
   if(!UTRonly)
     m$ORF <- start(m) < orf.len[seqlevels(m)][as.integer(seqnames(m))] + shadow
 
@@ -342,7 +348,7 @@ runFullScan <- function(species, mods=NULL, UTRonly=TRUE, shadow=15, cores=8, mi
   metadata(m)$ah_id <- ahid
   if(!is.null(save.path)) save.path <- paste(species, ifelse(UTRonly,"utrs","full"), "matches.rds", sep=".")
   if(isFALSE(save.path)) return(m)
-  saveRDS(m, file=sva.path)
+  saveRDS(m, file=save.path)
   rm(m)
   gc()
   message("Saved in:")

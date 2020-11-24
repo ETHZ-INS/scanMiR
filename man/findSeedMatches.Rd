@@ -9,14 +9,15 @@ findSeedMatches(
   seeds,
   seedtype = c("auto", "RNA", "DNA"),
   shadow = 0L,
-  minLogKd = 0,
+  maxLogKd = -0.3,
   keepMatchSeq = FALSE,
   maxLoop = 10L,
   mir3p.nts = 6L,
   minDist = 7L,
   onlyCanonical = FALSE,
   BP = NULL,
-  verbose = NULL
+  verbose = NULL,
+  ...
 )
 }
 \arguments{
@@ -32,7 +33,7 @@ the target sequence to look for. Alternatively, a list of objects of class
 \item{shadow}{Integer giving the shadow, i.e. the number of nucleotides
 hidden at the beginning of the sequence (default 0)}
 
-\item{minLogKd}{Minimum log_kd value to keep (default 0). Set to Inf to disable.}
+\item{maxLogKd}{Maximum log_kd value to keep (default 0). Set to Inf to disable.}
 
 \item{keepMatchSeq}{Logical; whether to keep the sequence (including flanking
 dinucleotides) for each seed match (default FALSE).}

@@ -12,8 +12,10 @@ plotKdModel(mod, what = c("both", "seeds", "logo"), n = 10)
 \item{what}{Either 'seeds', 'logo', or 'both' (default)}
 }
 \value{
-A plot
+If `what="logo"`, returns nothing a plots a position weight matrix.
+Otherwise returns a ggplot.
 }
 \description{
-plotKdModel
+Plots the summary of an affinity model. Requires the packages `seqLogo` and 
+`cow_plot`.
 }

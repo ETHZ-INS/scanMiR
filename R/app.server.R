@@ -12,7 +12,8 @@
 #' @importFrom digest digest
 #' @export
 scanMiR.server <- function(modlists, targetlists=list(), ensdbs=list(), genomes=list(),
-                             scans=list(), maxCacheSize=100*10^6 ){
+                           scans=list(), maxCacheSize=100*10^6, 
+                           BP=BiocParallel::SerialParam() ){
   library(DT)
   library(stringr)
   library(Biostrings)
@@ -150,10 +151,12 @@ scanMiR.server <- function(modlists, targetlists=list(), ensdbs=list(), genomes=
       seqs
     }
     
-    output$tx_overview <- renderPrint({ # overview of the selected transcript
-      if(is.null(seqs())) return(NULL)
-      if(length(seqs())==0 || length(seqs())>1) return(seqs())
-      return(seqs()[[1]])
+    output$tx_overview <- renderTable({ # overview of the selected transcript
+      if(is.null(seqs()) || length(seqs())==0) return(NULL)
+      w <- width(seqs())
+      ss <- as.character(subseq(seqs(), 1, end=ifelse(w<40,w,40)))
+      ss[w>40] <- paste0(ss[w>40],"...")
+      data.frame(transcript=names(seqs()), length=w, sequence=ss)
     })
     
     ## end transcript selection
@@ -248,7 +251,7 @@ scanMiR.server <- function(modlists, targetlists=list(), ensdbs=list(), genomes=
       paste( digest::digest(selmods()),
              digest::digest(list(target=target(), shadow=input$shadow,
                                  keepMatchSeq=input$keepMatchSeq, 
-                                 minDist=input$minDist,
+                                 minDist=input$minDist, maxLogKd=input$maxLogKd,
                                  scanNonCanonical=input$scanNonCanonical))
       )
     })
@@ -293,15 +296,12 @@ scanMiR.server <- function(modlists, targetlists=list(), ensdbs=list(), genomes=
       withProgress(message=msg, detail=detail, value=1, max=3, {
         res$hits = findSeedMatches(target(), selmods(),
                                    keepMatchSeq=input$keepmatchseq,
-                                   minDist=input$minDist,
+                                   minDist=input$minDist, maxLogKd=input$maxLogKd,
                                    shadow=ifelse(input$circular,0,input$shadow),
-                                   max.noncanonical.motifs=ifelse(input$scanNonCanonical,Inf,0),
-                                   BP=MulticoreParam(2, progressbar=TRUE) )
-        if(length(res$hits)>0){
-          res$hits$miRNA <- res$hits$seed
-          res$hits$seed <- NULL
-        }
+                                   onlyCanonical=!input$scanNonCanonical,
+                                   BP=BP )
       })
+      if(length(res$hits)>0) res$hits$log_kd <- (res$hits$log_kd/1000)
       res$cs <- cs
       res$last <- res$time <- Sys.time()
       res$size <- object.size(res$hits)
@@ -379,9 +379,11 @@ scanMiR.server <- function(modlists, targetlists=list(), ensdbs=list(), genomes=
     output$manhattan <- renderPlotly({
       if(is.null(hits()$hits)) return(NULL)
       h <- as.data.frame(sort(hits()$hits))
-      tt <- sort(table(h$miRNA), decreasing=TRUE)
-      mirs <- names(tt)[seq_len(min(input$manhattan_n, length(tt)))]
-      h <- h[h$miRNA %in% mirs,,drop=FALSE]
+      if(!is.null(h$miRNA) && length(unique(h$miRNA))>input$manhattan_n){
+        tt <- sort(table(h$miRNA), decreasing=TRUE)
+        mirs <- names(tt)[seq_len(min(input$manhattan_n, length(tt)))]
+        h <- h[h$miRNA %in% mirs,,drop=FALSE]
+      }
       if(!is.null(input$manhattan_ordinal) && input$manhattan_ordinal){
         h$position <- seq_len(nrow(h))
         xlab <- "Position (ordinal)"
@@ -390,12 +392,11 @@ scanMiR.server <- function(modlists, targetlists=list(), ensdbs=list(), genomes=
         xlab <- "Position (nt) in sequence"
       }
       xlim <- c(0,nchar(hits()$target_length))
-      if("sequence" %in% colnames(h)){
-        p <- ggplot(h, aes(position, -log_kd, colour=miRNA, seq=sequence, kmer_type=type))
-      }else{
-        p <- ggplot(h, aes(position, -log_kd, colour=miRNA, kmer_type=type))
-      }
-      p <- p + geom_hline(yintercept=1.5, linetype="dashed", color = "red", size=1) + 
+      ael <- list(x="position", y="-log_kd", type="type")
+      if("sequence" %in% colnames(h)) ael$seq="sequence"
+      if("miRNA" %in% colnames(h)) ael$colour="miRNA"
+      p <- ggplot(h, do.call(aes_string, ael)) + 
+        geom_hline(yintercept=1.5, linetype="dashed", color = "red", size=1) + 
         geom_point(size=2) + xlab(xlab) + expand_limits(x=xlim, y=0)
       ggplotly(p)
     })
@@ -437,17 +438,16 @@ scanMiR.server <- function(modlists, targetlists=list(), ensdbs=list(), genomes=
       tl <- paste0(input$mirlist, ifelse(input$targetlist_utronly, ".utrs", ".full"))
       if(is.null(targetlists[[tl]]) || is.null(mod())) return(NULL)
       d <- targetlists[[tl]][[input$mirna]]
-      d$log_kd <- abs(d$log_kd/100)
-      d$log_kd.canonical <- abs(d$log_kd.canonical/100)
+      d$repression <- d$repression/1000
       if(!is.null(txs())){
         d <- merge(txs(), d, by.x="tx_id", by.y="transcript")
-        if(input$targetlist_gene)
-          d <- aggregate(d[,grep("mer|log_kd",colnames(d))], d[,c("symbol","seed")], na.rm=TRUE, FUN=max)
+        if(input$targetlist_gene){
+          d <- d[order(d$repression),]
+          d <- d[!duplicated(d$symbol),]
+          ff <- c("symbol","miRNA","repression")
+        }
       }
-      d$log_kd <- -d$log_kd
-      d$log_kd.canonical <- -d$log_kd.canonical
-      d <- d[which(d$log_kd <= -1.5),]
-      d[order(d$log_kd),]
+      d[order(d$repression),]
     })
     
     output$mirna_targets <- renderDT({

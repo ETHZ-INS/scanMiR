@@ -10,7 +10,8 @@ scanMiR.server(
   ensdbs = list(),
   genomes = list(),
   scans = list(),
-  maxCacheSize = 100 * 10^6
+  maxCacheSize = 100 * 10^6,
+  BP = BiocParallel::SerialParam()
 )
 }
 \arguments{

@@ -63,13 +63,18 @@ getSeed8mers <- function(seed, addNs=FALSE){
 }
 
 .build4mersRegEx <- function(seed){
-  a <- strsplit(as.character(seed),"")[[1]]
+  if(is(seed,"KdModel")){
+    a <- strsplit(as.character(seed$canonical.seed),"")[[1]]
+  }else{
+    a <- strsplit(as.character(seed),"")[[1]]
+  }
   if(length(a)==7) a <- c(a, "A")
-  paste(sapply(0:4, FUN=function(x){
+  pats <- sapply(0:4, FUN=function(x){
     paste0(paste(rep("[^N]",x), collapse=""),
            paste(a[x+1:4],collapse=""),
            paste(rep(".",4-x), collapse=""))
-  }), collapse="|")
+  })
+  paste(pats,collapse="|")
 }
 
 

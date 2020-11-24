@@ -9,6 +9,13 @@ setClass(
   }
 )
 
+#' KdModelList
+#'
+#' @param x A list of KdModels
+#' @param description A description for the collection.
+#'
+#' @return A KdModelList
+#' @export
 KdModelList <- function(x, description=NULL){
   names(x) <- vapply(x, FUN.VALUE=character(1), FUN=function(x) x$name)
   x <- new("KdModelList", x)
@@ -16,12 +23,6 @@ KdModelList <- function(x, description=NULL){
   if(!is.null(description)) attr(x, "description") <- description
   x
 }
-
-#' @export
-setMethod("as.data.frame", "KdModelList", function(x){
-  x <- t(sapply(x, summary))
-  as.data.frame(x[,-1,drop=FALSE], row.names=x[,1])
-})
 
 #' @export
 setMethod("summary", "KdModelList", function(object){
@@ -36,15 +37,14 @@ setMethod("summary", "KdModelList", function(object){
   }
 })
 
-  #' conservation
+#' conservation
 #'
 #' @param x A KdModelList, or a KdModel
 #'
 #' @return A vector of the conservation status for each miRNA
 #' @export
 conservation <- function(x){
-  lvls <- c("-1"="Low-confidence","0"="Poorly conserved","1"="Conserved across mammals",
-            "2"="Conserved across vertebrates")
+  lvls <- .conservation_levels()
   if(is(x,"KdModelList")){
     y <- factor(sapply(x, FUN=function(x){
       if(is.null(x$conservation)) return(NA_integer_)
@@ -58,4 +58,9 @@ conservation <- function(x){
   }
   levels(y) <- as.character(lvls)
   y
+}
+
+.conservation_levels <- function(){
+  c("-1"="Low-confidence", "0"="Poorly conserved",
+    "1"="Conserved across mammals", "2"="Conserved across vertebrates")
 }

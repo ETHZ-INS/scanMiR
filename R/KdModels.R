@@ -4,13 +4,16 @@ setClass(
   contains="list",
   validity=function(object){
     for(f in c("name","canonical.seed","mirseq")){
-      if(is.null(object[[f]]) || !is.character(object[[f]]) || length(object[[f]])!=1)
-        stop("The model should have a `",f,"` slot (character of length 1).")
+      if(!is.character(object[[f]]) || length(object[[f]])!=1)
+        stop("The model should have a `",f,
+             "` slot (character vector of length 1).")
     }
-    if(is.null(object$mer8) || length(object$mer8) != 1024 || !is.integer(object$mer8)){
+    if(is.null(object$mer8) || !(length(object$mer8) %in% c(1024,1440)) || 
+       !is.integer(object$mer8)){
       stop("The `mer8` slot should be an integer vector of length 1024.")
     }
-    if(is.null(object$fl) || length(object$fl) != 1024 || !is.integer(object$fl)){
+    if(is.null(object$fl) || !(length(object$fl) %in% c(1024,1440)) || 
+       !is.integer(object$fl)){
       stop("The `fl` slot should be an integer vector of length 1024.")
     }
   }
@@ -18,22 +21,46 @@ setClass(
 
 #' @export
 setMethod("show", "KdModel", function(object){
-  cat(paste0("A `KdModel` for ", object$name, "\n  Sequence: ", object$mirseq,
-             "\n  Canonical seed: ", object$canonical.seed))
+  con <- conservation(object)
+  con <- ifelse(is.na(con),"",paste0(" (",as.character(con),")"))
+  cat(paste0("A `KdModel` for ", object$name, con, "\n  Sequence: ", 
+             gsub("T","U",object$mirseq), "\n  Canonical target seed: ", 
+             gsub("A$","(A)",object$canonical.seed)))
 })
 
 #' @export
 setMethod("summary", "KdModel", function(object){
-  c( name=object$name, sequence=object$mirseq, canonical.seed=object$canonical.seed )
+  c( name=object$name, sequence=gsub("T","U",object$mirseq),
+     canonical.seed=object$canonical.seed, 
+     conservation=as.character(conservation(object)) )
 })
 
-getKdModel <- function(kd, mirseq=NULL, name=NULL, conservation=NA, ...){
+#' getKdModel
+#'
+#' @param kd A data.frame containing the log_kd per 12-mer sequence, or the path
+#' to a text/csv file containing such a table. Should contain the columns 
+#' 'log_kd', '12mer' (or 'X12mer'), and eventually 'mirseq' (if the `mirseq`
+#' argument is NULL) and 'mir' (if the `name` argument is NULL).
+#' @param mirseq The miRNA sequence.
+#' @param name The name of the miRNA.
+#' @param conservation The conservation level of the miRNA. See 
+#' `scanMiR:::.conservation_levels()` for possible values.
+#' @param ... Any additional information to be saved with the model.
+#'
+#' @return An object of class `KdModel`.
+#' @export
+#'
+#' @examples
+getKdModel <- function(kd,mirseq=NULL,name=NULL,conservation=NA_integer_, ...){
   if(is.character(kd) && length(kd)==1){
-    if(is.null(name)) name <- gsub("\\.txt$","",gsub("_kds","",basename(kd)))
+    if(is.null(name)) name <- gsub("\\.txt$|\\.csv$","",
+                                   gsub("_kds","",basename(kd)))
     kd <- read.delim(kd, header=TRUE, stringsAsFactors=FALSE)[,c(1,2,4)]
   }
   if(is.null(mirseq)) mirseq <- as.character(kd$mirseq[1])
   if(is.null(name)) name <- as.character(kd$mir[1])
+  if(!("X12mer" %in% colnames(kd)) && "12mer" %in% colnames(kd))
+    colnames(kd) <- gsub("^12mer$","X12mer",colnames(kd))
   kd <- kd[,c("X12mer","log_kd")]
   seed <- paste0(as.character(reverseComplement(DNAString(substr(mirseq, 2,8)))),"A")
   w <- grep("X|N",kd$X12mer)
@@ -49,6 +76,20 @@ getKdModel <- function(kd, mirseq=NULL, name=NULL, conservation=NA, ...){
     .lm.fit(cbind(1,x$fl.score),x$log_kd)$coefficients
   }))
   fitted <- co[kd$mer8,1]+co[kd$mer8,2]*kd$fl.score
+  if(!is.na(conservation)){
+    co <- .conservation_levels()
+    if(!is.numeric(conservation)){
+      if(!(conservation %in% co)){
+        warning("Unknown conservation level - will be set to NA")
+        conservation <- NA_integer_
+      }else{
+        conservation <- as.integer(names(co)[which(co==conservation)])
+      }
+    }else{
+      if(!(as.character(conservation) %in% names(co)))
+        warning("Unknown conservation level.")
+    }
+  }
   new("KdModel", list(mer8=as.integer(round(co[,1]*1000)), 
                       fl=as.integer(round(co[,2]*1000)), 
                       name=name, mirseq=mirseq, canonical.seed=seed,
@@ -72,10 +113,14 @@ getKdModel <- function(kd, mirseq=NULL, name=NULL, conservation=NA, ...){
              fl.score=y$score, fl.ratio=y$ratio)
 }
 
+.flankingValues <- function(){
+  matrix(c(-0.24, -0.14, 0, 0.1, 0.28, -0.24, -0.3, 0, 0.13, 0.42, -0.075, 
+           -0.18, 0, 0, 0.25, -0.1, -0.1, 0, 0, 0.26), 
+         nrow=5, dimnames=list(c("A","T","N","C","G")))
+}
+
 .getFlankingScore <- function(x){
-  fl.s <- matrix(c(-0.24, -0.14, 0, 0.1, 0.28, -0.24, -0.3, 0, 0.13, 0.42, -0.075, -0.18, 
-                   0, 0, 0.25, -0.1, -0.1, 0, 0, 0.26), 
-                 nrow=5, dimnames=list(c("A","T","N","C","G")))
+  fl.s <- .flankingValues()
   fl.m <- cbind(substr(x,1,1), substr(x,2,2), substr(x,11,11),substr(x,12,12))
   fl.m <- matrix(as.integer(factor(fl.m, row.names(fl.s))), ncol=4)
   fl.score <- vapply(1:4, FUN.VALUE=numeric(length(x)), 
@@ -108,8 +153,8 @@ getKdModel <- function(kd, mirseq=NULL, name=NULL, conservation=NA, ...){
 #'
 #' @param x A vector of matched sequences, each of 12 nucleotides
 #' @param mod An object of class `KdModel`
-#' @param mer8 The optional set of 8mers included in the model (if omitted, will be 
-#' reconstructed from the model)
+#' @param mer8 The optional set of 8mers included in the model (for internal 
+#' use; can be reconstructed from the model).
 #'
 #' @return A data.frame with one row for each element of `x`, and the columns `type` and
 #' `log_kd`. To save space, the reported log_kd is multiplied by 1000, rounded and saved

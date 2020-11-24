@@ -11,8 +11,8 @@ assignKdType(x, mod, mer8 = NULL)
 
 \item{mod}{An object of class `KdModel`}
 
-\item{mer8}{The optional set of 8mers included in the model (if omitted, will be 
-reconstructed from the model)}
+\item{mer8}{The optional set of 8mers included in the model (for internal 
+use; can be reconstructed from the model).}
 }
 \value{
 A data.frame with one row for each element of `x`, and the columns `type` and
