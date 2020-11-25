@@ -9,7 +9,7 @@ findSeedMatches(
   seeds,
   seedtype = c("auto", "RNA", "DNA"),
   shadow = 0L,
-  maxLogKd = -0.3,
+  maxLogKd = c(-0.3, 1),
   keepMatchSeq = FALSE,
   maxLoop = 10L,
   mir3p.nts = 6L,

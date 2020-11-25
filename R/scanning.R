@@ -37,7 +37,7 @@
 #' seeds <- c("AAACCAC", "AAACCUU")
 #' findSeedMatches(seqs, seeds)
 findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"), shadow=0L, 
-                             maxLogKd=-0.3, keepMatchSeq=FALSE, maxLoop=10L, mir3p.nts=6L, 
+                             maxLogKd=c(-0.3,1), keepMatchSeq=FALSE, maxLoop=10L, mir3p.nts=6L, 
                              minDist=7L, onlyCanonical=FALSE, BP=NULL, verbose=NULL,...){
   
   if(is.null(verbose)) verbose <- is(seeds,"KdModel") || length(seeds)==1 || is.null(BP)
@@ -78,8 +78,8 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"), shado
 
   gc(verbose = FALSE, full = TRUE)
   
+  if(offset!=0) m <- IRanges::shift(m, -offset)
   names(m) <- row.names(m) <- NULL
-  m <- IRanges::shift(m, -offset)
 
   metadata(m)$call.params <- list(
     shadow=shadow,
@@ -93,6 +93,9 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"), shado
 # scan for a single seed
 .find1SeedMatches <- function(seqs, seed, keepMatchSeq=FALSE, maxLogKd=0, maxLoop=10, 
                               mir3p.nts=8, minDist=1, onlyCanonical=FALSE, verbose=FALSE){
+  if(is.null(maxLogKd)) maxLogKd <- c(Inf,Inf)
+  if(length(maxLogKd)==1) maxLogKd <- rep(maxLogKd,2)
+  
   if(verbose) message("Scanning for matches...")
   
   if(isPureSeed <- is.character(seed)){
@@ -145,16 +148,22 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"), shado
     ms <- subseq(ms, maxLoop+mir3p.nts, 11+maxLoop+mir3p.nts)
     if(keepMatchSeq) mcols(m)$sequence <- as.factor(ms)
     mcols(m) <- cbind(mcols(m), assignKdType(ms, mod))
-    if(!is.null(maxLogKd) && maxLogKd!=Inf){
-      if(maxLogKd>0) maxLogKd <- -maxLogKd
-      if(maxLogKd > -10) maxLogKd <- maxLogKd*1000
-      m <- m[which(m$log_kd <= as.integer(round(maxLogKd)))]
+    if(maxLogKd[[1]]!=Inf){
+      if(all(maxLogKd>=0)) maxLogKd <- -maxLogKd
+      if(all(maxLogKd > -10)) maxLogKd <- maxLogKd*1000
+      m <- m[which(m$log_kd <= as.integer(round(maxLogKd[1])))]
     }else{
       m <- m[!is.na(m$log_kd)]
     }
     m <- m[order(seqnames(m), m$log_kd, m$type)]
   }
   rm(ms)
+  if(!is.null(mcols(seqs)$ORF.length)){
+    mcols(m)$ORF <- start(m) <= mcols(seqs)[as.integer(seqnames(m)),"ORF.length"]
+    if(!isPureSeed && maxLogKd[2]!=Inf){
+      m <- m[which(!m$ORF | m$log_kd <= as.integer(round(maxLogKd[2])))]
+    }
+  }
   if(minDist>-Inf){
     if(verbose) message("Removing overlaps...")
     m <- removeOverlappingRanges(m, minDist=minDist, ignore.strand=TRUE)
@@ -248,6 +257,8 @@ sequences should be in DNA format.")
   seqs <- padAndClip(seqs, views=IRanges( start=1-shadow-ret$offset,
                                           width=lengths(seqs)+shadow+ret$offset+pad[2] ),
                      Lpadding.letter = "N", Rpadding.letter = "N")
+  if(!is.null(mcols(seqs)$ORF.length))
+    mcols(seqs)$ORF.length <- mcols(seqs)$ORF.length + ret$offset + shadow
   c(ret, list(seqs=seqs))
 }
 
@@ -286,7 +297,7 @@ getMatchTypes <- function(x, seed){
 #' runFullScan
 #' 
 #' @export
-runFullScan <- function(species, mods=NULL, UTRonly=TRUE, shadow=15, cores=8, minLogKd=0, save.path=NULL, ...){
+runFullScan <- function(species, mods=NULL, UTRonly=TRUE, shadow=15, cores=8, minLogKd=c(-0.3,-1), save.path=NULL, ...){
   message("Loading annotation")
   suppressPackageStartupMessages({
     library(ensembldb)
@@ -329,6 +340,7 @@ runFullScan <- function(species, mods=NULL, UTRonly=TRUE, shadow=15, cores=8, mi
     seqs_ORF[names(seqs)] <- xscat(seqs_ORF[names(seqs)],seqs)
     seqs <- seqs_ORF
     rm(seqs_ORF)
+    mcols(seqs)$ORF.length <- orf.len[names(seqs)]
   }else{
     tx_info <- data.frame(strand=unlist(unique(strand(grl_UTR))))
   }
@@ -340,9 +352,7 @@ runFullScan <- function(species, mods=NULL, UTRonly=TRUE, shadow=15, cores=8, mi
   }else{
     BP <- SerialParam()
   }
-  m <- findSeedMatches(seqs, mods, shadow=ifelse(UTRonly,shadow,0), minLogKd=minLogKd, BP=BP, ...)
-  if(!UTRonly)
-    m$ORF <- start(m) < orf.len[seqlevels(m)][as.integer(seqnames(m))] + shadow
+  m <- findSeedMatches(seqs, mods, shadow=shadow, minLogKd=minLogKd, BP=BP, ...)
 
   metadata(m)$tx_info <- tx_info
   metadata(m)$ah_id <- ahid
@@ -351,6 +361,5 @@ runFullScan <- function(species, mods=NULL, UTRonly=TRUE, shadow=15, cores=8, mi
   saveRDS(m, file=save.path)
   rm(m)
   gc()
-  message("Saved in:")
-  save.path
+  message("Saved in: ", save.path)
 }

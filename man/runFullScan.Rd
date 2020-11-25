@@ -10,7 +10,7 @@ runFullScan(
   UTRonly = TRUE,
   shadow = 15,
   cores = 8,
-  minLogKd = 0,
+  minLogKd = c(-0.3, -1),
   save.path = NULL,
   ...
 )
