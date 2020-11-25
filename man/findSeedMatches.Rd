@@ -15,6 +15,7 @@ findSeedMatches(
   mir3p.nts = 6L,
   minDist = 7L,
   onlyCanonical = FALSE,
+  extra.3p = FALSE,
   BP = NULL,
   verbose = NULL,
   ...
@@ -44,6 +45,9 @@ disable the removal of overlapping features, use `minDist=-Inf`.}
 
 \item{onlyCanonical}{Logical; whether to restrict the search only to canonical
 binding sites.}
+
+\item{extra.3p}{Logical; whether to provide more detail information about the
+3' alignment (default FALSE).}
 
 \item{BP}{Pass `BiocParallel::MulticoreParam(ncores, progressbar=TRUE)` to enable 
 multithreading.}

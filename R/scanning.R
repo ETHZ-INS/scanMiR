@@ -16,6 +16,8 @@
 #' @param minDist Integer specifying the minimum distance between matches of the same 
 #' miRNA (default 1). Closer matches will be reduced to the highest-affinity. To 
 #' disable the removal of overlapping features, use `minDist=-Inf`.
+#' @param extra.3p Logical; whether to provide more detail information about the
+#' 3' alignment (default FALSE).
 #' @param BP Pass `BiocParallel::MulticoreParam(ncores, progressbar=TRUE)` to enable 
 #' multithreading.
 #' @param verbose Logical; whether to print additional progress messages (default on if 
@@ -173,14 +175,36 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"),
   m
 }
 
-get3pAlignment <- function(seqs, mirseq, mir3p.nts=8L, extra.3p=TRUE){
+#' get3pAlignment
+#'
+#' @param seqs A set of sequences in which to look for matches
+#' @param mirseq The sequence of the miRNA
+#' @param mir3p.nts The number of miRNA nucelotide in which to look 
+#' for matches
+#' @param mir3p.start The position in `mirseq` in which to start looking
+#' @param extra.3p Logical; whether to provide more detail information about the
+#' alignment.
+#' @param subm An optional substitution matrix; by default a binary diagonal 
+#' matrix with additional 0.65 on G/T is used.
+#'
+#' @return A data.frame with one row for each element of `seqs`.
+#' @export
+#'
+#' @examples
+#' get3pAlignment(target="NNAGTGTGCCATNN", mirseq="TGGAGTGTGACAATGGTGTTTG")
+get3pAlignment <- function(seqs, mirseq, mir3p.nts=8L, mir3p.start=12L, 
+                           extra.3p=TRUE, subm=NULL){
   mir3p.nts <- as.integer(mir3p.nts)
   target.len <- width(seqs[1])
   mir.3p <- as.character(reverseComplement(DNAString(
-    substr(mirseq, 12, min(c(11+mir3p.nts, nchar(mirseq)))) )))
-  subm <- diag(1,nrow=5,ncol=5)
-  colnames(subm) <- row.names(subm) <- c("A","C","G","T","N")
-  subm["G", "T"] <- subm["T", "G"] <- 0.65
+    substr(x=mirseq, start=mir3p.start, 
+           stop=min(c(mir3p.start-1+mir3p.nts, nchar(mirseq))))
+    )))
+  if(is.null(subm)){
+    subm <- diag(1,nrow=5,ncol=5)
+    colnames(subm) <- row.names(subm) <- c("A","C","G","T","N")
+    subm["G", "T"] <- subm["T", "G"] <- 0.65
+  }
   al <- pairwiseAlignment(seqs, mir.3p, type="local", substitutionMatrix=subm)
   if(extra.3p){
     df <- data.frame( mir.pos.3p=end(subject(al)),
