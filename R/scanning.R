@@ -36,9 +36,11 @@
 #' names(seqs) <- paste0("seq",1:length(seqs))
 #' seeds <- c("AAACCAC", "AAACCUU")
 #' findSeedMatches(seqs, seeds)
-findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"), shadow=0L, 
-                             maxLogKd=c(-0.3,1), keepMatchSeq=FALSE, maxLoop=10L, mir3p.nts=6L, 
-                             minDist=7L, onlyCanonical=FALSE, BP=NULL, verbose=NULL,...){
+findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"), 
+                             shadow=0L, maxLogKd=c(-0.3,1), keepMatchSeq=FALSE, 
+                             maxLoop=10L, mir3p.nts=6L, minDist=7L, 
+                             onlyCanonical=FALSE, extra.3p=FALSE, BP=NULL, 
+                             verbose=NULL, ...){
   
   if(is.null(verbose)) verbose <- is(seeds,"KdModel") || length(seeds)==1 || is.null(BP)
   if(verbose) message("Preparing sequences...")
@@ -53,7 +55,8 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"), shado
     if(is.null(verbose)) verbose <- TRUE
     m <- .find1SeedMatches(seqs, seeds, keepMatchSeq=keepMatchSeq, minDist=minDist, 
                            maxLogKd=maxLogKd, maxLoop=maxLoop, mir3p.nts=mir3p.nts,
-                           onlyCanonical=onlyCanonical, verbose=verbose, ...)
+                           onlyCanonical=onlyCanonical, extra.3p=extra.3p, 
+                           verbose=verbose, ...)
     if(length(m)==0) return(m)
   }else{
     if(is.null(BP)) BP <- SerialParam()
@@ -61,7 +64,7 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"), shado
     m <- bplapply( seeds, seqs=seqs, keepMatchSeq=keepMatchSeq, verbose=verbose, 
                    minDist=minDist, maxLogKd=maxLogKd, maxLoop=maxLoop, 
                    mir3p.nts=mir3p.nts, onlyCanonical=onlyCanonical, 
-                   BPPARAM=BP, ..., FUN=.find1SeedMatches)
+                   BPPARAM=BP, extra.3p=extra.3p, ..., FUN=.find1SeedMatches)
     m <- GRangesList(m)
     if(is.null(names(m))){
       if(!is.character(seeds)) seeds <- sapply(seeds, FUN=function(x){
@@ -91,8 +94,10 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"), shado
 }
 
 # scan for a single seed
-.find1SeedMatches <- function(seqs, seed, keepMatchSeq=FALSE, maxLogKd=0, maxLoop=10, 
-                              mir3p.nts=8, minDist=1, onlyCanonical=FALSE, verbose=FALSE){
+.find1SeedMatches <- function(seqs, seed, keepMatchSeq=FALSE, maxLogKd=0, 
+                              maxLoop=10L, mir3p.nts=8L, minDist=1L, 
+                              onlyCanonical=FALSE, extra.3p=FALSE, 
+                              verbose=FALSE){
   if(is.null(maxLogKd)) maxLogKd <- c(Inf,Inf)
   if(length(maxLogKd)==1) maxLogKd <- rep(maxLogKd,2)
   
@@ -139,7 +144,8 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"), shado
     names(ms) <- NULL
     mcols(m) <- cbind(mcols(m), 
                       get3pAlignment( subseq(ms,1,maxLoop+mir3p.nts), 
-                                      mod$mirseq, mir3p.nts=mir3p.nts ) )
+                                      mod$mirseq, mir3p.nts=mir3p.nts,
+                                      extra.3p=extra.3p ) )
     ms <- subseq(ms, maxLoop+mir3p.nts, 11+maxLoop+mir3p.nts)
     if(keepMatchSeq) mcols(m)$sequence <- as.factor(ms)
     mcols(m) <- cbind(mcols(m), assignKdType(ms, mod))
@@ -167,7 +173,7 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"), shado
   m
 }
 
-get3pAlignment <- function(seqs, mirseq, mir3p.nts=8L){
+get3pAlignment <- function(seqs, mirseq, mir3p.nts=8L, extra.3p=TRUE){
   mir3p.nts <- as.integer(mir3p.nts)
   target.len <- width(seqs[1])
   mir.3p <- as.character(reverseComplement(DNAString(
@@ -176,8 +182,12 @@ get3pAlignment <- function(seqs, mirseq, mir3p.nts=8L){
   colnames(subm) <- row.names(subm) <- c("A","C","G","T","N")
   subm["G", "T"] <- subm["T", "G"] <- 0.65
   al <- pairwiseAlignment(seqs, mir.3p, type="local", substitutionMatrix=subm)
-  df <- data.frame( mir.pos.3p=end(subject(al)),
-                    target.pos.3p=end(pattern(al)) )
+  if(extra.3p){
+    df <- data.frame( mir.pos.3p=end(subject(al)),
+                      target.pos.3p=end(pattern(al)) )
+  }else{
+    df <- data.frame(row.names=seq_along(al))
+  }
   df$dist.3p <- start(pattern(al))+nchar(mir.3p)-start(subject(al))-target.len
   al <- as.integer(round(1000*score(al)))-2000L
   al[df$dist.3p<0L | al<0L] <- 0L
