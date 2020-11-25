@@ -137,14 +137,9 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"), shado
     names(r) <- NULL
     ms <- unlist(extractAt(seqs, r))
     names(ms) <- NULL
-    mir.3p <- as.character(reverseComplement(DNAString(
-      substr(mod$mirseq, 12, min(c(11+mir3p.nts, nchar(mod$mirseq)))) )))
-    al <- pairwiseAlignment(subseq(ms,1,maxLoop+mir3p.nts), mir.3p, 
-                            type="local")
-    mcols(m)$align.3p <- as.integer(round(1000*score(al)))
-    mcols(m)$mir.pos.3p <- end(subject(al))
-    mcols(m)$target.pos.3p <- end(pattern(al))
-    rm(al)
+    mcols(m) <- cbind(mcols(m), 
+                      get3pAlignment( subseq(ms,1,maxLoop+mir3p.nts), 
+                                      mod$mirseq, mir3p.nts=mir3p.nts ) )
     ms <- subseq(ms, maxLoop+mir3p.nts, 11+maxLoop+mir3p.nts)
     if(keepMatchSeq) mcols(m)$sequence <- as.factor(ms)
     mcols(m) <- cbind(mcols(m), assignKdType(ms, mod))
@@ -170,6 +165,24 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"), shado
   }
   names(m) <- NULL
   m
+}
+
+get3pAlignment <- function(seqs, mirseq, mir3p.nts=8L){
+  mir3p.nts <- as.integer(mir3p.nts)
+  target.len <- width(seqs[1])
+  mir.3p <- as.character(reverseComplement(DNAString(
+    substr(mirseq, 12, min(c(11+mir3p.nts, nchar(mirseq)))) )))
+  subm <- diag(1,nrow=5,ncol=5)
+  colnames(subm) <- row.names(subm) <- c("A","C","G","T","N")
+  subm["G", "T"] <- subm["T", "G"] <- 0.65
+  al <- pairwiseAlignment(seqs, mir.3p, type="local", substitutionMatrix=subm)
+  df <- data.frame( mir.pos.3p=end(subject(al)),
+                    target.pos.3p=end(pattern(al)) )
+  df$dist.3p <- start(pattern(al))+nchar(mir.3p)-start(subject(al))-target.len
+  al <- as.integer(round(1000*score(al)))-2000L
+  al[df$dist.3p<0L | al<0L] <- 0L
+  df$align.3p <- al
+  df
 }
 
 #' removeOverlappingRanges
