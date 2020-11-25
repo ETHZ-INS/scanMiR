@@ -190,7 +190,7 @@ get3pAlignment <- function(seqs, mirseq, mir3p.nts=8L, extra.3p=TRUE){
   }
   df$dist.3p <- start(pattern(al))+nchar(mir.3p)-start(subject(al))-target.len
   al <- as.integer(round(1000*score(al)))-2000L
-  al[df$dist.3p<0L | al<0L] <- 0L
+  al[df$dist.3p<0L | al>0L] <- 0L
   df$align.3p <- al
   df
 }
