@@ -18,6 +18,11 @@
 #' disable the removal of overlapping features, use `minDist=-Inf`.
 #' @param extra.3p Logical; whether to provide more detail information about the
 #' 3' alignment (default FALSE).
+#' @param agg.params a named list with slots `ag`, `b` and `c` indicating the 
+#' parameters for the aggregation. Ignored if `ret!="aggregated"`.
+#' @param ret The type of data to return, either "GRanges" (default), 
+#' "data.frame" (lighter weight than GRanges), or "aggregated" (aggregated per 
+#' transcript).
 #' @param BP Pass `BiocParallel::MulticoreParam(ncores, progressbar=TRUE)` to enable 
 #' multithreading.
 #' @param verbose Logical; whether to print additional progress messages (default on if 
@@ -41,9 +46,13 @@
 findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"), 
                              shadow=0L, maxLogKd=c(-0.3,1), keepMatchSeq=FALSE, 
                              maxLoop=10L, mir3p.nts=6L, minDist=7L, 
-                             onlyCanonical=FALSE, extra.3p=FALSE, BP=NULL, 
-                             verbose=NULL, ...){
-  
+                             onlyCanonical=FALSE, extra.3p=FALSE, 
+                             agg.params=list(ag=-5.5, b=0.8656, c=-1.8488),
+                             ret=c("GRanges","data.frame","aggregated"), 
+                             BP=NULL, verbose=NULL, ...){
+  ret <- match.arg(ret)
+  if(ret=="aggregated" && !all(c("ag","b","c") %in% names(agg.params)))
+    stop("`agg.params` should be a named list with slots `ag`, `b` and `c`.")
   if(is.null(verbose)) verbose <- is(seeds,"KdModel") || length(seeds)==1 || is.null(BP)
   if(verbose) message("Preparing sequences...")
   args <- .prepSeqs(seqs, seeds, seedtype, shadow=shadow, pad=c(maxLoop+mir3p.nts+6L,6L))
@@ -52,22 +61,49 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"),
   offset <- args$offset
   rm(args)
 
+  params <- list(
+    shadow=shadow,
+    minDist=minDist,
+    maxLoop=maxLoop,
+    mir3p.nts=mir3p.nts,
+    maxLogKd=maxLogKd
+  )
+  if(ret=="aggregated") params$agg.params <- agg.params
+  
   if(is(seeds,"KdModel") || length(seeds)==1){
     if(is.list(seeds[[1]])) seeds <- seeds[[1]]
+    params$miRNA <- ifelse(is(seeds, "KdModel"), seeds$name, seeds)
     if(is.null(verbose)) verbose <- TRUE
     m <- .find1SeedMatches(seqs, seeds, keepMatchSeq=keepMatchSeq, minDist=minDist, 
                            maxLogKd=maxLogKd, maxLoop=maxLoop, mir3p.nts=mir3p.nts,
-                           onlyCanonical=onlyCanonical, extra.3p=extra.3p, 
-                           verbose=verbose, ...)
+                           onlyCanonical=onlyCanonical, extra.3p=extra.3p,
+                           offset=offset, verbose=verbose, ret=ret, ...)
     if(length(m)==0) return(m)
+    if(ret=="aggregated"){
+      if(verbose) message("Aggregating...")
+      m <- .aggregate_miRNA(m, ag=agg.params$ag, b=agg.params$b, 
+                            c=agg.params$c, toInt=TRUE)
+    }
   }else{
     if(is.null(BP)) BP <- SerialParam()
     if(is.null(verbose)) verbose <- !(bpnworkers(BP)>1 | length(seeds)>5)
-    m <- bplapply( seeds, seqs=seqs, keepMatchSeq=keepMatchSeq, verbose=verbose, 
+    m <- bplapply( seeds, BPPARAM=BP, FUN=function(oneseed){
+      m <- .find1SeedMatches(seqs=seqs, seed=oneseed, keepMatchSeq=keepMatchSeq,
                    minDist=minDist, maxLogKd=maxLogKd, maxLoop=maxLoop, 
                    mir3p.nts=mir3p.nts, onlyCanonical=onlyCanonical, 
-                   BPPARAM=BP, extra.3p=extra.3p, ..., FUN=.find1SeedMatches)
-    m <- GRangesList(m)
+                   offset=offset, extra.3p=extra.3p, ret=ret, verbose=verbose, 
+                   ...)
+      if(length(m)==0) return(m)
+      if(ret=="aggregated"){
+        if(verbose) message("Aggregating...")
+        m <- .aggregate_miRNA(m, ag=agg.params$ag, b=agg.params$b, 
+                              c=agg.params$c, toInt=TRUE)
+      }
+      m
+    } )
+      
+    if(ret=="GRanges") m <- GRangesList(m)
+    
     if(is.null(names(m))){
       if(!is.character(seeds)) seeds <- sapply(seeds, FUN=function(x){
         if(is.null(x$name)) return(x$canonical.seed)
@@ -75,31 +111,37 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"),
       })
       names(m) <- seeds
     }
-    mirs <- Rle(as.factor(names(m)),lengths(m))
-    m <- unlist(m)
-    m$miRNA <- mirs
-    m
+    
+    if(ret=="GRanges"){
+      mirs <- Rle(as.factor(names(m)),lengths(m))
+      m <- unlist(m)
+      metadata(m)$call.params <- params
+      names(m) <- row.names(m) <- NULL
+      m$miRNA <- mirs
+    }else{
+      mirs <- rep(as.factor(names(m)),lengths(m))
+      m <- dplyr::bind_rows(m, .id="miRNA")
+      m$miRNA <- as.factor(m$miRNA)
+      attr(m, "call.params") <- params
+      row.names(m) <- NULL
+      m$transcript <- as.factor(m$transcript)
+    }
   }
 
   gc(verbose = FALSE, full = TRUE)
-  
-  if(offset!=0) m <- IRanges::shift(m, -offset)
-  names(m) <- row.names(m) <- NULL
 
-  metadata(m)$call.params <- list(
-    shadow=shadow,
-    minDist=minDist,
-    maxLoop=maxLoop,
-    mir3p.nts=mir3p.nts
-  )
+  
+
   m
 }
 
 # scan for a single seed
 .find1SeedMatches <- function(seqs, seed, keepMatchSeq=FALSE, maxLogKd=0, 
                               maxLoop=10L, mir3p.nts=8L, minDist=1L, 
-                              onlyCanonical=FALSE, extra.3p=FALSE, 
+                              onlyCanonical=FALSE, extra.3p=FALSE, offset=0L,
+                              ret=c("GRanges","data.frame","aggregated"), 
                               verbose=FALSE){
+  ret <- match.arg(ret)
   if(is.null(maxLogKd)) maxLogKd <- c(Inf,Inf)
   if(length(maxLogKd)==1) maxLogKd <- rep(maxLogKd,2)
   
@@ -172,7 +214,18 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"),
     m <- removeOverlappingRanges(m, minDist=minDist, ignore.strand=TRUE)
   }
   names(m) <- NULL
-  m
+  if(offset!=0) m <- IRanges::shift(m, -offset)
+  if(ret=="GRanges") return(m)
+  .gr2matchTable(m)
+}
+
+.gr2matchTable <- function(m, include_name=FALSE, include_ORF=TRUE){
+  d <- data.frame(transcript=as.factor(seqnames(m)), start=start(m))
+  if(include_name) d$miRNA <- as.factor(m$miRNA)
+  if(include_ORF && !is.null(m$ORF)) d$ORF <- m$ORF
+  d$type <- m$type
+  d$log_kd <- m$log_kd
+  d
 }
 
 #' get3pAlignment
@@ -383,6 +436,7 @@ runFullScan <- function(species, mods=NULL, UTRonly=TRUE, shadow=15, cores=8, mi
     seqs_ORF <- extractTranscriptSeqs(genome, grl_ORF)
     tx_info <- data.frame(strand=unlist(unique(strand(grl_ORF))))
     orf.len <- lengths(seqs_ORF)
+    names(orf.len) <- names(grl_ORF)
     tx_info$ORF.length <- orf.len[row.names(tx_info)]
     seqs_ORF[names(seqs)] <- xscat(seqs_ORF[names(seqs)],seqs)
     seqs <- seqs_ORF

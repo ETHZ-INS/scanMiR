@@ -16,6 +16,8 @@ findSeedMatches(
   minDist = 7L,
   onlyCanonical = FALSE,
   extra.3p = FALSE,
+  agg.params = list(ag = -5.5, b = 0.8656, c = -1.8488),
+  ret = c("GRanges", "data.frame", "aggregated"),
   BP = NULL,
   verbose = NULL,
   ...
@@ -48,6 +50,13 @@ binding sites.}
 
 \item{extra.3p}{Logical; whether to provide more detail information about the
 3' alignment (default FALSE).}
+
+\item{agg.params}{a named list with slots `ag`, `b` and `c` indicating the 
+parameters for the aggregation. Ignored if `ret!="aggregated"`.}
+
+\item{ret}{The type of data to return, either "GRanges" (default), 
+"data.frame" (lighter weight than GRanges), or "aggregated" (aggregated per 
+transcript).}
 
 \item{BP}{Pass `BiocParallel::MulticoreParam(ncores, progressbar=TRUE)` to enable 
 multithreading.}
