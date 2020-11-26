@@ -99,3 +99,21 @@ aggregateMatches_Biochem <- function(e, kd_cut_off = 0, ag = -6.5, keepSiteInfo=
   m$N <- m$N_bg <- NULL
   m
 } 
+
+
+.aggregate_miRNA <- function(m, ag=-5.5, b=0.8656, c=-1.8488, toInt=FALSE){
+  if(is.null(m$ORF)) m$ORF <- 0L
+  m <- m[,c("transcript","ORF","log_kd")]
+  m$ORF <- as.integer(m$ORF)
+  m$log_kd <- m$log_kd / 1000
+  m <- m[m$log_kd < 0,]
+  m$log_kd <- -m$log_kd
+  m$N <- 1 / (1 + exp(-1 * (ag + m$log_kd + c*m$ORF)))
+  m$log_kd <- NULL
+  m$N_bg <- 1 / (1 + exp(-1 * (ag  + c*m$ORF)))
+  m <- rowsum(m[,c("N","N_bg")], group=m$transcript)
+  m <- data.frame( transcript=row.names(m),
+                   repression=log(1+exp(b)*m$N_bg) - log(1 + exp(b)*m$N) )
+  if(toInt) m$repression <- as.integer(round(1000*m$repression))
+  m
+}
