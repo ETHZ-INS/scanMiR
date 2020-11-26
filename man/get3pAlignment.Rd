@@ -7,9 +7,10 @@
 get3pAlignment(
   seqs,
   mirseq,
-  mir3p.nts = 8L,
   mir3p.start = 12L,
   extra.3p = TRUE,
+  p3.params = c(maxLoop = 10L, mir.nts = 6L, minS = 2L, maxS = 7L, minDist = 1L,
+    maxDist = 13L),
   subm = NULL
 )
 }
@@ -18,9 +19,6 @@ get3pAlignment(
 
 \item{mirseq}{The sequence of the miRNA}
 
-\item{mir3p.nts}{The number of miRNA nucelotide in which to look 
-for matches}
-
 \item{mir3p.start}{The position in `mirseq` in which to start looking}
 
 \item{extra.3p}{Logical; whether to provide more detail information about the
@@ -28,6 +26,9 @@ alignment.}
 
 \item{subm}{An optional substitution matrix; by default a binary diagonal 
 matrix with additional 0.65 on G/T is used.}
+
+\item{mir3p.nts}{The number of miRNA nucelotide in which to look 
+for matches}
 }
 \value{
 A data.frame with one row for each element of `seqs`.

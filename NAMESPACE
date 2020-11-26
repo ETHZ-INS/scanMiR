@@ -3,6 +3,7 @@
 export(KdModelList)
 export(aggregateMatches)
 export(aggregateMatches_Biochem)
+export(aggregateSites)
 export(assignKdType)
 export(conservation)
 export(findSeedMatches)

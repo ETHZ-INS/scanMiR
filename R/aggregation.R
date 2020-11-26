@@ -1,3 +1,49 @@
+#' aggregateSites
+#'
+#' @param m A GRanges or data.frame of matches.
+#' @param ag 
+#' @param b 
+#' @param c 
+#' @param p3 
+#' @param toInt Logical; whether to convert repression scores to integers
+#' @param BP BPPARAM argument for multithreading
+#'
+#' @return a data.frame
+#' @export
+aggregateSites <- function(m, ag=-5.5, b=0.8656, c=-1.8488, p3=NULL, toInt=FALSE, BP=NULL){
+  if(is.null(BP)) BP <- BiocParallel::SerialParam()
+  if(is(m,"GRanges")){
+    m$transcript <- as.factor(seqnames(m))
+    m <- mcols(m)
+    m$miRNA <- as.factor(m$miRNA)
+    m <- as.data.frame(m)
+  }
+  m <- m[,c("miRNA","transcript","ORF","log_kd",intersect("align.3p",colnames(m)))]
+  m <- split(m, m$miRNA)
+  m <- bplapply(m, BPPARAM=BP, FUN=function(x){
+    .aggregate_miRNA(m, ag=ag, b=b, c=c, p3=p3, toInt=toInt)
+  })
+  dplyr::bind_rows(m, .id="miRNA")
+}
+
+
+.aggregate_miRNA <- function(m, ag=-5.5, b=0.8656, c=-1.8488, p3=NULL, toInt=FALSE){
+  if(is.null(m$ORF)) m$ORF <- 0L
+  m <- m[,c("transcript","ORF","log_kd",intersect("align.3p",colnames(m)))]
+  m$ORF <- as.integer(m$ORF)
+  m$log_kd <- m$log_kd / 1000
+  m <- m[m$log_kd < 0,]
+  m$log_kd <- -m$log_kd
+  m$N <- 1 / (1 + exp(-1 * (ag + m$log_kd + c*m$ORF)))
+  m$log_kd <- NULL
+  m$N_bg <- 1 / (1 + exp(-1 * (ag  + c*m$ORF)))
+  m <- rowsum(m[,c("N","N_bg")], group=m$transcript)
+  m <- data.frame( transcript=row.names(m),
+                   repression=log(1+exp(b)*m$N_bg) - log(1 + exp(b)*m$N) )
+  if(toInt) m$repression <- as.integer(round(1000*m$repression))
+  m
+}
+
 
 
 .datatable.aware = TRUE
@@ -99,37 +145,3 @@ aggregateMatches_Biochem <- function(e, kd_cut_off = 0, ag = -6.5, keepSiteInfo=
   m$N <- m$N_bg <- NULL
   m
 } 
-
-aggregateSites <- function(m, ag=-5.5, b=0.8656, c=-1.8488, p3=NULL, toInt=FALSE, BP=NULL){
-  if(is.null(BP)) BP <- BiocParallel::SerialParam()
-  if(is(m,"GRanges")){
-    m$transcript <- as.factor(seqnames(m))
-    m <- mcols(m)
-    m$miRNA <- as.factor(m$miRNA)
-    m <- as.data.frame(m)
-  }
-  m <- m[,c("miRNA","transcript","ORF","log_kd",intersect("align.3p",colnames(m)))]
-  m <- split(m, m$miRNA)
-  m <- bplapply(m, BPPARAM=BP, FUN=function(x){
-    .aggregate_miRNA(m, ag=ag, b=b, c=c, p3=p3, toInt=toInt)
-  })
-  dplyr::bind_rows(m, .id="miRNA")
-}
-
-
-.aggregate_miRNA <- function(m, ag=-5.5, b=0.8656, c=-1.8488, p3=NULL, toInt=FALSE){
-  if(is.null(m$ORF)) m$ORF <- 0L
-  m <- m[,c("transcript","ORF","log_kd",intersect("align.3p",colnames(m)))]
-  m$ORF <- as.integer(m$ORF)
-  m$log_kd <- m$log_kd / 1000
-  m <- m[m$log_kd < 0,]
-  m$log_kd <- -m$log_kd
-  m$N <- 1 / (1 + exp(-1 * (ag + m$log_kd + c*m$ORF)))
-  m$log_kd <- NULL
-  m$N_bg <- 1 / (1 + exp(-1 * (ag  + c*m$ORF)))
-  m <- rowsum(m[,c("N","N_bg")], group=m$transcript)
-  m <- data.frame( transcript=row.names(m),
-                   repression=log(1+exp(b)*m$N_bg) - log(1 + exp(b)*m$N) )
-  if(toInt) m$repression <- as.integer(round(1000*m$repression))
-  m
-}
