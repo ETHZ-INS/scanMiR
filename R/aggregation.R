@@ -37,7 +37,7 @@ aggregateSites <- function(m, ag=-5.5, b=0.8656, c=-1.8488, p3=NULL, toInt=FALSE
   m$N <- 1 / (1 + exp(-1 * (ag + m$log_kd + c*m$ORF)))
   m$log_kd <- NULL
   m$N_bg <- 1 / (1 + exp(-1 * (ag  + c*m$ORF)))
-  m <- rowsum(m[,c("N","N_bg")], group=m$transcript)
+  m <- as.data.frame(rowsum(as.matrix(m[,c("N","N_bg")]), group=m$transcript))
   m <- data.frame( transcript=row.names(m),
                    repression=log(1+exp(b)*m$N_bg) - log(1 + exp(b)*m$N) )
   if(toInt) m$repression <- as.integer(round(1000*m$repression))
