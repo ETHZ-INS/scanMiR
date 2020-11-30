@@ -94,7 +94,7 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"),
     m <- bplapply( seeds, BPPARAM=BP, FUN=function(oneseed){
       m <- .find1SeedMatches(seqs=seqs, seed=oneseed, keepMatchSeq=keepMatchSeq,
                    minDist=minDist, maxLogKd=maxLogKd, ret=ret, 
-                   monlyCanonical=onlyCanonical, p3.params=p3.params, 
+                   onlyCanonical=onlyCanonical, p3.params=p3.params, 
                    offset=offset, extra.3p=extra.3p, verbose=verbose, ...)
       if(length(m)==0) return(m)
       if(ret=="aggregated"){
