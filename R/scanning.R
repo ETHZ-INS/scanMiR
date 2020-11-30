@@ -18,6 +18,9 @@
 #' disable the removal of overlapping features, use `minDist=-Inf`.
 #' @param extra.3p Logical; whether to provide more detail information about the
 #' 3' alignment (default FALSE).
+#' @param p3.params a named list of parameters for the 3' alignment (see 
+#' \code{\link{get3pAlignment}})
+#' parameters for the aggregation. Ignored if `ret!="aggregated"`.
 #' @param agg.params a named list with slots `ag`, `b` and `c` indicating the 
 #' parameters for the aggregation. Ignored if `ret!="aggregated"`.
 #' @param ret The type of data to return, either "GRanges" (default), 

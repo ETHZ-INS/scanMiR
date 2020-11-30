@@ -10,6 +10,7 @@ aggregateSites(
   b = 0.8656,
   c = -1.8488,
   p3 = NULL,
+  bg = 0,
   toInt = FALSE,
   BP = NULL
 )
