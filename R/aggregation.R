@@ -10,7 +10,7 @@
 #'
 #' @return a data.frame
 #' @export
-aggregateSites <- function(m, ag=-5.5, b=0.8656, c=-1.8488, p3=NULL, toInt=FALSE, BP=NULL){
+aggregateSites <- function(m, ag=-5.5, b=0.8656, c=-1.8488, p3=NULL, bg=0, toInt=FALSE, BP=NULL){
   if(is.null(BP)) BP <- BiocParallel::SerialParam()
   if(is(m,"GRanges")){
     m$transcript <- as.factor(seqnames(m))
@@ -21,22 +21,23 @@ aggregateSites <- function(m, ag=-5.5, b=0.8656, c=-1.8488, p3=NULL, toInt=FALSE
   m <- m[,c("miRNA","transcript","ORF","log_kd",intersect("align.3p",colnames(m)))]
   m <- split(m, m$miRNA)
   m <- bplapply(m, BPPARAM=BP, FUN=function(x){
-    .aggregate_miRNA(m, ag=ag, b=b, c=c, p3=p3, toInt=toInt)
+    .aggregate_miRNA(m, ag=ag, b=b, c=c, p3=p3, bg=bg, toInt=toInt)
   })
   dplyr::bind_rows(m, .id="miRNA")
 }
 
 
-.aggregate_miRNA <- function(m, ag=-5.5, b=0.8656, c=-1.8488, p3=NULL, toInt=FALSE){
+.aggregate_miRNA <- function(m, ag=-5.5, b=0.8656, c=-1.8488, p3=0, bg=0, toInt=FALSE){
   if(is.null(m$ORF)) m$ORF <- 0L
   m <- m[,c("transcript","ORF","log_kd",intersect("align.3p",colnames(m)))]
   m$ORF <- as.integer(m$ORF)
   m$log_kd <- m$log_kd / 1000
   m <- m[m$log_kd < 0,]
   m$log_kd <- -m$log_kd
-  m$N <- 1 / (1 + exp(-1 * (ag + m$log_kd + c*m$ORF)))
+  if(is.null(m$align.3p)) m$align.3p <- 0L
+  m$N <- 1 / (1 + exp(-1 * (ag + m$log_kd + c*m$ORF + p3*m$align.3p) ))
   m$log_kd <- NULL
-  m$N_bg <- 1 / (1 + exp(-1 * (ag  + c*m$ORF)))
+  m$N_bg <- 1 / (1 + exp(-1 * (ag  + c*m$ORF + bg) ))
   m <- as.data.frame(rowsum(as.matrix(m[,c("N","N_bg")]), group=m$transcript))
   m <- data.frame( transcript=row.names(m),
                    repression=log(1+exp(b)*m$N_bg) - log(1 + exp(b)*m$N) )
