@@ -44,10 +44,9 @@
 #' seeds <- c("AAACCAC", "AAACCUU")
 #' findSeedMatches(seqs, seeds)
 findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"), 
-                             shadow=0L, maxLogKd=c(-0.3,1), keepMatchSeq=FALSE, 
-                             maxLoop=10L, mir3p.nts=6L, minDist=7L, 
-                             onlyCanonical=FALSE, extra.3p=FALSE, 
-                             p3.params=c(maxLoop=10L, mir.nts=6L, minS=2L, maxS=7L, minDist=1L, maxDist=13L),
+                             shadow=0L, maxLogKd=c(-0.3,-0.3), keepMatchSeq=FALSE, minDist=7L, 
+                             onlyCanonical=FALSE, extra.3p=FALSE, maxLoop=15L, mir3p.nts=8L,
+                             p3.params=c(maxLoop=15L, mir.nts=8L, minS=1L, maxS=7L, minDist=1L, maxDist=12L),
                              agg.params=c(ag=-5.5, b=0.8656, c=-1.8488, p3=0.2733),
                              ret=c("GRanges","data.frame","aggregated"), 
                              BP=NULL, verbose=NULL, ...){
@@ -94,7 +93,7 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"),
     m <- bplapply( seeds, BPPARAM=BP, FUN=function(oneseed){
       m <- .find1SeedMatches(seqs=seqs, seed=oneseed, keepMatchSeq=keepMatchSeq,
                    minDist=minDist, maxLogKd=maxLogKd, ret=ret, 
-                   monlyCanonical=onlyCanonical, p3.params=p3.params, 
+                   onlyCanonical=onlyCanonical, p3.params=p3.params, 
                    offset=offset, extra.3p=extra.3p, verbose=verbose, ...)
       if(length(m)==0) return(m)
       if(ret=="aggregated"){
@@ -192,8 +191,8 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"),
     names(r) <- NULL
     ms <- unlist(extractAt(seqs, r))
     names(ms) <- NULL
-    mcols(m) <- cbind(mcols(m), 
-                      get3pAlignment( subseq(ms,1,plen), 
+    mcols(m) <- cbind(mcols(m),
+                      get3pAlignment( subseq(ms,1,plen),
                                       mod$mirseq, p3.params=p3.params,
                                       extra.3p=extra.3p ) )
     ms <- subseq(ms, plen, 11+plen)
@@ -261,8 +260,8 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"),
 #' @examples
 #' get3pAlignment(target="NNAGTGTGCCATNN", mirseq="TGGAGTGTGACAATGGTGTTTG")
 get3pAlignment <- function(seqs, mirseq, mir3p.start=12L, extra.3p=TRUE, 
-                           p3.params=c(maxLoop=10L, mir.nts=6L, minS=2L, 
-                                       maxS=7L, minDist=1L, maxDist=13L),
+                           p3.params=c(maxLoop=15L, mir.nts=8L, minS=1L, 
+                                       maxS=7L, minDist=1L, maxDist=12L),
                            subm=NULL){
   p3 <- .check3pParams(p3.params)
   mir3p.nts <- as.integer(p3$mir.nts)
@@ -282,7 +281,7 @@ get3pAlignment <- function(seqs, mirseq, mir3p.start=12L, extra.3p=TRUE,
   df$dist.3p <- start(pattern(al))+nchar(mir.3p)-start(subject(al))-target.len
   al <- score(al)
   al[al<p3$minS] <- 0L
-  al[al>p3$maxS] <- 0L ## or <- maxS ?
+  al[al>p3$maxS] <- 0L #or maxS?
   al[-df$dist.3p > p3$maxDist | -df$dist.3p < p3$minDist] <- 0L
   df$align.3p <- al
   if(!extra.3p){
