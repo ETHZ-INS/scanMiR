@@ -48,16 +48,27 @@
 #' findSeedMatches(seqs, seeds)
 findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"), 
                              shadow=0L, maxLogKd=c(-0.3,-0.3), keepMatchSeq=FALSE, minDist=7L, 
-                             onlyCanonical=FALSE, extra.3p=FALSE, maxLoop=15L, mir3p.nts=8L,
-                             p3.params=c(maxLoop=15L, mir.nts=8L, minS=1L, maxS=7L, minDist=1L, maxDist=12L),
-                             agg.params=c(ag=-5.5, b=0.8656, c=-1.8488, p3=0.2733),
+                             onlyCanonical=FALSE, extra.3p=FALSE, maxLoop=15L, mir3p.nts=9L,
+                             p3.params=c(maxLoop=15L, mir.nts=9L, minS=2L, maxS=8L, minDist=0L, maxDist=16L),
+                             agg.params=c(ag=-5.5, b=0.8656, c=-1.8488, p3=0.0474, coef_utr = -0.2837,coef_orf = -0.0604),
                              ret=c("GRanges","data.frame","aggregated"), 
                              BP=NULL, verbose=NULL, ...){
+  # This might not be most efficent:
+  length.seqs <- width(seqs)
+  if(!is.null(mcols(seqs)$ORF.length)){
+    orf_len <- mcols(seqs)[,"ORF.length"] - 15
+    utr_len <- length.seqs - orf_len
+  }else{
+    utr_len <- length.seqs
+    orf_len <- rep(0, length.out = length(utr_len))
+  }
+  length.info <- cbind(orf_len,utr_len)
+  ###
   ret <- match.arg(ret)
   if(ret=="aggregated"){
     if(!is.list(agg.params)) agg.params <- as.list(agg.params)
-    if(!all(c("ag","b","c") %in% names(agg.params)))
-      stop("`agg.params` should be a named list with slots `ag`, `b` and `c`.")
+    if(!all(c("ag","b","c","p3","coef_utr","coef_orf") %in% names(agg.params)))
+      stop("`agg.params` should be a named list with slots `ag`, `b`, `c`, `p3`, `coef_utr` and `coef_orf`.")
   }
   if(is.null(verbose)) verbose <- is(seeds,"KdModel") || length(seeds)==1 || is.null(BP)
   if(verbose) message("Preparing sequences...")
@@ -87,8 +98,11 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"),
     if(length(m)==0) return(m)
     if(ret=="aggregated"){
       if(verbose) message("Aggregating...")
-      m <- .aggregate_miRNA(m, ag=agg.params$ag, b=agg.params$b, 
-                            c=agg.params$c, toInt=TRUE)
+      ll <- as.data.frame(length.info)
+      ll$transcript <- row.names(ll)
+      m <- .aggregate_miRNA(m,ll, ag=agg.params$ag, b=agg.params$b, 
+                            c=agg.params$c, p3 = agg.params$p3, coef_utr = agg.params$coef_utr,
+                            coef_orf = agg.params$coef_orf, toInt=TRUE)
     }
   }else{
     if(is.null(BP)) BP <- SerialParam()
@@ -101,8 +115,11 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"),
       if(length(m)==0) return(m)
       if(ret=="aggregated"){
         if(verbose) message("Aggregating...")
-        m <- .aggregate_miRNA(m, ag=agg.params$ag, b=agg.params$b, 
-                              c=agg.params$c, toInt=TRUE)
+        ll <- as.data.frame(length.info)
+        ll$transcript <- row.names(ll)
+        m <- .aggregate_miRNA(m,ll, ag=agg.params$ag, b=agg.params$b, 
+                              c=agg.params$c,p3 = agg.params$p3, coef_utr = agg.params$coef_utr,
+                              coef_orf = agg.params$coef_orf, toInt=TRUE)
       }
       m
     } )
@@ -121,6 +138,7 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"),
       mirs <- Rle(as.factor(names(m)),lengths(m))
       m <- unlist(m)
       metadata(m)$call.params <- params
+      metadata(m)$length.info <- length.info
       names(m) <- row.names(m) <- NULL
       m$miRNA <- mirs
     }else{
@@ -263,8 +281,8 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"),
 #' @examples
 #' get3pAlignment(target="NNAGTGTGCCATNN", mirseq="TGGAGTGTGACAATGGTGTTTG")
 get3pAlignment <- function(seqs, mirseq, mir3p.start=12L, extra.3p=TRUE, 
-                           p3.params=c(maxLoop=15L, mir.nts=8L, minS=1L, 
-                                       maxS=7L, minDist=1L, maxDist=12L),
+                           p3.params=c(maxLoop=15L, mir.nts=9L, minS=2L, 
+                                       maxS=8L, minDist=0L, maxDist=16L),
                            subm=NULL){
   p3 <- .check3pParams(p3.params)
   mir3p.nts <- as.integer(p3$mir.nts)
