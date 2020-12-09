@@ -10,7 +10,7 @@
 #'
 #' @return a data.frame
 #' @export
-aggregateSites <- function(m, ag=-5.5, b=0.8656, c=-1.8488, p3=NULL, bg=0, coef_utr = 0, coef_orf = 0, toInt=FALSE, BP=NULL){
+aggregateSites <- function(m, ag=-5.5, b=0.5735, c=-1.7091, p3=NULL, bg=0, coef_utr = 0, coef_orf = 0, toInt=FALSE, BP=NULL){
   if(is.null(BP)) BP <- BiocParallel::SerialParam()
   if(is(m,"GRanges")){
     m$transcript <- as.factor(seqnames(m))
@@ -27,7 +27,7 @@ aggregateSites <- function(m, ag=-5.5, b=0.8656, c=-1.8488, p3=NULL, bg=0, coef_
 }
 
 
-.aggregate_miRNA <- function(m,ll, ag=-5.5, b=0.8656, c=-1.8488, p3=0, bg=0,coef_utr = 0,coef_orf = 0, toInt=FALSE){
+.aggregate_miRNA <- function(m,ll = NULL, ag=-5.5, b=0.5735, c=-1.7091, p3=0, bg=0,coef_utr = 0,coef_orf = 0, toInt=FALSE){
   if(is.null(m$ORF)) m$ORF <- 0L
   m <- m[,c("miRNA","transcript","ORF","log_kd","align.3p","type")]
   m$ORF <- as.integer(m$ORF)
@@ -43,6 +43,7 @@ aggregateSites <- function(m, ag=-5.5, b=0.8656, c=-1.8488, p3=NULL, bg=0, coef_
   m <- data.frame( transcript=row.names(m),
                    repression=log(1+exp(b)*m$N_bg) - log(1 + exp(b)*m$N) )
   
+  if(!is.null(ll)){
   m <- merge(m,ll,by = "transcript", all.x = TRUE)
   # get the utr score
   m$utr_len <- log10(m$utr_len)
@@ -51,7 +52,7 @@ aggregateSites <- function(m, ag=-5.5, b=0.8656, c=-1.8488, p3=NULL, bg=0, coef_
   m$utr_score <- (m$utr_len - qu[1]) / (qu[2] - qu[1])
   
   # get the orf score
-  if(sum(orf_len) > 0){
+  if(sum(m$orf_len) > 0){
     m$orf_len <- log10(m$orf_len)
     qu_un <- m[!duplicated(m$transcript),"orf_len"]
     qu <- quantile(qu_un, probs = c(0.05,0.95))
@@ -61,6 +62,7 @@ aggregateSites <- function(m, ag=-5.5, b=0.8656, c=-1.8488, p3=NULL, bg=0, coef_
   }
   
   m$repression <- m$repression + coef_utr*m$utr_score*m$repression + coef_orf*m$orf_score*m$repression
+  }
   if(toInt) m$repression <- as.integer(round(1000*m$repression))
   m
 }
