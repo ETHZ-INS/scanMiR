@@ -10,7 +10,7 @@
 #'
 #' @return a data.frame
 #' @export
-aggregateSites <- function(m, ag=-5.5, b=0.5735, c=-1.7091, p3=NULL, bg=0, coef_utr = 0, coef_orf = 0, toInt=FALSE, BP=NULL){
+aggregateSites <- function(m, ag=-5.5, b=0.5735, c=-1.7091, p3=0, bg=0, coef_utr = 0, coef_orf = 0, toInt=FALSE, BP=NULL){
   if(is.null(BP)) BP <- BiocParallel::SerialParam()
   if(is(m,"GRanges")){
     m$transcript <- as.factor(seqnames(m))
@@ -21,7 +21,7 @@ aggregateSites <- function(m, ag=-5.5, b=0.5735, c=-1.7091, p3=NULL, bg=0, coef_
   m <- m[,c("miRNA","transcript","ORF","log_kd","align.3p","type")]
   m <- split(m, m$miRNA)
   m <- bplapply(m, BPPARAM=BP, FUN=function(x){
-    .aggregate_miRNA(m, ag=ag, b=b, c=c, p3=p3, bg=bg, toInt=toInt)
+    .aggregate_miRNA(x, ag=ag, b=b, c=c, p3=p3, bg=bg, toInt=toInt)
   })
   dplyr::bind_rows(m, .id="miRNA")
 }
