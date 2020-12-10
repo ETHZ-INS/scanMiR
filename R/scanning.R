@@ -49,7 +49,7 @@
 findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"), 
                              shadow=0L, maxLogKd=c(-0.3,-0.3), keepMatchSeq=FALSE, minDist=7L, 
                              onlyCanonical=FALSE, extra.3p=FALSE, maxLoop=15L, mir3p.nts=9L,
-                             p3.params=c(maxLoop=15L, mir.nts=9L, minS=2L, maxS=7L, minDist=1L, maxDist=15L),
+                             p3.params=c(maxLoop=15L, mir.nts=9L, minS=2L, maxS=5.8L, minDist=1L, maxDist=5L),
                              agg.params=c(ag=-5.5, b=0.8656, c=-1.8488, p3=0.0474, coef_utr = -0.2837,coef_orf = -0.0604),
                              ret=c("GRanges","data.frame","aggregated"), 
                              BP=NULL, verbose=NULL, ...){
@@ -282,7 +282,7 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"),
 #' get3pAlignment(target="NNAGTGTGCCATNN", mirseq="TGGAGTGTGACAATGGTGTTTG")
 get3pAlignment <- function(seqs, mirseq, mir3p.start=12L, extra.3p=TRUE, 
                            p3.params=c(maxLoop=15L, mir.nts=9L, minS=2L, 
-                                       maxS=7L, minDist=1L, maxDist=15L),
+                                       maxS=5.8L, minDist=1L, maxDist=5L),
                            subm=NULL){
   p3 <- .check3pParams(p3.params)
   mir3p.nts <- as.integer(p3$mir.nts)
