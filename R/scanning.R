@@ -55,12 +55,12 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"),
                              BP=NULL, verbose=NULL, ...){
   # This might not be most efficent:
   length.seqs <- width(seqs)
-  if(!is.null(mcols(seqs)$ORF.length)){
-    orf_len <- mcols(seqs)[,"ORF.length"] - 15
-    utr_len <- length.seqs - orf_len
-  }else{
+  if(is.character(seqs) || is.null(mcols(seqs)$ORF.length ){
     utr_len <- length.seqs
     orf_len <- rep(0, length.out = length(utr_len))
+  }else{
+    orf_len <- mcols(seqs)[,"ORF.length"] - 15
+    utr_len <- length.seqs - orf_len
   }
   length.info <- cbind(orf_len,utr_len)
   ###
