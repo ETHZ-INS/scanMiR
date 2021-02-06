@@ -47,18 +47,28 @@
 #' seeds <- c("AAACCAC", "AAACCUU")
 #' findSeedMatches(seqs, seeds)
 findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"), 
-                             shadow=0L, maxLogKd=c(-0.3,1), keepMatchSeq=FALSE, 
-                             maxLoop=10L, mir3p.nts=6L, minDist=7L, 
-                             onlyCanonical=FALSE, extra.3p=FALSE, 
-                             p3.params=c(maxLoop=10L, mir.nts=6L, minS=2L, maxS=7L, minDist=1L, maxDist=13L),
-                             agg.params=c(ag=-5.5, b=0.8656, c=-1.8488, p3=0.2733),
+                             shadow=0L, maxLogKd=c(-0.3,-0.3), keepMatchSeq=FALSE, minDist=7L, 
+                             onlyCanonical=FALSE, extra.3p=FALSE, maxLoop=15L, mir3p.nts=9L,
+                             p3.params=c(maxLoop=15L, mir.nts=9L, minS=3L, maxS=7L, minDist=1L, maxDist=9L),
+                             agg.params=c(ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.03045, coef_utr = -0.19346,coef_orf = -0.20453),
                              ret=c("GRanges","data.frame","aggregated"), 
                              BP=NULL, verbose=NULL, ...){
+  # This might not be most efficent:
+  length.seqs <- width(seqs)
+  if(is.character(seqs) || is.null(mcols(seqs)$ORF.length)){
+    utr_len <- length.seqs
+    orf_len <- rep(0, length.out = length(utr_len))
+  }else{
+    orf_len <- mcols(seqs)[,"ORF.length"] - 15
+    utr_len <- length.seqs - orf_len
+  }
+  length.info <- cbind(orf_len,utr_len)
+  ###
   ret <- match.arg(ret)
   if(ret=="aggregated"){
     if(!is.list(agg.params)) agg.params <- as.list(agg.params)
-    if(!all(c("ag","b","c") %in% names(agg.params)))
-      stop("`agg.params` should be a named list with slots `ag`, `b` and `c`.")
+    if(!all(c("ag","b","c","p3","coef_utr","coef_orf") %in% names(agg.params)))
+      stop("`agg.params` should be a named list with slots `ag`, `b`, `c`, `p3`, `coef_utr` and `coef_orf`.")
   }
   seedInputType <- .checkSeedsInput(seeds)
   if(is.null(verbose)) verbose <- is(seeds,"KdModel") || length(seeds)==1 || is.null(BP)
@@ -89,8 +99,11 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"),
     if(length(m)==0) return(m)
     if(ret=="aggregated"){
       if(verbose) message("Aggregating...")
-      m <- .aggregate_miRNA(m, ag=agg.params$ag, b=agg.params$b, 
-                            c=agg.params$c, toInt=TRUE)
+      ll <- as.data.frame(length.info)
+      ll$transcript <- row.names(ll)
+      m <- .aggregate_miRNA(m,ll, ag=agg.params$ag, b=agg.params$b, 
+                            c=agg.params$c, p3 = agg.params$p3, coef_utr = agg.params$coef_utr,
+                            coef_orf = agg.params$coef_orf, toInt=TRUE)
     }
   }else{
     if(is.null(BP)) BP <- SerialParam()
@@ -103,8 +116,11 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"),
       if(length(m)==0) return(m)
       if(ret=="aggregated"){
         if(verbose) message("Aggregating...")
-        m <- .aggregate_miRNA(m, ag=agg.params$ag, b=agg.params$b, 
-                              c=agg.params$c, toInt=TRUE)
+        ll <- as.data.frame(length.info)
+        ll$transcript <- row.names(ll)
+        m <- .aggregate_miRNA(m,ll, ag=agg.params$ag, b=agg.params$b, 
+                              c=agg.params$c,p3 = agg.params$p3, coef_utr = agg.params$coef_utr,
+                              coef_orf = agg.params$coef_orf, toInt=TRUE)
       }
       m
     } )
@@ -123,6 +139,7 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"),
       mirs <- Rle(as.factor(names(m)),lengths(m))
       m <- unlist(m)
       metadata(m)$call.params <- params
+      metadata(m)$length.info <- length.info
       names(m) <- row.names(m) <- NULL
       m$miRNA <- mirs
     }else{
@@ -194,8 +211,8 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"),
     names(r) <- NULL
     ms <- unlist(extractAt(seqs, r))
     names(ms) <- NULL
-    mcols(m) <- cbind(mcols(m), 
-                      get3pAlignment( subseq(ms,1,plen), 
+    mcols(m) <- cbind(mcols(m),
+                      get3pAlignment( subseq(ms,1,plen),
                                       mod$mirseq, p3.params=p3.params,
                                       extra.3p=extra.3p ) )
     ms <- subseq(ms, plen, 11+plen)
@@ -283,8 +300,8 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"),
 #' @examples
 #' get3pAlignment(target="NNAGTGTGCCATNN", mirseq="TGGAGTGTGACAATGGTGTTTG")
 get3pAlignment <- function(seqs, mirseq, mir3p.start=12L, extra.3p=TRUE, 
-                           p3.params=c(maxLoop=10L, mir.nts=6L, minS=2L, 
-                                       maxS=7L, minDist=1L, maxDist=13L),
+                           p3.params=c(maxLoop=15L, mir.nts=9L, minS=3L, 
+                                       maxS=7L, minDist=1L, maxDist=9L),
                            subm=NULL){
   p3 <- .check3pParams(p3.params)
   mir3p.nts <- as.integer(p3$mir.nts)
@@ -304,7 +321,7 @@ get3pAlignment <- function(seqs, mirseq, mir3p.start=12L, extra.3p=TRUE,
   df$dist.3p <- start(pattern(al))+nchar(mir.3p)-start(subject(al))-target.len
   al <- score(al)
   al[al<p3$minS] <- 0L
-  al[al>p3$maxS] <- 0L ## or <- maxS ?
+  al[al>p3$maxS] <- 0L #or maxS?
   al[-df$dist.3p > p3$maxDist | -df$dist.3p < p3$minDist] <- 0L
   df$align.3p <- al
   if(!extra.3p){
