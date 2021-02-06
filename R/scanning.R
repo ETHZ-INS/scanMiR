@@ -60,6 +60,7 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"),
     if(!all(c("ag","b","c") %in% names(agg.params)))
       stop("`agg.params` should be a named list with slots `ag`, `b` and `c`.")
   }
+  seedInputType <- .checkSeedsInput(seeds)
   if(is.null(verbose)) verbose <- is(seeds,"KdModel") || length(seeds)==1 || is.null(BP)
   if(verbose) message("Preparing sequences...")
   args <- .prepSeqs(seqs, seeds, seedtype, shadow=shadow, pad=c(maxLoop+mir3p.nts+6L,6L))
@@ -135,8 +136,6 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"),
   }
 
   gc(verbose = FALSE, full = TRUE)
-
-  
 
   m
 }
@@ -226,6 +225,26 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"),
   if(offset!=0) m <- IRanges::shift(m, -offset)
   if(ret=="GRanges") return(m)
   .gr2matchTable(m)
+}
+
+.checkSeedsInput <- function(seeds){
+  if(is.character(seeds)){
+    if(all(nchar(seeds) %in% c(7,8))) return("seed")
+    if(all(nchar(seeds) >= 18 & nchar(seeds) <= 25)){
+      if(.guessSeqType(seeds)!="RNA") 
+        stop("If `seeds` are mature miRNA sequences, they should be provided",
+             " as RNA sequences.")
+      return("mirseq")
+    }
+    stop("If `seeds` is a character vector, it should either be vector of ",
+         "seeds (corresponding DNA sequence, 7 or 8 nucleotides), or of mature",
+         " miRNA sequences (RNA sequence).\n",
+         "The size of the characters in `seeds` is compatible with neither.")
+  }
+  if(!is(seeds,"KdModel") & !is(seeds,"KdModelList"))
+    stop("`seeds` should either be a character vector or an object of class ",
+         "`KdModel` or `KdModelList`")
+  NULL
 }
 
 .check3pParams <- function(p3.params){
