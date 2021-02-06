@@ -389,8 +389,8 @@ sequences should be in DNA format.")
 #' Given a seed and a set of sequences mathcing it, returns the type of match.
 #'
 #' @param x A character vector of short sequences.
-#' @param seed A 7 or 8 nucleotides string indicating the seed (5' to 3' sequence of the
-#' target RNA). If of length 7, an "A" will be appended.
+#' @param seed A 7 or 8 nucleotides string indicating the seed (5' to 3' 
+#' sequence of the target RNA). If of length 7, an "A" will be appended.
 #'
 #' @return A factor of match types.
 #' @export
@@ -406,14 +406,19 @@ getMatchTypes <- function(x, seed){
     stop("'seed' should be a string of 7 or 8 characters")
   if(nchar(seed)==7) seed <- paste0(seed,"A")
   seed6 <- substr(seed,2,7)
+  seedGb6 <- paste0(substr(seed,2,3),"G",substr(seed,4,7))
+  
   y[grep(paste0("[ACGT]","[ACGT]",substr(seed,3,8)),x)] <- 2L # 6mer-a1
   y[grep(paste0(substr(seed,1,6),"[ACGT][ACGT]"),x)] <- 3L # 6mer-m8
   y[grep(paste0("[ACGT]",substr(seed,2,7)),x)] <- 4L # 6mer
-  y[grep(paste0("[ACGT]",substr(seed,2,8)),x)] <- 5L # 7mer-a1
-  y[grep(substr(seed,1,7),x,fixed=TRUE)] <- 6L # 7mer-m8
-  y[grep(seed,x,fixed=TRUE)] <- 7L # 8mer
-  factor(y, levels=7:1, labels=c("8mer","7mer-m8","7mer-a1","6mer","6mer-m8",
-                                 "6mer-a1","non-canonical"))
+  y[grep(seedGb6,x,fixed=TRUE)] <- 5L # g-bulged 6mer
+  y[grep(paste0(seedGb6,"A"),x,fixed=TRUE)] <- 6L # g-bulged 7mer-a1
+  y[grep(paste0("[ACGT]",substr(seed,2,8)),x)] <- 7L # 7mer-a1
+  y[grep(substr(seed,1,7),x,fixed=TRUE)] <- 8L # 7mer-m8
+  y[grep(seed,x,fixed=TRUE)] <- 9L # 8mer
+  factor(y, levels=9L:1L, labels=c("8mer","7mer-m8","7mer-a1","g-bulged 7mer-a1",
+                                 "g-bulged 6mer","6mer","6mer-m8","6mer-a1",
+                                 "non-canonical"))
 }
 
 #' runFullScan
