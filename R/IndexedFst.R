@@ -33,9 +33,11 @@ setClass(
   slots=representation(
     fst.file="character",
     index="data.frame",
+    add.info="list",
     nthreads="integer"
   ),
-  prototype=prototype(fst.file=NA_character_, index=data.frame(), nthreads=1L),
+  prototype=prototype(fst.file=NA_character_, index=data.frame(), nthreads=1L, 
+                      add.info=list()),
   validity=function(object){
     if(length(object@nthreads)!=1 || !is.integer(object@nthreads) || object@nthreads<1)
       stop("`nthreads` should be a positive integer")
@@ -49,9 +51,13 @@ setMethod("initialize", "IndexedFst", function(.Object, ...) {
   o <- callNextMethod(.Object, ...)
   o@fst.file <- normalizePath(o@fst.file)
   o@nthreads <- as.integer(o@nthreads)
-  ff <- gsub("\\.fst$",".idx",o@fst.file)
-  o@index <- tryCatch( read.delim(ff, header=FALSE, row.names=1),
-                       error=function(e) stop("Could not find or read index file."))
+  ff <- gsub("\\.fst$",".idx.rds",o@fst.file)
+  tryCatch({
+    ff <- readRDS(ff)
+    o@index <- ff$index
+    ff$index <- NULL
+    o@add.info <- ff
+  }, error=function(e) stop("Could not find or read index file."))
   validObject(o)
   return(o)
 })
@@ -154,7 +160,7 @@ setMethod("head", "IndexedFst", definition = function(x, n=6L, ...){
 #' @rdname IndexedFst-class
 #' @export
 setMethod("as.data.frame", "IndexedFst", definition=function(x, name) {
-  .fst.read.wrapper(x)
+  .fst.read.wrapper(x, convertGR=FALSE)
 })
 
 #' @importFrom fst threads_fst read.fst
@@ -203,7 +209,7 @@ setMethod("as.data.frame", "IndexedFst", definition=function(x, name) {
 #' @export
 loadIndexedFst <- function(file, nthreads=1){
   if(grepl("\\.fst$",file)) return(new("IndexedFst", fst.file=file))
-  if(grepl("\\.idx$",file)) return(new("IndexedFst", fst.file=gsub("idx$","fst",file)))
+  if(grepl("\\.idx\\.rds$",file)) return(new("IndexedFst", fst.file=gsub("idx\\.rds$","fst",file)))
   new("IndexedFst", fst.file=paste0(file,".fst"), nthreads=as.integer(nthreads))
 }
 
@@ -216,13 +222,16 @@ loadIndexedFst <- function(file, nthreads=1){
 #' @param file.prefix Path and prefix of the output files.
 #' @param nthreads Number of threads to use when writing (default 1). If NULL, will use
 #' `threads_fst()`
+#' @param index.properties An optional data.frame of properties, with the levels
+#' of `index.by` as row names.
+#' @param add.info An optional list of additional information to save.
 #' @param ... Passed to `write.fst`
 #'
 #' @return Nothing.
 #' @seealso \code{\link{IndexedFst-class}}
 #' @importFrom fst write.fst threads_fst
 #' @export
-saveIndexedFst <- function(d, index.by, file.prefix, nthreads=1, ...){
+saveIndexedFst <- function(d, index.by, file.prefix, nthreads=1, index.properties=NULL, add.info=list(), ...){
   if(!is.data.frame(d)) stop("`d` should be a data.frame.")
   if((!is.character(index.by) && !is.integer(index.by)) || length(index.by)!=1 ||
      is.null(d[[index.by]]))  stop("`index.by` should be a scalar character or integer ",
@@ -234,10 +243,17 @@ saveIndexedFst <- function(d, index.by, file.prefix, nthreads=1, ...){
   if(!is.null(nthreads)) threads_fst(nthreads)
   d <- d[order(d[[index.by]]),]
   file.prefix <- gsub("\\.fst$","",file.prefix)
-  write.fst(d, paste0(file.prefix, ".fst"), ...)
   idx <- lapply(split(seq_len(nrow(d)), d[[index.by]]), FUN=range)
-  idx <- data.frame( seed=names(idx), start=sapply(idx,FUN=function(x) x[1]), 
-                      end=sapply(idx,FUN=function(x) x[2]))
-  write.table(idx, paste0(file.prefix, ".idx"), row.names=FALSE, col.names=FALSE, 
-              sep="\t",quote=F)
+  idx <- data.frame( row.names=names(idx), start=sapply(idx,FUN=function(x) x[1]), 
+                     end=sapply(idx,FUN=function(x) x[2]))
+  if(!is.null(index.properties)){
+    idx <- merge(idx, as.data.frame(index.properties), 
+                 by="row.names", all.x=TRUE)
+    row.names(idx) <- idx[,1]
+    idx <- idx[,-1]
+  }
+  idx <- c(list(index=idx), add.info)
+  saveRDS(idx, paste0(file.prefix, ".idx.rds"))
+  write.fst(d, paste0(file.prefix, ".fst"), ...)
 }
+

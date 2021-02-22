@@ -4,7 +4,15 @@
 \alias{saveIndexedFst}
 \title{saveIndexedFst}
 \usage{
-saveIndexedFst(d, index.by, file.prefix, nthreads = 1, ...)
+saveIndexedFst(
+  d,
+  index.by,
+  file.prefix,
+  nthreads = 1,
+  index.properties = NULL,
+  add.info = list(),
+  ...
+)
 }
 \arguments{
 \item{d}{A data.frame}
@@ -15,6 +23,11 @@ saveIndexedFst(d, index.by, file.prefix, nthreads = 1, ...)
 
 \item{nthreads}{Number of threads to use when writing (default 1). If NULL, will use
 `threads_fst()`}
+
+\item{index.properties}{An optional data.frame of properties, with the levels
+of `index.by` as row names.}
+
+\item{add.info}{An optional list of additional information to save.}
 
 \item{...}{Passed to `write.fst`}
 }

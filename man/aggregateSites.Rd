@@ -6,11 +6,12 @@
 \usage{
 aggregateSites(
   m,
-  ag = -5.5,
-  b = 0.8656,
-  c = -1.8488,
-  p3 = NULL,
-  bg = 0,
+  ag = -4.863126,
+  b = 0.5735,
+  c = -1.7091,
+  p3 = 0.03045,
+  coef_utr = -0.19346,
+  coef_orf = -0.20453,
   toInt = FALSE,
   BP = NULL
 )

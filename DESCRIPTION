@@ -1,7 +1,7 @@
 Package: scanMiR
 Type: Package
 Title: A set of tools for scanning for miRNA binding sites and working with dissociation rate models.
-Version: 0.99.5
+Version: 0.99.6
 Date: 2020-11-21
 Authors@R: c(
     person("Pierre-Luc", "Germain", email="pierre-luc.germain@hest.ethz.ch", role=c("cre","aut"), comment=c(ORCID="0000-0003-3418-4218")),

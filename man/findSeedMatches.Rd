@@ -9,16 +9,14 @@ findSeedMatches(
   seeds,
   seedtype = c("auto", "RNA", "DNA"),
   shadow = 0L,
-  maxLogKd = c(-0.3, 1),
+  maxLogKd = c(-0.3, -0.3),
   keepMatchSeq = FALSE,
-  maxLoop = 10L,
-  mir3p.nts = 6L,
   minDist = 7L,
+  p3.mismatch = TRUE,
+  p3.maxLoop = 8L,
+  p3.extra = FALSE,
   onlyCanonical = FALSE,
-  extra.3p = FALSE,
-  p3.params = c(maxLoop = 10L, mir.nts = 6L, minS = 2L, maxS = 7L, minDist = 1L,
-    maxDist = 13L),
-  agg.params = c(ag = -5.5, b = 0.8656, c = -1.8488, p3 = 0.2733),
+  agg.params = .defaultAggParams(),
   ret = c("GRanges", "data.frame", "aggregated"),
   BP = NULL,
   verbose = NULL,
@@ -47,15 +45,12 @@ dinucleotides) for each seed match (default FALSE).}
 miRNA (default 1). Closer matches will be reduced to the highest-affinity. To 
 disable the removal of overlapping features, use `minDist=-Inf`.}
 
+\item{p3.mismatch}{Logical; whether to allow mismatches in 3' alignment}
+
+\item{p3.maxLoop}{The maximum loop size for the 3' alignment}
+
 \item{onlyCanonical}{Logical; whether to restrict the search only to canonical
 binding sites.}
-
-\item{extra.3p}{Logical; whether to provide more detail information about the
-3' alignment (default FALSE).}
-
-\item{p3.params}{a named list of parameters for the 3' alignment (see 
-\code{\link{get3pAlignment}})
-parameters for the aggregation. Ignored if `ret!="aggregated"`.}
 
 \item{agg.params}{a named list with slots `ag`, `b` and `c` indicating the 
 parameters for the aggregation. Ignored if `ret!="aggregated"`.}
