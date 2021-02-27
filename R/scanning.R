@@ -443,30 +443,33 @@ getMatchTypes <- function(x, seed){
   x <- as.character(x)
   y <- rep(1L,length(x))
   seed <- as.character(seed)
-  if(length(seed)!=1 || !(nchar(seed) %in% c(7,8)))
-    stop("'seed' should be a string of 7 or 8 characters")
+  stopifnot(length(seed)==1)
+  stopifnot(nchar(seed) %in% 7:8)
   if(nchar(seed)==7) seed <- paste0(seed,"A")
   seed6 <- substr(seed,2,7)
   seedGb6 <- paste0(substr(seed,2,3),"G",substr(seed,4,7))
+  seedGb7 <- paste0(substr(seed,1,3),"G",substr(seed,4,7))
   y[grep(paste0("[ACGT]","[ACGT]",substr(seed,3,8)),x)] <- 2L # 6mer-a1
   y[grep(paste0(substr(seed,1,6),"[ACGT][ACGT]"),x)] <- 3L # 6mer-m8
-  y[grep(paste0("[ACGT]",substr(seed,2,7)),x)] <- 4L # 6mer
-  if(substr(seedGb6,2,7)!=seed6){
+  if(substr(seedGb6,2,7)!=seed6)
     y[grep(seedGb6,x,fixed=TRUE)] <- 5L # g-bulged 6mer
-    y[grep(paste0(seedGb6,"A"),x,fixed=TRUE)] <- 6L # g-bulged 7mer
+  y[grep(paste0("[ACGT]",substr(seed,2,7)),x)] <- 4L # 6mer
+  if(seedGb6!=substr(seed,1,7)){
+    y[grep(paste0(seedGb6,"A|",seedGb7),x,fixed=TRUE)] <- 6L # g-bulged 7mer
+    y[grep(paste0(seedGb7,"A"),x,fixed=TRUE)] <- 7L # g-bulged 8mer
   }
-  y[grep(paste0("[ACGT]",substr(seed,2,8)),x)] <- 7L # 7mer-a1
-  y[grep(substr(seed,1,7),x,fixed=TRUE)] <- 8L # 7mer-m8
-  y[grep(seed,x,fixed=TRUE)] <- 9L # 8mer
-  factor(y, levels=9L:1L, labels=.matchLevels())
+  y[grep(paste0("[ACGT]",substr(seed,2,8)),x)] <- 8L # 7mer-a1
+  y[grep(substr(seed,1,7),x,fixed=TRUE)] <- 9L # 7mer-m8
+  y[grep(seed,x,fixed=TRUE)] <- 10L # 8mer
+  factor(y, levels=10L:1L, labels=.matchLevels())
 }
 
 .matchLevels <- function(withA=TRUE){
-  if(withA) return(c("8mer","7mer-m8","7mer-a1","g-bulged 7mer",
-                     "g-bulged 6mer","6mer","6mer-m8","6mer-a1",
+  if(withA) return(c("8mer","7mer-m8","7mer-a1","g-bulged 8mer","g-bulged 7mer",
+                     "6mer","g-bulged 6mer","6mer-m8","6mer-a1",
                      "non-canonical"))
-  c("7mer","7mer","6mer","g-bulged 7mer","g-bulged 6mer","6mer","6mer-m8",
-    "non-canonical","non-canonical")
+  c("7mer","7mer","6mer","g-bulged 7mer","g-bulged 6mer","6mer","g-bulged 6mer",
+    "6mer-m8","non-canonical","non-canonical")
 }
   
 
