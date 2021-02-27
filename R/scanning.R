@@ -316,7 +316,7 @@ get3pAlignment <- function(seqs, mirseq, mir3p.start=9L, allow.mismatch=TRUE,
 }
 
 .TDMD <- function(m){
-  TDMD <- 1L
+  TDMD <- rep(1L,nrow(m))
   absbulgediff <- abs(m$p3.mir.bulge-m$p3.target.bulge)
   is78 <- m$type %in% c("8mer","7mer-m8","7mer-a1")
   w <- which(is78 & m$p3.mismatch<=1L & m$p3.mir.bulge <= 10L & 
