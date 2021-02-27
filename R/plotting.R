@@ -24,7 +24,7 @@ plotKdModel <- function(mod, what=c("both","seeds","logo"), n=10){
                     type=getMatchTypes(names(mer.mean),mod$canonical.seed), row.names=NULL)
     d <- d[head(order(d$base+d$A, decreasing=TRUE),n=n),]
     d$seed <- factor(as.character(d$seed), rev(as.character(d$seed)))
-    levels(d$type) <- c(rep("7mer",2),rep("6mer",3),rep("non-canonical",3))
+    levels(d$type) <- .matchLevels(FALSE)
     d2 <- data.frame(seed=rep(d$seed,2), log_kd=c(d$base,d$A), type=c(as.character(d$type), rep("+A",n)))
     p <- ggplot(d2, aes(seed, log_kd, fill=type)) + geom_col() + coord_flip() + 
       ylab("-log_kd") + ggtitle(mod$name)
