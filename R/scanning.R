@@ -65,7 +65,8 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"),
   if(ret=="aggregated"){
     if(!is.list(agg.params)) agg.params <- as.list(agg.params)
     if(!all(c("ag","b","c","p3","coef_utr","coef_orf") %in% names(agg.params)))
-      stop("`agg.params` should be a named list with slots `ag`, `b`, `c`, `p3`, `coef_utr` and `coef_orf`.")
+      stop("`agg.params` should be a named list with slots ",
+           "`ag`, `b`, `c`, `p3`, `coef_utr` and `coef_orf`.")
   }
   seedInputType <- .checkSeedsInput(seeds)
   if(is.null(verbose)) verbose <- is(seeds,"KdModel") || length(seeds)==1 || is.null(BP)
@@ -201,18 +202,14 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"),
     m <- m[order(seqnames(m), m$type)]
   }else{
     plen <- p3.maxLoop+nchar(mod$mirseq)-8L
-    start(r) <- start(r)-1-plen
-    end(r) <- end(r)+2
+    start(r) <- start(r)-1L-plen
+    end(r) <- end(r)+2L
     r <- split(r, seqnames(m))
     names(r) <- NULL
     ms <- unlist(extractAt(seqs, r))
     names(ms) <- NULL
     p3 <- get3pAlignment( subseq(ms,1L,plen), mod$mirseq, 
                           allow.mismatch=p3.mismatch )
-    mcols(m) <- cbind(mcols(m),
-                      
-                      )
-    mcols(m)$TDMD <- .TDMD(cbind(type=mcols(m)$type, p3))
     if(p3.extra){
       mcols(m) <- cbind(mcols(m), p3)
     }else{
@@ -220,10 +217,10 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"),
       p3$score[p3$p3.mir.bulge>p3.maxLoop] <- 0L
       mcols(m)$p3.score <- p3$score
     }
-
     ms <- subseq(ms, width(r)[[1]]-11L, width(r)[[1]])
     if(keepMatchSeq) mcols(m)$sequence <- as.factor(ms)
     mcols(m) <- cbind(mcols(m), assignKdType(ms, mod))
+    mcols(m)$TDMD <- .TDMD(cbind(type=mcols(m)$type, p3))
     if(maxLogKd[[1]]!=Inf){
       if(all(maxLogKd>=0)) maxLogKd <- -maxLogKd
       if(all(maxLogKd > -10)) maxLogKd <- maxLogKd*1000
@@ -264,7 +261,8 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"),
          " miRNA sequences (RNA sequence).\n",
          "The size of the characters in `seeds` is compatible with neither.")
   }
-  if(!is(seeds,"KdModel") & !is(seeds,"KdModelList"))
+  if(!is(seeds,"KdModel") & !is(seeds,"KdModelList") &
+     !(is.list(seeds) && all(sapply(seeds, class)=="KdModel")))
     stop("`seeds` should either be a character vector or an object of class ",
          "`KdModel` or `KdModelList`")
   NULL
@@ -450,19 +448,27 @@ getMatchTypes <- function(x, seed){
   if(nchar(seed)==7) seed <- paste0(seed,"A")
   seed6 <- substr(seed,2,7)
   seedGb6 <- paste0(substr(seed,2,3),"G",substr(seed,4,7))
-  
   y[grep(paste0("[ACGT]","[ACGT]",substr(seed,3,8)),x)] <- 2L # 6mer-a1
   y[grep(paste0(substr(seed,1,6),"[ACGT][ACGT]"),x)] <- 3L # 6mer-m8
   y[grep(paste0("[ACGT]",substr(seed,2,7)),x)] <- 4L # 6mer
-  y[grep(seedGb6,x,fixed=TRUE)] <- 5L # g-bulged 6mer
-  y[grep(paste0(seedGb6,"A"),x,fixed=TRUE)] <- 6L # g-bulged 7mer-a1
+  if(substr(seedGb6,2,7)!=seed6){
+    y[grep(seedGb6,x,fixed=TRUE)] <- 5L # g-bulged 6mer
+    y[grep(paste0(seedGb6,"A"),x,fixed=TRUE)] <- 6L # g-bulged 7mer
+  }
   y[grep(paste0("[ACGT]",substr(seed,2,8)),x)] <- 7L # 7mer-a1
   y[grep(substr(seed,1,7),x,fixed=TRUE)] <- 8L # 7mer-m8
   y[grep(seed,x,fixed=TRUE)] <- 9L # 8mer
-  factor(y, levels=9L:1L, labels=c("8mer","7mer-m8","7mer-a1","g-bulged 7mer-a1",
-                                 "g-bulged 6mer","6mer","6mer-m8","6mer-a1",
-                                 "non-canonical"))
+  factor(y, levels=9L:1L, labels=.matchLevels())
 }
+
+.matchLevels <- function(withA=TRUE){
+  if(withA) return(c("8mer","7mer-m8","7mer-a1","g-bulged 7mer",
+                     "g-bulged 6mer","6mer","6mer-m8","6mer-a1",
+                     "non-canonical"))
+  c("7mer","7mer","6mer","g-bulged 7mer","g-bulged 6mer","6mer","6mer-m8",
+    "non-canonical","non-canonical")
+}
+  
 
 #' runFullScan
 #' 
