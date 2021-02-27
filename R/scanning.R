@@ -90,8 +90,9 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"),
     if(is.list(seeds[[1]])) seeds <- seeds[[1]]
     params$miRNA <- ifelse(is(seeds, "KdModel"), seeds$name, seeds)
     if(is.null(verbose)) verbose <- TRUE
-    m <- .find1SeedMatches(seqs, seeds, keepMatchSeq=keepMatchSeq, minDist=minDist, 
-                           maxLogKd=maxLogKd, onlyCanonical=onlyCanonical, 
+    m <- .find1SeedMatches(seqs, seeds, keepMatchSeq=keepMatchSeq, 
+                           minDist=minDist, maxLogKd=maxLogKd, 
+                           onlyCanonical=onlyCanonical, p3.extra=p3.extra,
                            p3.mismatch=p3.mismatch, p3.maxLoop=p3.maxLoop,
                            offset=offset, verbose=verbose, ret=ret, ...)
     if(length(m)==0) return(m)
@@ -108,9 +109,9 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"),
     if(is.null(verbose)) verbose <- !(bpnworkers(BP)>1 | length(seeds)>5)
     m <- bplapply( seeds, BPPARAM=BP, FUN=function(oneseed){
       m <- .find1SeedMatches(seqs=seqs, seed=oneseed, keepMatchSeq=keepMatchSeq,
-                   minDist=minDist, maxLogKd=maxLogKd, ret=ret, 
-                   onlyCanonical=onlyCanonical, p3.mismatch=p3.mismatch,
-                   p3.maxLoop=p3.maxLoop, offset=offset, verbose=verbose, ...)
+                 minDist=minDist, maxLogKd=maxLogKd, p3.extra=p3.extra,
+                 onlyCanonical=onlyCanonical, p3.mismatch=p3.mismatch, ret=ret, 
+                 p3.maxLoop=p3.maxLoop, offset=offset, verbose=verbose, ...)
       if(length(m)==0) return(m)
       if(ret=="aggregated"){
         if(verbose) message("Aggregating...")
@@ -180,7 +181,7 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"),
     }
     pos <- gregexpr(paste0("(?=",patt,")"), seqs, perl=TRUE)
   }
-  pos <- lapply(lapply(pos, as.numeric), y=-1, setdiff)
+  pos <- lapply(lapply(pos, as.integer), y=-1L, setdiff)
   if(sum(lengths(pos))==0){
     if(verbose) message("Nothing found!")
     return(GRanges())
@@ -212,18 +213,19 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"),
                           allow.mismatch=p3.mismatch )
     if(p3.extra){
       mcols(m) <- cbind(mcols(m), p3)
+      if(keepMatchSeq) mcols(m)$sequence <- ms
     }else{
-      p3$score <- p3$p3.matches
+      p3$score <- p3$p3.score
       p3$score[p3$p3.mir.bulge>p3.maxLoop] <- 0L
       mcols(m)$p3.score <- p3$score
     }
     ms <- subseq(ms, width(r)[[1]]-11L, width(r)[[1]])
-    if(keepMatchSeq) mcols(m)$sequence <- as.factor(ms)
-    mcols(m) <- cbind(mcols(m), assignKdType(ms, mod))
+    if(keepMatchSeq && !p3.extra) mcols(m)$sequence <- as.factor(ms)
+    mcols(m) <- cbind(mcols(m),assignKdType(ms, mod))
     mcols(m)$TDMD <- .TDMD(cbind(type=mcols(m)$type, p3))
     if(maxLogKd[[1]]!=Inf){
       if(all(maxLogKd>=0)) maxLogKd <- -maxLogKd
-      if(all(maxLogKd > -10)) maxLogKd <- maxLogKd*1000
+      if(all(maxLogKd > -10)) maxLogKd <- maxLogKd*1000L
       m <- m[which(m$log_kd <= as.integer(round(maxLogKd[1])))]
     }else{
       m <- m[!is.na(m$log_kd)]

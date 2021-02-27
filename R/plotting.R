@@ -37,3 +37,22 @@ plotKdModel <- function(mod, what=c("both","seeds","logo"), n=10){
                       grid::grid.grabExpr(plotKdModel(mod, "logo")),
                       nrow=2, rel_heights=c(6,4))
 }
+
+
+viewTargetAlignment <- function(m, mod){
+  stopifnot(is(m,"GRanges"))
+  stopifnot(length(m)==1)
+  if(all(c("sequence","p3.mir.bulge") %in% colnames(mcols(m))))
+    return(.targetAlignment_internal(m, mod))
+  stop("Not yet implemented")
+}
+
+.targetAlignment_internal <- function(m, mod){
+  mirseq <- gsub("T","U",mod$mirseq)
+  target <- stringi::stri_reverse(gsub("T","U",as.character(m$sequence)))
+  mirseq2 <- as.character(complement(RNAString(mirseq)))
+  mirseq2 <- paste0("A",substr(mirseq2, 2, nchar(mirseq2)))
+  mm <- ifelse(strsplit(substr(mirseq2,1,8),"")[[1]]==
+                 strsplit(substr(target,3,10),"")[[1]], "|", " ")
+  cat(paste(paste0("--",mirseq),paste(c("  ",mm),collapse=""),target,sep="\n"))
+}

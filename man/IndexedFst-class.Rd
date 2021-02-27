@@ -12,8 +12,8 @@
 \alias{nrow,IndexedFst-method}
 \alias{ncol,IndexedFst-method}
 \alias{colnames,IndexedFst-method}
-\alias{[[,IndexedFst-method}
-\alias{[,IndexedFst,ANY-method}
+\alias{[[,IndexedFst,ANY,ANY-method}
+\alias{[,IndexedFst,ANY,ANY,ANY-method}
 \alias{$,IndexedFst-method}
 \alias{head,IndexedFst-method}
 \alias{as.data.frame,IndexedFst-method}
@@ -35,9 +35,9 @@
 
 \S4method{colnames}{IndexedFst}(x)
 
-\S4method{[[}{IndexedFst}(x, i, j = NULL, ...)
+\S4method{[[}{IndexedFst,ANY,ANY}(x, i, j = NULL, ...)
 
-\S4method{[}{IndexedFst,ANY}(x, i, j, ..., drop = TRUE)
+\S4method{[}{IndexedFst,ANY,ANY,ANY}(x, i, j, ..., drop = TRUE)
 
 \S4method{$}{IndexedFst}(x, name)
 

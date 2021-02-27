@@ -164,7 +164,8 @@ assignKdType <- function(x, mod, mer8=NULL){
   if(is.null(mer8)) mer8 <- getSeed8mers(mod$canonical.seed, addNs=TRUE)
   mod <- .add8merN(mod, mer8)
   fl.score <- as.numeric(.getFlankingScore(x)$score)
+  mer9 <- factor(as.character(subseq(x, 2, 10)))
   mer8 <- factor(as.character(subseq(x, 3,10)), levels=mer8)
-  data.frame(type=getMatchTypes(levels(mer8), mod$canonical.seed)[as.integer(mer8)],
+  data.frame(type=getMatchTypes(levels(mer9), mod$canonical.seed)[as.integer(mer9)],
              log_kd=as.integer(round(mod$mer8[mer8] + fl.score*mod$fl[mer8])))
 }
