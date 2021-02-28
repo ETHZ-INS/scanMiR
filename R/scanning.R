@@ -209,7 +209,7 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"),
     names(r) <- NULL
     ms <- unlist(extractAt(seqs, r))
     names(ms) <- NULL
-    p3 <- get3pAlignment( subseq(ms,1L,plen), mod$mirseq, 
+    p3 <- get3pAlignment( subseq(ms,1L,1+plen), mod$mirseq, 
                           allow.mismatch=p3.mismatch )
     if(p3.extra){
       mcols(m) <- cbind(mcols(m), p3)
