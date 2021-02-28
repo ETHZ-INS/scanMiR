@@ -28,7 +28,9 @@ getKmers <- function(n=4, from=c("A", "C", "G", "T")){
 #' @examples
 #' getRandomSeq()
 getRandomSeq <- function(length=3000, alphabet=c("A","C","G","T"), xs=FALSE){
-  paste(sample(alphabet, size = length, replace=TRUE), collapse="")
+  x <- paste(sample(alphabet, size = length, replace=TRUE), collapse="")
+  names(x) <- "seq1"
+  x
 }
 
 
