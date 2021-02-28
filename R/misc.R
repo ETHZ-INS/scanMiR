@@ -15,6 +15,22 @@ getKmers <- function(n=4, from=c("A", "C", "G", "T")){
         1,collapse="",FUN=paste)
 }
 
+#' getRandomSeq
+#' 
+#' Produces a random sequence of the given letters
+#'
+#' @param length Length of the sequence
+#' @param alphabet Letters from which to sample
+#'
+#' @return A character vector of length 1
+#' @export
+#'
+#' @examples
+#' getRandomSeq()
+getRandomSeq <- function(length=3000, alphabet=c("A","C","G","T"), xs=FALSE){
+  paste(sample(alphabet, size = length, replace=TRUE), collapse="")
+}
+
 
 #' getSeed8mers
 #' 
@@ -166,10 +182,11 @@ enrichedMirTxPairs <- function(m, minSites=5, max.binom.p=0.001){
 #' @importFrom AnnotationHub AnnotationHub query
 #' @import Biostrings
 #' @examples
-#' # not run:
+#' # too long to run (needs fetching the annotation) :
 #' # getTranscriptSequence("ENST00000641515", species="hsa")
 getTranscriptSequence <- function(tx, species=NULL, ensdbs=NULL, genome=NULL,
                                   UTRonly=TRUE, ...){
+  tx <- gsub("\\.[0-9]+$","",as.character(tx))
   if(is.null(ensdbs)){
     species <- match.arg(species, c("hsa","rno","mmu"))
     ah <- AnnotationHub(...)
@@ -231,12 +248,4 @@ getTranscriptSequence <- function(tx, species=NULL, ensdbs=NULL, genome=NULL,
     mcols(seqs)$ORF.length <- orf.len[names(seqs)]
   }
   seqs
-}
-
-
-.mirTargetAlignment <- function(mirseq, target){
-  mirseq <- paste0("A",substr(gsub("T","U",mirseq),2,nchar(mirseq)))
-  target <- RNAString(gsub("T","U",target))
-  mirseq <- reverseComplement(RNAString(mirseq))
-  al <- pairwiseAlignment(mirseq, target, type="local-global")
 }

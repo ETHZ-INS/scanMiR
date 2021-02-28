@@ -15,7 +15,7 @@ scanMiR.server(
 )
 }
 \arguments{
-\item{modlists}{A named list of `CompressedKdModelList`}
+\item{modlists}{A named list of `KdModelList`}
 
 \item{targetlists}{An optional list of aggregated targets, named as `modlists`}
 

@@ -38,6 +38,6 @@ Utility wrapper to extracts the sequence of a given transcript (UTR or
 CDS+UTR).
 }
 \examples{
-# not run:
+# too long to run (needs fetching the annotation) :
 # getTranscriptSequence("ENST00000641515", species="hsa")
 }
