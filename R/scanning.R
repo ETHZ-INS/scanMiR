@@ -278,7 +278,7 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"),
   d$type <- m$type
   d$log_kd <- m$log_kd
   d$TDMD <- m$TDMD
-  for(f in c("p3.mir.bulge","p3.target.bulge","p3.mismatch","p3.matches")){
+  for(f in c("p3.mir.bulge","p3.target.bulge","p3.mismatch","p3.matches","p3.score")){
     if(p3 && f %in% colnames(mcols(m)))
       d[[f]] <- mcols(m)[[f]]
   }
