@@ -39,14 +39,29 @@ plotKdModel <- function(mod, what=c("both","seeds","logo"), n=10){
 }
 
 
-viewTargetAlignment <- function(m, mod){
+#' viewTargetAlignment
+#'
+#' @param m A GRanges of length 1 giving the information for a given match, as
+#' produced by \link{\code{findSeedMatches}}.
+#' @param miRNA A miRNA sequence, or a \link{\code{KdModel}} object of the miRNA
+#' corresponding to the match in `m`
+#'
+#' @return A data.frame containing the aligned sequences.
+#' @export
+viewTargetAlignment <- function(m, miRNA){
   stopifnot(is(m,"GRanges"))
   stopifnot(length(m)==1)
+  if(is(miRNA,"KdModel")){
+    miRNA <- miRNA$mirseq
+  }else{
+    stopifnot(is.character(miRNA) && length(miRNA)==1)
+  }
   if(all(c("sequence","p3.mir.bulge") %in% colnames(mcols(m))))
     return(.targetAlignment_internal(m, mod))
   stop("Not yet implemented")
 }
 
+#' @importFrom stringi stri_reverse
 .targetAlignment_internal <- function(m, mod){
   mirseq <- gsub("T","U",mod$mirseq)
   target <- stringi::stri_reverse(gsub("T","U",as.character(m$sequence)))
@@ -54,5 +69,37 @@ viewTargetAlignment <- function(m, mod){
   mirseq2 <- paste0("A",substr(mirseq2, 2, nchar(mirseq2)))
   mm <- ifelse(strsplit(substr(mirseq2,1,8),"")[[1]]==
                  strsplit(substr(target,3,10),"")[[1]], "|", " ")
-  cat(paste(paste0("--",mirseq),paste(c("  ",mm),collapse=""),target,sep="\n"))
+  
+  if(m$p3.mir.bulge==m$p3.target.bulge){
+    mm <- c(mm,rep(" ",m$p3.mir.bulge))
+  }else if(m$p3.mir.bulge<m$p3.target.bulge){
+    mm <- c(mm,rep(" ",m$p3.target.bulge))
+    mirseq <- paste0(
+      paste(substr(mirseq,1,8+m$p3.mir.bulge),collapse=""),
+      paste(rep("-",m$p3.target.bulge-m$p3.mir.bulge),collapse=""),
+      paste(substr(mirseq,9+m$p3.mir.bulge,nchar(mirseq)),collapse=""))
+  }else{
+    mm <- c(mm,rep(" ",m$p3.mir.bulge))
+    target <- paste0(
+      paste(substr(target,1,10+m$p3.target.bulge),collapse=""),
+      paste(rep("-",m$p3.mir.bulge-m$p3.target.bulge),collapse=""),
+      paste(substr(target,11+m$p3.target.bulge,nchar(target)),collapse=""))
+  }
+  minl <- min(nchar(target),nchar(mirseq2)-8-m$p3.mir.bulge+10+m$p3.target.bulge)
+  mirseq2 <- substr(mirseq2,9+m$p3.mir.bulge,nchar(mirseq2))
+  target2 <- substr(target,11+m$p3.target.bulge,nchar(target))
+  minl <- min(nchar(mirseq2),nchar(target2))
+  mirseq2 <- substr(mirseq2,1,minl)
+  target2 <- substr(target2,1,minl)
+  mm2 <- ifelse(strsplit(mirseq2,"")[[1]]==strsplit(target2,"")[[1]], "|", " ")
+  mm <- paste(c(mm,mm2),collapse="", sep="")
+  d <- data.frame(
+    row.names=c("miRNA 3'  ",paste(rep(" ",10),collapse=""),"target 5' "),
+    "alignment"=c(stringi::stri_reverse(paste0("  ",mirseq)),
+                  stringi::stri_reverse(paste0("  ",mm)),
+                  stringi::stri_reverse(target)))
+  d$alignment <- paste0(sapply(max(nchar(d$alignment))-nchar(d$alignment),
+                               FUN=function(x) paste0(rep(" ",x),collapse="")),
+                        d$alignment)
+  d
 }

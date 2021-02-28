@@ -49,8 +49,6 @@ setMethod("summary", "KdModel", function(object){
 #'
 #' @return An object of class `KdModel`.
 #' @export
-#'
-#' @examples
 getKdModel <- function(kd,mirseq=NULL,name=NULL,conservation=NA_integer_, ...){
   if(is.character(kd) && length(kd)==1){
     if(is.null(name)) name <- gsub("\\.txt$|\\.csv$","",
