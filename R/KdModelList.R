@@ -3,7 +3,7 @@ setClass(
   "KdModelList",
   contains="list",
   validity=function(object){
-    if(!all(sapply(object,FUN=function(x) is(x,"KdModel"))))
+    if(!all(unlist(lapply(object,FUN=function(x) is(x,"KdModel")))))
       stop("A KdModelList should be a list of objects of class 'KdModel'")
     return(TRUE)
   }
@@ -19,7 +19,7 @@ setClass(
 KdModelList <- function(x, description=NULL){
   names(x) <- vapply(x, FUN.VALUE=character(1), FUN=function(x) x$name)
   x <- new("KdModelList", x)
-  attr(x, "created") <- Sys.Date()
+  if(!is.null(attr(x, "created"))) attr(x, "created") <- Sys.Date()
   if(!is.null(description)) attr(x, "description") <- description
   x
 }

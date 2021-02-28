@@ -90,6 +90,9 @@ viewTargetAlignment <- function(m, miRNA, seqs=NULL, flagBulgeMatches=FALSE,
   target <- stringi::stri_reverse(gsub("T","U",as.character(m$sequence)))
   mirseq2 <- as.character(complement(RNAString(mirseq)))
   mirseq2 <- paste0("A",substr(mirseq2, 2, nchar(mirseq2)))
+  if(grepl("g-bulged",as.character(m$type),fixed=TRUE)){
+    # TO DO!
+  }
   if(flagBulgeMatches){
     minBulge <- min(m$p3.mir.bulge,m$p3.target.bulge)
   }else{

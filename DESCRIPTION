@@ -1,15 +1,15 @@
 Package: scanMiR
 Type: Package
-Title: A set of tools for scanning for miRNA binding sites and working with dissociation rate models.
+Title: scanMiR
 Version: 0.99.7
 Date: 2020-11-21
 Authors@R: c(
     person("Pierre-Luc", "Germain", email="pierre-luc.germain@hest.ethz.ch", role=c("cre","aut"), comment=c(ORCID="0000-0003-3418-4218")),
     person("Michael", "Soutschek", email="michael.soutschek@hest.ethz.ch", role="ctb"),
     person("Fridolin", "Gross", email="fridolin.gross@hest.ethz.ch", role="ctb"))
-Imports: Biostrings, stringr, data.table, digest, fst, GenomicRanges, IRanges, BiocParallel, methods
-Suggests: knitr, rmarkdown, ggplot2, plotly, shiny, DT, shinydashboard, shinycssloaders, ensembldb, AnnotationHub, BSgenome, GenomeInfoDb
-Description: miRNA target enrichment analysis
+Imports: Biostrings, stringr, data.table, fst, GenomicRanges, IRanges, BiocParallel, methods
+Suggests: knitr, rmarkdown, ensembldb, AnnotationHub, BSgenome, GenomeInfoDb
+Description: A set of tools for scanning for miRNA binding sites and working with dissociation rate models.
 License: GPL
 VignetteBuilder: knitr
 RoxygenNote: 7.1.1
