@@ -7,15 +7,14 @@
 findSeedMatches(
   seqs,
   seeds,
-  seedtype = c("auto", "RNA", "DNA"),
   shadow = 0L,
+  onlyCanonical = FALSE,
   maxLogKd = c(-0.3, -0.3),
   keepMatchSeq = FALSE,
   minDist = 7L,
   p3.mismatch = TRUE,
   p3.maxLoop = 8L,
   p3.extra = FALSE,
-  onlyCanonical = FALSE,
   agg.params = .defaultAggParams(),
   ret = c("GRanges", "data.frame", "aggregated"),
   BP = NULL,
@@ -31,10 +30,11 @@ reversed and complemented before matching. If DNA, they are assumed to be
 the target sequence to look for. Alternatively, a list of objects of class
 `KdModel` or an object of class `KdModelList` can be given.}
 
-\item{seedtype}{Either RNA, DNA or 'auto' (default)}
-
 \item{shadow}{Integer giving the shadow, i.e. the number of nucleotides
 hidden at the beginning of the sequence (default 0)}
+
+\item{onlyCanonical}{Logical; whether to restrict the search only to canonical
+binding sites.}
 
 \item{maxLogKd}{Maximum log_kd value to keep (default 0). Set to Inf to disable.}
 
@@ -49,9 +49,6 @@ disable the removal of overlapping features, use `minDist=-Inf`.}
 
 \item{p3.maxLoop}{The maximum loop size for the 3' alignment}
 
-\item{onlyCanonical}{Logical; whether to restrict the search only to canonical
-binding sites.}
-
 \item{agg.params}{a named list with slots `ag`, `b` and `c` indicating the 
 parameters for the aggregation. Ignored if `ret!="aggregated"`.}
 
@@ -64,6 +61,8 @@ multithreading.}
 
 \item{verbose}{Logical; whether to print additional progress messages (default on if 
 not multithreading)}
+
+\item{seedtype}{Either RNA, DNA or 'auto' (default)}
 }
 \value{
 A GRanges of all matches. If `seeds` is a `KdModel` or `KdModelList`, the 

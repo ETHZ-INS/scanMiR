@@ -43,11 +43,10 @@
 #' names(seqs) <- paste0("seq",1:length(seqs))
 #' seeds <- c("AAACCAC", "AAACCUU")
 #' findSeedMatches(seqs, seeds)
-findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"), 
-                             shadow=0L, maxLogKd=c(-0.3,-0.3), 
-                             keepMatchSeq=FALSE, minDist=7L, p3.mismatch=TRUE, 
-                             p3.maxLoop=8L, p3.extra=FALSE, onlyCanonical=FALSE, 
-                             agg.params=.defaultAggParams(),
+findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE, 
+                             maxLogKd=c(-0.3,-0.3), keepMatchSeq=FALSE, 
+                             minDist=7L, p3.mismatch=TRUE, p3.maxLoop=8L, 
+                             p3.extra=FALSE, agg.params=.defaultAggParams(),
                              ret=c("GRanges","data.frame","aggregated"), 
                              BP=NULL, verbose=NULL, ...){
   # This might not be most efficient:
@@ -71,7 +70,7 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"),
   seedInputType <- .checkSeedsInput(seeds)
   if(is.null(verbose)) verbose <- is(seeds,"KdModel") || length(seeds)==1 || is.null(BP)
   if(verbose) message("Preparing sequences...")
-  args <- .prepSeqs(seqs, seeds, seedtype, shadow=shadow, pad=c(p3.maxLoop+20L,6L))
+  args <- .prepSeqs(seqs, seeds, shadow=shadow, pad=c(p3.maxLoop+20L,6L))
   seqs <- args$seqs
   if("seeds" %in% names(args)) seeds <- args$seeds
   offset <- args$offset
@@ -170,10 +169,25 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"),
   if(verbose) message("Scanning for matches...")
   
   if(isPureSeed <- is.character(seed)){
+    stopifnot(nchar(seed)>6)
+    if(nchar(seed) %in% 7:8){
+      mirseq <- NULL
+    }else{
+      mirseq <- gsub("U","T",seed)
+      seed <- as.character(reverseComplement(DNAStringSet(substr(mirseq,2,8))))
+      seed <- paste0(seed,"A")
+      if(verbose && (nchar(mirseq)<18 | nchar(mirseq)>24))
+        warning("The `seed` given seems to be neither a miRNA target seed nor",
+                "a mature miRNA sequence! Scanning for ", seed)
+    }
+    pat <- substr(seed,2,7)
+    if(!onlyCanonical)
+      pat <- paste0(pat,"|",substr(seed,2,3),"G",substr(seed,4,7))
     pos <- gregexpr(paste0("(?=.",substr(seed,2,7),".)"), seqs, perl=TRUE)
   }else{
     mod <- seed
     seed <- mod$canonical.seed
+    mirseq <- mod$mirseq
     if(onlyCanonical){
       patt <- paste0(".",substr(seed,2,7),".")
     }else{
@@ -194,22 +208,22 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"),
   seqs <- seqs[seqlevels(m)]
   r <- ranges(m)
   
-  if(isPureSeed){
+  if(isPureSeed && is.null(mirseq)){
     r <- split(r, seqnames(m))
     names(r) <- NULL
     ms <- as.factor(unlist(extractAt(seqs, r)))
     if(keepMatchSeq) mcols(m)$sequence <- ms
-    mcols(m)$type <- getMatchTypes(levels(ms), substr(seed,1,7))[as.integer(ms)]
+    mcols(m)$type <- getMatchTypes(ms, substr(seed,1,7))
     m <- m[order(seqnames(m), m$type)]
   }else{
-    plen <- p3.maxLoop+nchar(mod$mirseq)-8L
+    plen <- p3.maxLoop+nchar(mirseq)-8L
     start(r) <- start(r)-1L-plen
     end(r) <- end(r)+2L
     r <- split(r, seqnames(m))
     names(r) <- NULL
     ms <- unlist(extractAt(seqs, r))
     names(ms) <- NULL
-    p3 <- get3pAlignment( subseq(ms,1L,1+plen), mod$mirseq, 
+    p3 <- get3pAlignment( subseq(ms,1L,1+plen), mirseq, 
                           allow.mismatch=p3.mismatch )
     if(p3.extra){
       mcols(m) <- cbind(mcols(m), p3)
@@ -221,16 +235,22 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"),
     }
     ms <- subseq(ms, width(r)[[1]]-11L, width(r)[[1]])
     if(keepMatchSeq && !p3.extra) mcols(m)$sequence <- as.factor(ms)
-    mcols(m) <- cbind(mcols(m),assignKdType(ms, mod))
-    mcols(m)$TDMD <- .TDMD(cbind(type=mcols(m)$type, p3))
-    if(maxLogKd[[1]]!=Inf){
-      if(all(maxLogKd>=0)) maxLogKd <- -maxLogKd
-      if(all(maxLogKd > -10)) maxLogKd <- maxLogKd*1000L
-      m <- m[which(m$log_kd <= as.integer(round(maxLogKd[1])))]
+    if(isPureSeed){
+      mcols(m)$type <- getMatchTypes(ms, substr(seed,1,7))
+      mcols(m)$TDMD <- .TDMD(cbind(type=mcols(m)$type, p3))
+      m <- m[order(seqnames(m), m$type)]
     }else{
-      m <- m[!is.na(m$log_kd)]
+      mcols(m) <- cbind(mcols(m), assignKdType(ms, mod))
+      mcols(m)$TDMD <- .TDMD(cbind(type=mcols(m)$type, p3))
+      if(maxLogKd[[1]]!=Inf){
+        if(all(maxLogKd>=0)) maxLogKd <- -maxLogKd
+        if(all(maxLogKd > -10)) maxLogKd <- maxLogKd*1000L
+        m <- m[which(m$log_kd <= as.integer(round(maxLogKd[1])))]
+      }else{
+        m <- m[!is.na(m$log_kd)]
+      }
+      m <- m[order(seqnames(m), m$log_kd, m$type)]
     }
-    m <- m[order(seqnames(m), m$log_kd, m$type)]
   }
   rm(ms)
   if(!is.null(mcols(seqs)$ORF.length)){
@@ -252,12 +272,7 @@ findSeedMatches <- function( seqs, seeds, seedtype=c("auto", "RNA","DNA"),
 .checkSeedsInput <- function(seeds){
   if(is.character(seeds)){
     if(all(nchar(seeds) %in% c(7,8))) return("seed")
-    if(all(nchar(seeds) >= 18 & nchar(seeds) <= 25)){
-      if(.guessSeqType(seeds)!="RNA") 
-        stop("If `seeds` are mature miRNA sequences, they should be provided",
-             " as RNA sequences.")
-      return("mirseq")
-    }
+    if(all(nchar(seeds) >= 16 & nchar(seeds) <= 26)) return("mirseq")
     stop("If `seeds` is a character vector, it should either be vector of ",
          "seeds (corresponding DNA sequence, 7 or 8 nucleotides), or of mature",
          " miRNA sequences (RNA sequence).\n",
@@ -383,32 +398,19 @@ removeOverlappingRanges <- function(x, minDist=7L, retIndices=FALSE, ignore.stra
 }
 
 # determines target and seed sequence type, converts if necessary, and adds padding/shadow
-.prepSeqs <- function(seqs, seeds, seedtype=c("auto", "RNA","DNA"), shadow=0, pad=c(0,0)){
+.prepSeqs <- function(seqs, seeds, shadow=0, pad=c(0,0)){
   if(is.null(names(seqs))) names(seqs) <- paste0("seq",seq_along(seqs))
-  seedtype <- match.arg(seedtype)
   seqtype <- .guessSeqType(seqs)
+  if(seqtype=="RNA")
+    stop("Both the seeds and the target sequences should be in DNA format.")
   ret <- list()
   if( is(seeds, "KdModel") || 
       (is.list(seeds) && all(sapply(seeds, is.list))) ){
     if(is.null(names(seeds)))
-      stop("If `seeds` is a list of kd models, it should be named.")
-    if(seedtype=="RNA" || seqtype=="RNA") 
-      stop("If `seeds` is a list of kd models, both the seeds and the target
-sequences should be in DNA format.")
+      stop("If `seeds` is a list of KdModels, it should be named.")
   }else{
     if(is.null(names(seeds))) n <- names(seeds) <- seeds
-    if(seedtype=="auto") seedtype <- .guessSeqType(seeds)
-    if(seedtype=="RNA"){
-      message("Matching reverse complements of the seeds...")
-      seeds <- as.character(reverseComplement(RNAStringSet(seeds)))
-    }else{
-      message("Matching the given seeds directly...")
-    }
-    if(seqtype=="RNA"){
-      seeds <- gsub("T", "U", seeds)
-    }else{
-      seeds <- gsub("U", "T", seeds)
-    }
+    seeds <- gsub("U", "T", seeds)
     names(seeds) <- n
     ret$seeds <- seeds
   }
@@ -442,6 +444,7 @@ sequences should be in DNA format.")
 #' x <- c("AACACTCCAG","GACACTCCGC","GTACTCCAT","ACGTACGTAC")
 #' getMatchTypes(x, seed="ACACTCCA")
 getMatchTypes <- function(x, seed){
+  if(is.factor(x)) return(getMatchTypes(levels(x), seed)[as.integer(x)])
   x <- as.character(x)
   y <- rep(1L,length(x))
   seed <- as.character(seed)
