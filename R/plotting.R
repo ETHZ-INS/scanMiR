@@ -79,7 +79,7 @@ viewTargetAlignment <- function(m, miRNA, seqs=NULL, flagBulgeMatches=FALSE,
     stopifnot(as.character(seqnames(m)) %in% names(seqs))
     seqs <- DNAString(seqs[[as.character(seqnames(m))]])
     bulgeDiff <- max(m$p3.target.bulge-m$p3.mir.bulge,0L)
-    r <- IRanges(max(start(m)-bulgeDiff-nchar(mirseq)+8L,1L), end(m)+2L)
+    r <- IRanges(max(start(m)-bulgeDiff-nchar(miRNA)+8L,1L), end(m)+2L)
     m$sequence <- as.character(unlist(extractAt(seqs, r)))
   }
   if(m$p3.mir.bulge>maxBulgeSize | m$p3.target.bulge>maxBulgeSize |
@@ -88,6 +88,7 @@ viewTargetAlignment <- function(m, miRNA, seqs=NULL, flagBulgeMatches=FALSE,
   }
   mirseq <- gsub("T","U",miRNA)
   target <- stringi::stri_reverse(gsub("T","U",as.character(m$sequence)))
+  target2 <- target
   mirseq2 <- as.character(complement(RNAString(mirseq)))
   mirseq2 <- paste0("A",substr(mirseq2, 2, nchar(mirseq2)))
   if(grepl("g-bulged",as.character(m$type),fixed=TRUE)){
@@ -117,18 +118,18 @@ viewTargetAlignment <- function(m, miRNA, seqs=NULL, flagBulgeMatches=FALSE,
   }
   minl <- min(nchar(target),nchar(mirseq2)-8-m$p3.mir.bulge+10+m$p3.target.bulge)
   mirseq2 <- substr(mirseq2,9+m$p3.mir.bulge,nchar(mirseq2))
-  target2 <- substr(target,11+m$p3.target.bulge,nchar(target))
+  target2 <- substr(target2,11+m$p3.target.bulge,nchar(target2))
   minl <- min(nchar(mirseq2),nchar(target2))
   mirseq2 <- substr(mirseq2,1,minl)
   target2 <- substr(target2,1,minl)
   mm2 <- ifelse(strsplit(mirseq2,"")[[1]]==strsplit(target2,"")[[1]], "|", " ")
   mm <- paste(c(mm,mm2),collapse="", sep="")
-  sp5 <- paste0(rep(" ",5),collapse="")
+  sp <- function(x) paste0(rep(" ",x),collapse="")
   d <- data.frame(
-    row.names=c("miRNA 3'  ",paste0(sp5,sp5),"target 5' "),
-    "alignment"=c(stringi::stri_reverse(paste0(sp5,mirseq,"   ")),
-                  stringi::stri_reverse(paste0(sp5,mm,"   ")),
-                  stringi::stri_reverse(paste0("...",target,"..."))))
+    row.names=c("miRNA ",sp(6),"target"),
+    "alignment"=c(paste0(sp(3),"3'-",stringi::stri_reverse(mirseq),"-5'",sp(5)),
+                  paste0(sp(8),stringi::stri_reverse(mm),sp(8)),
+                  paste0("5'-...",stringi::stri_reverse(target),"...-3'")))
   d$alignment <- paste0(sapply(max(nchar(d$alignment))-nchar(d$alignment),
                                FUN=function(x) paste0(rep(" ",x),collapse="")),
                         d$alignment)
