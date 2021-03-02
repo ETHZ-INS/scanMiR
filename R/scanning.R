@@ -237,11 +237,11 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
     if(keepMatchSeq && !p3.extra) mcols(m)$sequence <- as.factor(ms)
     if(isPureSeed){
       mcols(m)$type <- getMatchTypes(ms, substr(seed,1,7))
-      mcols(m)$TDMD <- .TDMD(cbind(type=mcols(m)$type, p3))
+      mcols(m)$TDMD <- .TDMD(cbind(type=mcols(m)$type, p3),mirseq = mirseq)
       m <- m[order(seqnames(m), m$type)]
     }else{
       mcols(m) <- cbind(mcols(m), assignKdType(ms, mod))
-      mcols(m)$TDMD <- .TDMD(cbind(type=mcols(m)$type, p3))
+      mcols(m)$TDMD <- .TDMD(cbind(type=mcols(m)$type, p3),mirseq = mirseq)
       if(maxLogKd[[1]]!=Inf){
         if(all(maxLogKd>=0)) maxLogKd <- -maxLogKd
         if(all(maxLogKd > -10)) maxLogKd <- maxLogKd*1000L
@@ -330,17 +330,22 @@ get3pAlignment <- function(seqs, mirseq, mir3p.start=9L, allow.mismatch=TRUE,
   df
 }
 
-.TDMD <- function(m){
+.TDMD <- function(m,mirseq){
   TDMD <- rep(1L,nrow(m))
   absbulgediff <- abs(m$p3.mir.bulge-m$p3.target.bulge)
   is78 <- m$type %in% c("8mer","7mer-m8","7mer-a1")
   w <- which(is78 & m$p3.mismatch<=1L & m$p3.mir.bulge <= 10L & 
-               absbulgediff <= 2L)
+               absbulgediff <= 4L & m$p3.score >= 6)
   TDMD[w] <- 2L
   w <- which(is78 & m$p3.mismatch==0L & m$p3.mir.bulge < 5L & 
-               absbulgediff < 2L)
+               absbulgediff <= 2L & m$p3.score >= 6)
   TDMD[w] <- 3L
-  factor(TDMD, levels = 1L:3L, labels = c("No","Maybe","Yes"))
+  is8 <- m$type == "8mer"
+  m$not.bound <- nchar(mirseq) - 8L - m$p3.score
+  w <- which(is8 & m$p3.mismatch==0L & m$p3.mir.bulge == 0L & 
+               absbulgediff == 0L & m$not.bound == 0L)
+  TDMD[w] <- 4L
+  factor(TDMD, levels = 1L:4L, labels = c("No","Maybe","Yes","Slicing"))
 }
 
 .default3pSubMatrix <- function(mismatch=-3, TG=TRUE){
