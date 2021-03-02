@@ -79,6 +79,7 @@ aggregateSites <- function(m,ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.03045, coe
       m$orf_score <- 0
     }
   m$repression <- m$repression + coef_utr*m$utr_score*m$repression + coef_orf*m$orf_score*m$repression
+  m <- subset(m,select = - c(orf_len,utr_len,utr_score,orf_score))
   }
   if(toInt) m$repression <- as.integer(round(1000*m$repression))
   m$repression <- ifelse(m$repression >= 0, 0, m$repression)
