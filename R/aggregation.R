@@ -18,7 +18,8 @@ aggregateSites <- function(m,ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.03045, coe
     m$miRNA <- as.factor(m$miRNA)
     m <- as.data.frame(m)
   }
-  m <- m[,c("miRNA","transcript","ORF","log_kd","align.3p","type")]
+  if(is.null(m$ORF)) m$ORF <- 0L
+  m <- m[,c("miRNA","transcript","ORF","log_kd","p3.score","type")]
   m <- split(m, m$miRNA)
   m <- bplapply(m, BPPARAM=BP, FUN=function(x){
     .aggregate_miRNA(x, ag=ag, b=b, c=c, p3=p3,coef_utr = coef_utr, coef_orf = coef_orf, toInt=toInt)
@@ -29,14 +30,14 @@ aggregateSites <- function(m,ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.03045, coe
 
 .aggregate_miRNA <- function(m,ll = NULL, ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.03045, coef_utr = -0.19346,coef_orf = -0.20453, toInt=FALSE){
   if(is.null(m$ORF)) m$ORF <- 0L
-  m <- m[,c("miRNA","transcript","ORF","log_kd","align.3p","type")]
+  m <- m[,c("miRNA","transcript","ORF","log_kd","p3.score","type")]
   m$ORF <- as.integer(m$ORF)
   m$log_kd <- m$log_kd / 1000
   m <- m[m$log_kd < 0,]
   m$log_kd <- -m$log_kd
-  m$align.3p <- ifelse(m$type == "non-canonical" , 0, m$align.3p)
-  if(is.null(m$align.3p)) m$align.3p <- 0L
-  m$N <- 1 / (1 + exp(-1 * (ag + m$log_kd + c*m$ORF + p3*m$align.3p) ))
+  if(is.null(m$p3.score)) m$p3.score <- 0L
+  m$p3.score <- ifelse(m$type == "non-canonical" , 0, m$p3.score)
+  m$N <- 1 / (1 + exp(-1 * (ag + m$log_kd + c*m$ORF + p3*m$p3.score) ))
   m$log_kd <- NULL
   m$N_bg <- 1 / (1 + exp(-1 * (ag  + c*m$ORF) ))
   m <- as.data.frame(rowsum(as.matrix(m[,c("N","N_bg")]), group=m$transcript))
@@ -63,8 +64,8 @@ aggregateSites <- function(m,ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.03045, coe
     }
   m$repression <- m$repression + coef_utr*m$utr_score*m$repression + coef_orf*m$orf_score*m$repression
   }
-  
   if(toInt) m$repression <- as.integer(round(1000*m$repression))
+  m$repression <- ifelse(m$repression >= 0, 0, m$repression)
   m
 }
 
