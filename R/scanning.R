@@ -59,6 +59,7 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
     utr_len <- length.seqs - orf_len
   }
   length.info <- cbind(orf_len,utr_len)
+  if(!is.null(names(seqs))) row.names(length.info) <- names(seqs)
   ###
   ret <- match.arg(ret)
   if(ret=="aggregated"){
