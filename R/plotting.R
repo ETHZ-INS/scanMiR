@@ -27,7 +27,7 @@ plotKdModel <- function(mod, what=c("both","seeds","logo"), n=10){
     levels(d$type) <- .matchLevels(FALSE)
     d2 <- data.frame(seed=rep(d$seed,2), log_kd=c(d$base,d$A), type=c(as.character(d$type), rep("+A",n)))
     p <- ggplot(d2, aes(seed, log_kd, fill=type)) + geom_col() + coord_flip() + 
-      ylab("-log_kd") + ggtitle(mod$name)
+      ylab("-log(KD)") + xlab("7-mer") + ggtitle(mod$name)
     if(mod$name != mod$mirseq) p <- p + labs(subtitle=gsub("T","U",mod$mirseq))
     return( p )
   }
