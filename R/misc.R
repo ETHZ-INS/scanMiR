@@ -228,7 +228,7 @@ getTranscriptSequence <- function(tx, species=NULL, ensdbs=NULL, genome=NULL,
     gbuild <- em[["genome_build"]]
     genome <- switch(gbuild,
       GRCh38=BSgenome.Hsapiens.UCSC.hg38:::BSgenome.Hsapiens.UCSC.hg38,
-      GRCm38=BSgenome.Mmusculus.UCSC.mm10:::BSgenome.Mmusculus.UCSC.mm10,
+      GRCm39=BSgenome.Mmusculus.UCSC.mm10:::BSgenome.Mmusculus.UCSC.mm10,
       "Rnor_6.0"=BSgenome.Rnorvegicus.UCSC.rn6:::BSgenome.Rnorvegicus.UCSC.rn6,
       stop("Genome not among the pre-defined one, please provide `genome` ",
            "manually.")

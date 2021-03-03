@@ -15,22 +15,38 @@ aggregateSites <- function(m,ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.03045, coe
   if(is(m,"GRanges")){
     m$transcript <- as.factor(seqnames(m))
     m <- mcols(m)
-    m$miRNA <- as.factor(m$miRNA)
+    if(!is.null(m$miRNA)) m$miRNA <- as.factor(m$miRNA)
     m <- as.data.frame(m)
   }
   if(is.null(m$ORF)) m$ORF <- 0L
-  m <- m[,c("miRNA","transcript","ORF","log_kd","p3.score","type")]
-  m <- split(m, m$miRNA)
-  m <- bplapply(m, BPPARAM=BP, FUN=function(x){
-    .aggregate_miRNA(x, ag=ag, b=b, c=c, p3=p3,coef_utr = coef_utr, coef_orf = coef_orf, toInt=toInt)
-  })
-  dplyr::bind_rows(m, .id="miRNA")
+  if(!is.null(m$miRNA)){
+    m <- m[,c("miRNA","transcript","ORF","log_kd","p3.score","type")]
+    m <- split(m, m$miRNA)
+    m <- bplapply(m, BPPARAM=BP, FUN=function(x){
+      .aggregate_miRNA(x, ag=ag, b=b, c=c, p3=p3,coef_utr = coef_utr, coef_orf = coef_orf, toInt=toInt)
+    })
+    dplyr::bind_rows(m, .id="miRNA")
+  }else{
+    m <- m[,c("transcript","ORF","log_kd","p3.score","type")]
+    m <- .aggregate_miRNA(m, ag=ag, b=b, c=c, p3=p3,coef_utr = coef_utr, coef_orf = coef_orf, toInt=toInt)
+    m
+  }
 }
 
 
 .aggregate_miRNA <- function(m,ll = NULL, ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.03045, coef_utr = -0.19346,coef_orf = -0.20453, toInt=FALSE){
+  if(is(m,"GRanges")){
+    m$transcript <- as.factor(seqnames(m))
+    m <- mcols(m)
+    if(!is.null(m$miRNA)) m$miRNA <- as.factor(m$miRNA)
+    m <- as.data.frame(m)
+  }
   if(is.null(m$ORF)) m$ORF <- 0L
-  m <- m[,c("miRNA","transcript","ORF","log_kd","p3.score","type")]
+  if(!is.null(m$miRNA)){
+    m <- m[,c("miRNA","transcript","ORF","log_kd","p3.score","type")]
+  }else{
+    m <- m[,c("transcript","ORF","log_kd","p3.score","type")]
+  }
   m$ORF <- as.integer(m$ORF)
   m$log_kd <- m$log_kd / 1000
   m <- m[m$log_kd < 0,]
@@ -44,7 +60,7 @@ aggregateSites <- function(m,ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.03045, coe
   m <- data.frame( transcript=row.names(m),
                    repression=log(1+exp(b)*m$N_bg) - log(1 + exp(b)*m$N) )
   
-  if(!is.null(ll)){
+  if(!is.null(ll) && nrow(m) > 1){
     m <- merge(m,ll,by = "transcript", all.x = TRUE)
     
     # get the utr score
@@ -63,6 +79,7 @@ aggregateSites <- function(m,ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.03045, coe
       m$orf_score <- 0
     }
   m$repression <- m$repression + coef_utr*m$utr_score*m$repression + coef_orf*m$orf_score*m$repression
+  m <- subset(m,select = - c(orf_len,utr_len,utr_score,orf_score))
   }
   if(toInt) m$repression <- as.integer(round(1000*m$repression))
   m$repression <- ifelse(m$repression >= 0, 0, m$repression)
