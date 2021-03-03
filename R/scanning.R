@@ -70,7 +70,7 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
   seedInputType <- .checkSeedsInput(seeds)
   if(is.null(verbose)) verbose <- is(seeds,"KdModel") || length(seeds)==1 || is.null(BP)
   if(verbose) message("Preparing sequences...")
-  args <- .prepSeqs(seqs, seeds, shadow=shadow, pad=c(p3.maxLoop+20L,6L))
+  args <- .prepSeqs(seqs, seeds, shadow=shadow, pad=c(p3.maxLoop+30L,6L))
   seqs <- args$seqs
   if("seeds" %in% names(args)) seeds <- args$seeds
   offset <- args$offset
