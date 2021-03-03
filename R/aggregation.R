@@ -10,7 +10,7 @@
 #'
 #' @return a data.frame
 #' @export
-aggregateSites <- function(m,ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.05936, coef_utr = -0.19346,coef_orf = -0.20453, toInt=FALSE, BP=NULL){
+aggregateSites <- function(m,ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.08095, coef_utr = -0.19346,coef_orf = -0.20453, toInt=FALSE, BP=NULL){
   if(is.null(BP)) BP <- BiocParallel::SerialParam()
   if(is(m,"GRanges")){
     m$transcript <- as.factor(seqnames(m))
@@ -34,7 +34,7 @@ aggregateSites <- function(m,ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.05936, coe
 }
 
 
-.aggregate_miRNA <- function(m,ll = NULL, ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.05936, coef_utr = -0.19346,coef_orf = -0.20453, toInt=FALSE){
+.aggregate_miRNA <- function(m,ll = NULL, ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.08095, coef_utr = -0.19346,coef_orf = -0.20453, toInt=FALSE){
   if(is(m,"GRanges")){
     m$transcript <- as.factor(seqnames(m))
     m <- mcols(m)
@@ -53,7 +53,8 @@ aggregateSites <- function(m,ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.05936, coe
   m$log_kd <- -m$log_kd
   if(is.null(m$p3.score)) m$p3.score <- 0L
   m$p3.score <- ifelse(m$type == "non-canonical" , 0, m$p3.score)
-  m$p3.score <- ifelse(m$p3.score >= 6L, 0, m$p3.score)
+  m$p3.score <- ifelse(m$p3.score >= 8L, 0, m$p3.score)
+  m$p3.score <- ifelse(m$p3.score <= 2L , 0, m$p3.score)
   m$N <- 1 / (1 + exp(-1 * (ag + m$log_kd + c*m$ORF + p3*m$p3.score) ))
   m$log_kd <- NULL
   m$N_bg <- 1 / (1 + exp(-1 * (ag  + c*m$ORF) ))

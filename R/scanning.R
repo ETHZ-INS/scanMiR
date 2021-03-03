@@ -322,7 +322,7 @@ get3pAlignment <- function(seqs, mirseq, mir3p.start=9L, allow.mismatch=TRUE,
   mir.3p <- as.character(reverseComplement(DNAString(
     substr(x=mirseq, start=mir3p.start, stop=nchar(mirseq))
   )))
-  subm <- .default3pSubMatrix(ifelse(allow.mismatch,-5,-Inf), TG=TGsub)
+  subm <- .default3pSubMatrix(ifelse(allow.mismatch,-4,-Inf), TG=TGsub)
   al <- pairwiseAlignment(seqs, mir.3p, type="local", substitutionMatrix=subm)
   df <- data.frame( p3.mir.bulge=nchar(mir.3p)-end(subject(al)),
                     p3.target.bulge=target.len-end(pattern(al)) )
@@ -331,6 +331,7 @@ get3pAlignment <- function(seqs, mirseq, mir3p.start=9L, allow.mismatch=TRUE,
   df$p3.score <- ifelse(df$p3.mir.bulge > 5L,0L,df$p3.score)
   df$absbulgediff <- abs(df$p3.mir.bulge-df$p3.target.bulge)
   df$p3.score <- ifelse(df$absbulgediff > 4L,0L,df$p3.score)
+  df$p3.score <- ifelse(df$absbulgediff >= 2L, df$p3.score - df$absbulgediff,df$p3.score)
   df
 }
 
@@ -560,6 +561,6 @@ runFullScan <- function(species, mods=NULL, UTRonly=TRUE, shadow=15, cores=8, mi
 
 
 .defaultAggParams <- function(){
-  c(ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.05936, 
+  c(ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.08095, 
     coef_utr = -0.19346, coef_orf = -0.20453)
 }
