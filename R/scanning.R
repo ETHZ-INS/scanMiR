@@ -45,7 +45,7 @@
 #' findSeedMatches(seqs, seeds)
 findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE, 
                              maxLogKd=c(-0.3,-0.3), keepMatchSeq=FALSE, 
-                             minDist=7L, p3.mismatch=TRUE, p3.maxLoop=8L, 
+                             minDist=7L, p3.mismatch=TRUE, p3.maxLoop=10L, 
                              p3.extra=FALSE, agg.params=.defaultAggParams(),
                              ret=c("GRanges","data.frame","aggregated"), 
                              BP=NULL, verbose=NULL, ...){
@@ -159,7 +159,7 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
 # scan for a single seed
 .find1SeedMatches <- function(seqs, seed, keepMatchSeq=FALSE, maxLogKd=0, 
                               minDist=1L, onlyCanonical=FALSE, p3.extra=FALSE,
-                              p3.mismatch=TRUE, p3.maxLoop=8L, offset=0L, 
+                              p3.mismatch=TRUE, p3.maxLoop=10L, offset=0L, 
                               ret=c("GRanges","data.frame","aggregated"), 
                               verbose=FALSE){
   ret <- match.arg(ret)
@@ -322,12 +322,15 @@ get3pAlignment <- function(seqs, mirseq, mir3p.start=9L, allow.mismatch=TRUE,
   mir.3p <- as.character(reverseComplement(DNAString(
     substr(x=mirseq, start=mir3p.start, stop=nchar(mirseq))
   )))
-  subm <- .default3pSubMatrix(ifelse(allow.mismatch,-3,-Inf), TG=TGsub)
+  subm <- .default3pSubMatrix(ifelse(allow.mismatch,-5,-Inf), TG=TGsub)
   al <- pairwiseAlignment(seqs, mir.3p, type="local", substitutionMatrix=subm)
   df <- data.frame( p3.mir.bulge=nchar(mir.3p)-end(subject(al)),
                     p3.target.bulge=target.len-end(pattern(al)) )
   df$p3.mismatch <- nchar(mir.3p)-width(pattern(al))-df$p3.mir.bulge
   df$p3.score <- as.integer(score(al))
+  df$p3.score <- ifelse(df$p3.mir.bulge > 5L,0L,df$p3.score)
+  df$absbulgediff <- abs(df$p3.mir.bulge-df$p3.target.bulge)
+  df$p3.score <- ifelse(df$absbulgediff > 4L,0L,df$p3.score)
   df
 }
 
@@ -335,7 +338,7 @@ get3pAlignment <- function(seqs, mirseq, mir3p.start=9L, allow.mismatch=TRUE,
   TDMD <- rep(1L,nrow(m))
   absbulgediff <- abs(m$p3.mir.bulge-m$p3.target.bulge)
   is78 <- m$type %in% c("8mer","7mer-m8","7mer-a1")
-  w <- which(is78 & m$p3.mismatch<=1L & m$p3.mir.bulge <= 10L & 
+  w <- which(is78 & m$p3.mismatch<=1L & m$p3.mir.bulge <= 5L & 
                absbulgediff <= 4L & m$p3.score >= 6)
   TDMD[w] <- 2L
   w <- which(is78 & m$p3.mismatch==0L & m$p3.mir.bulge < 5L & 
@@ -557,6 +560,6 @@ runFullScan <- function(species, mods=NULL, UTRonly=TRUE, shadow=15, cores=8, mi
 
 
 .defaultAggParams <- function(){
-  c(ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.03045, 
+  c(ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.05936, 
     coef_utr = -0.19346, coef_orf = -0.20453)
 }
