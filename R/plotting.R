@@ -125,7 +125,6 @@ viewTargetAlignment <- function(m, miRNA, seqs=NULL, flagBulgeMatches=FALSE,
   mirseq2 <- substr(mirseq2,1,minl)
   target2 <- substr(target2,1,minl)
   mm2 <- .matchStrings(mirseq2, target2, UGsub)
-  mm2 <- paste(mm2,collapse="")
   if(min3pMatch>1L && 
      !grepl(paste(rep("|",min3pMatch),collapse=""), 
             gsub("-","|",paste(mm2,collapse=""),fixed=TRUE), fixed=TRUE)){
@@ -148,8 +147,12 @@ viewTargetAlignment <- function(m, miRNA, seqs=NULL, flagBulgeMatches=FALSE,
   s1 <- strsplit(s1,"")[[1]]
   s2 <- strsplit(s2,"")[[1]]
   mm <- ifelse(s1==s2, "|", " ")
+  print(paste(s1,collapse=""))
+  print(paste(s2,collapse=""))
   if(UGsub){
-    mm[s1!=s2 & s1 %in% c("U","G") & s2 %in% c("U","G")] <- "-"
+    mm[s1!=s2 & s1 %in% c("U","C") & s2 %in% c("U","C")] <- "-"
   }
+  mm <- gsub("\\-$"," ",paste(mm,collapse=""))
+  mm <- gsub("\\-[^|]|[^|]\\-","  ", mm)
   mm
 }
