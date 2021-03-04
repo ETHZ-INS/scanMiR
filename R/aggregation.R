@@ -10,7 +10,7 @@
 #'
 #' @return a data.frame
 #' @export
-aggregateSites <- function(m,ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.08095, coef_utr = -0.19346,coef_orf = -0.20453, toInt=FALSE, BP=NULL){
+aggregateSites <- function(m,ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.08095, coef_utr = -0.19346,coef_orf = -0.20453, p3.range=c(2L,8L), toInt=FALSE, BP=NULL){
   if(is.null(BP)) BP <- BiocParallel::SerialParam()
   if(is(m,"GRanges")){
     m$transcript <- as.factor(seqnames(m))
@@ -23,18 +23,18 @@ aggregateSites <- function(m,ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.08095, coe
     m <- m[,c("miRNA","transcript","ORF","log_kd","p3.score","type")]
     m <- split(m, m$miRNA)
     m <- bplapply(m, BPPARAM=BP, FUN=function(x){
-      .aggregate_miRNA(x, ag=ag, b=b, c=c, p3=p3,coef_utr = coef_utr, coef_orf = coef_orf, toInt=toInt)
+      .aggregate_miRNA(x, ag=ag, b=b, c=c, p3=p3,coef_utr = coef_utr, coef_orf = coef_orf, toInt=toInt, p3.range=p3.range)
     })
     dplyr::bind_rows(m, .id="miRNA")
   }else{
     m <- m[,c("transcript","ORF","log_kd","p3.score","type")]
-    m <- .aggregate_miRNA(m, ag=ag, b=b, c=c, p3=p3,coef_utr = coef_utr, coef_orf = coef_orf, toInt=toInt)
+    m <- .aggregate_miRNA(m, ag=ag, b=b, c=c, p3=p3,coef_utr = coef_utr, coef_orf = coef_orf, toInt=toInt, p3.range=p3.range)
     m
   }
 }
 
 
-.aggregate_miRNA <- function(m,ll = NULL, ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.08095, coef_utr = -0.19346,coef_orf = -0.20453, toInt=FALSE){
+.aggregate_miRNA <- function(m,ll = NULL, ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.08095, coef_utr = -0.19346,coef_orf = -0.20453, p3.range=c(2L,8L), toInt=FALSE){
   if(is(m,"GRanges")){
     m$transcript <- as.factor(seqnames(m))
     m <- mcols(m)
@@ -52,9 +52,9 @@ aggregateSites <- function(m,ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.08095, coe
   m <- m[m$log_kd < 0,]
   m$log_kd <- -m$log_kd
   if(is.null(m$p3.score)) m$p3.score <- 0L
-  m$p3.score <- ifelse(m$type == "non-canonical" , 0, m$p3.score)
-  m$p3.score <- ifelse(m$p3.score > 8L, 0, m$p3.score)
-  m$p3.score <- ifelse(m$p3.score <= 2L , 0, m$p3.score)
+  m$p3.score <- ifelse(m$type == "non-canonical" , 0L, m$p3.score)
+  m$p3.score[m$p3.score>max(p3.range)] <- as.integer(max(p3.range))
+  m$p3.score[m$p3.score<min(p3.range)] <- 0L
   m$N <- 1 / (1 + exp(-1 * (ag + m$log_kd + c*m$ORF + p3*m$p3.score) ))
   m$log_kd <- NULL
   m$N_bg <- 1 / (1 + exp(-1 * (ag  + c*m$ORF) ))
