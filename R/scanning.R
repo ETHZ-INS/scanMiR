@@ -322,7 +322,7 @@ get3pAlignment <- function(seqs, mirseq, mir3p.start=9L, allow.mismatch=TRUE,
   mir.3p <- as.character(reverseComplement(DNAString(
     substr(x=mirseq, start=mir3p.start, stop=nchar(mirseq))
   )))
-  subm <- .default3pSubMatrix(ifelse(allow.mismatch,-4,-Inf), TG=TGsub)
+  subm <- .default3pSubMatrix(ifelse(allow.mismatch,-2,-Inf), TG=TGsub)
   al <- pairwiseAlignment(seqs, mir.3p, type="local", substitutionMatrix=subm)
   df <- data.frame( p3.mir.bulge=nchar(mir.3p)-end(subject(al)),
                     p3.target.bulge=target.len-end(pattern(al)) )
