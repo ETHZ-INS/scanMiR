@@ -9,6 +9,9 @@ get3pAlignment(
   mirseq,
   mir3p.start = 9L,
   allow.mismatch = TRUE,
+  maxMirLoop = 5L,
+  maxTargetLoop = 9L,
+  maxLoopDiff = 4L,
   TGsub = TRUE
 )
 }
@@ -20,6 +23,12 @@ get3pAlignment(
 \item{mir3p.start}{The position in `mirseq` in which to start looking}
 
 \item{allow.mismatch}{Logical; whether to allow mismatches}
+
+\item{maxMirLoop}{Maximum miRNA loop size}
+
+\item{maxTargetLoop}{Maximum target loop size}
+
+\item{maxLoopDiff}{Maximum size difference between miRNA and target loops}
 
 \item{TGsub}{Logical; whether to allow T/G substitutions}
 }

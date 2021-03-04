@@ -12,9 +12,9 @@ findSeedMatches(
   maxLogKd = c(-0.3, -0.3),
   keepMatchSeq = FALSE,
   minDist = 7L,
-  p3.mismatch = TRUE,
-  p3.maxLoop = 8L,
   p3.extra = FALSE,
+  p3.params = list(maxMirLoop = 5L, maxTargetLoop = 9L, maxLoopDiff = 4L, mismatch =
+    TRUE),
   agg.params = .defaultAggParams(),
   ret = c("GRanges", "data.frame", "aggregated"),
   BP = NULL,
@@ -45,9 +45,7 @@ dinucleotides) for each seed match (default FALSE).}
 miRNA (default 1). Closer matches will be reduced to the highest-affinity. To 
 disable the removal of overlapping features, use `minDist=-Inf`.}
 
-\item{p3.mismatch}{Logical; whether to allow mismatches in 3' alignment}
-
-\item{p3.maxLoop}{The maximum loop size for the 3' alignment}
+\item{p3.params}{Named list of parameters for the 3' alignment.}
 
 \item{agg.params}{a named list with slots `ag`, `b` and `c` indicating the 
 parameters for the aggregation. Ignored if `ret!="aggregated"`.}
@@ -63,6 +61,10 @@ multithreading.}
 not multithreading)}
 
 \item{seedtype}{Either RNA, DNA or 'auto' (default)}
+
+\item{p3.maxLoop}{The maximum loop size for the 3' alignment}
+
+\item{p3.mismatch}{Logical; whether to allow mismatches in 3' alignment}
 }
 \value{
 A GRanges of all matches. If `seeds` is a `KdModel` or `KdModelList`, the 

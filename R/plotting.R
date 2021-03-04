@@ -52,12 +52,15 @@ plotKdModel <- function(mod, what=c("both","seeds","logo"), n=10){
 #' (default FALSE)
 #' @param maxBulgeSize The maximum bulge size to consider (default none)
 #' @param maxBulgeDiff The maximum difference between miRNA and target bulges
+#' @param min3pMatch The minimum 3' alignment for any to be plotted
+#' @param UGsub Logical; whether to show U-G matches
 #'
 #' @return A data.frame containing the aligned sequences.
 #' @importFrom stringi stri_reverse
 #' @export
 viewTargetAlignment <- function(m, miRNA, seqs=NULL, flagBulgeMatches=FALSE,
-                                maxBulgeSize=Inf, maxBulgeDiff=Inf){
+                                maxBulgeSize=Inf, maxBulgeDiff=Inf, 
+                                min3pMatch=3L, UGsub=TRUE){
   stopifnot(is(m,"GRanges"))
   stopifnot(length(m)==1)
   if(is.list(miRNA) && is(miRNA[[1]],"KdModelList") && !is.null(m$miRNA)){
@@ -87,29 +90,27 @@ viewTargetAlignment <- function(m, miRNA, seqs=NULL, flagBulgeMatches=FALSE,
     m$p3.mir.bulge <- m$p3.target.bulge <- 3L
   }
   mirseq <- gsub("T","U",miRNA)
-  if(grepl("g-bulged",m$type)) mirseq <- paste0(substr(mirseq,1,5),"-",substr(mirseq,6,nchar(mirseq)))
+  if(bulged <- grepl("g-bulged",m$type))
+    mirseq <- paste0(substr(mirseq,1,5),"-",substr(mirseq,6,nchar(mirseq)))
   target <- stringi::stri_reverse(gsub("T","U",as.character(m$sequence)))
   target2 <- target
   mirseq2 <- as.character(complement(RNAString(mirseq)))
   mirseq2 <- paste0("A",substr(mirseq2, 2, nchar(mirseq2)))
-  if(grepl("g-bulged",as.character(m$type),fixed=TRUE)){
-    # TO DO!
-  }
   if(flagBulgeMatches){
     minBulge <- min(m$p3.mir.bulge,m$p3.target.bulge)
   }else{
     minBulge <- 0
   }
-  mm <- ifelse(strsplit(substr(mirseq2,1,8+minBulge),"")[[1]]==
-                 strsplit(substr(target,3,10+minBulge),"")[[1]], "|", " ")
+  mm <- .matchStrings(substr(mirseq2,1,8+bulged+minBulge),
+                      substr(target,3,10+minBulge), FALSE )
   if(!flagBulgeMatches && m$p3.mir.bulge==m$p3.target.bulge){
     mm <- c(mm,rep(" ",m$p3.mir.bulge))
   }else if(m$p3.mir.bulge<m$p3.target.bulge){
     mm <- c(mm,rep(" ",m$p3.target.bulge-minBulge))
     mirseq <- paste0(
-      paste(substr(mirseq,1,8+m$p3.mir.bulge),collapse=""),
+      paste(substr(mirseq,1,8+bulged+m$p3.mir.bulge),collapse=""),
       paste(rep("-",m$p3.target.bulge-m$p3.mir.bulge),collapse=""),
-      paste(substr(mirseq,9+m$p3.mir.bulge,nchar(mirseq)),collapse=""))
+      paste(substr(mirseq,9+bulged+m$p3.mir.bulge,nchar(mirseq)),collapse=""))
   }else{
     mm <- c(mm,rep(" ",m$p3.mir.bulge-minBulge))
     target <- paste0(
@@ -123,7 +124,13 @@ viewTargetAlignment <- function(m, miRNA, seqs=NULL, flagBulgeMatches=FALSE,
   minl <- min(nchar(mirseq2),nchar(target2))
   mirseq2 <- substr(mirseq2,1,minl)
   target2 <- substr(target2,1,minl)
-  mm2 <- ifelse(strsplit(mirseq2,"")[[1]]==strsplit(target2,"")[[1]], "|", " ")
+  mm2 <- .matchStrings(mirseq2, target2, UGsub)
+  mm2 <- paste(mm2,collapse="")
+  if(min3pMatch>1L && 
+     !grepl(paste(rep("|",min3pMatch),collapse=""), 
+            gsub("-","|",paste(mm2,collapse=""),fixed=TRUE), fixed=TRUE)){
+    mm2 <- rep(" ",length(mm2))
+  }
   mm <- paste(c(mm,mm2),collapse="", sep="")
   sp <- function(x) paste0(rep(" ",x),collapse="")
   d <- data.frame(
@@ -135,4 +142,14 @@ viewTargetAlignment <- function(m, miRNA, seqs=NULL, flagBulgeMatches=FALSE,
                                FUN=function(x) paste0(rep(" ",x),collapse="")),
                         d$alignment)
   d
+}
+
+.matchStrings <- function(s1, s2, UGsub=TRUE){
+  s1 <- strsplit(s1,"")[[1]]
+  s2 <- strsplit(s2,"")[[1]]
+  mm <- ifelse(s1==s2, "|", " ")
+  if(UGsub){
+    mm[s1!=s2 & s1 %in% c("U","G") & s2 %in% c("U","G")] <- "-"
+  }
+  mm
 }

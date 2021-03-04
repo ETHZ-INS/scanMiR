@@ -18,6 +18,7 @@
 #' disable the removal of overlapping features, use `minDist=-Inf`.
 #' @param p3.maxLoop The maximum loop size for the 3' alignment
 #' @param p3.mismatch Logical; whether to allow mismatches in 3' alignment
+#' @param p3.params Named list of parameters for the 3' alignment.
 #' @param agg.params a named list with slots `ag`, `b` and `c` indicating the 
 #' parameters for the aggregation. Ignored if `ret!="aggregated"`.
 #' @param ret The type of data to return, either "GRanges" (default), 
@@ -45,10 +46,13 @@
 #' findSeedMatches(seqs, seeds)
 findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE, 
                              maxLogKd=c(-0.3,-0.3), keepMatchSeq=FALSE, 
-                             minDist=7L, p3.mismatch=TRUE, p3.maxLoop=10L, 
-                             p3.extra=FALSE, agg.params=.defaultAggParams(),
+                             minDist=7L, p3.extra=FALSE, 
+                             p3.params=list(maxMirLoop=5L, maxTargetLoop=9L, 
+                                            maxLoopDiff=4L, mismatch=TRUE),
+                             agg.params=.defaultAggParams(),
                              ret=c("GRanges","data.frame","aggregated"), 
                              BP=NULL, verbose=NULL, ...){
+  p3.params <- .check3pParams(p3.params)
   # This might not be most efficient:
   length.seqs <- width(seqs)
   if(is.character(seqs) || is.null(mcols(seqs)$ORF.length)){
@@ -71,7 +75,8 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
   seedInputType <- .checkSeedsInput(seeds)
   if(is.null(verbose)) verbose <- is(seeds,"KdModel") || length(seeds)==1 || is.null(BP)
   if(verbose) message("Preparing sequences...")
-  args <- .prepSeqs(seqs, seeds, shadow=shadow, pad=c(p3.maxLoop+30L,6L))
+  maxLoop <- max(unlist(p3.params[c("maxMirLoop","maxTargetLoop")]))
+  args <- .prepSeqs(seqs, seeds, shadow=shadow, pad=c(maxLoop+30L,8L))
   seqs <- args$seqs
   if("seeds" %in% names(args)) seeds <- args$seeds
   offset <- args$offset
@@ -80,9 +85,8 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
   params <- list(
     shadow=shadow,
     minDist=minDist,
-    maxLoop=p3.maxLoop,
-    p3.mismatch=p3.mismatch,
-    maxLogKd=maxLogKd
+    maxLogKd=maxLogKd,
+    p3.params=p3.params
   )
   if(ret=="aggregated") params$agg.params <- agg.params
   
@@ -93,8 +97,8 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
     m <- .find1SeedMatches(seqs, seeds, keepMatchSeq=keepMatchSeq, 
                            minDist=minDist, maxLogKd=maxLogKd, 
                            onlyCanonical=onlyCanonical, p3.extra=p3.extra,
-                           p3.mismatch=p3.mismatch, p3.maxLoop=p3.maxLoop,
-                           offset=offset, verbose=verbose, ret=ret, ...)
+                           p3.params=p3.params, offset=offset, 
+                           verbose=verbose, ret=ret, ...)
     if(length(m)==0) return(m)
     if(ret=="aggregated"){
       if(verbose) message("Aggregating...")
@@ -110,8 +114,8 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
     m <- bplapply( seeds, BPPARAM=BP, FUN=function(oneseed){
       m <- .find1SeedMatches(seqs=seqs, seed=oneseed, keepMatchSeq=keepMatchSeq,
                  minDist=minDist, maxLogKd=maxLogKd, p3.extra=p3.extra,
-                 onlyCanonical=onlyCanonical, p3.mismatch=p3.mismatch, ret=ret, 
-                 p3.maxLoop=p3.maxLoop, offset=offset, verbose=verbose, ...)
+                 onlyCanonical=onlyCanonical, p3.params=p3.params, ret=ret, 
+                 offset=offset, verbose=verbose, ...)
       if(length(m)==0) return(m)
       if(ret=="aggregated"){
         if(verbose) message("Aggregating...")
@@ -159,10 +163,11 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
 # scan for a single seed
 .find1SeedMatches <- function(seqs, seed, keepMatchSeq=FALSE, maxLogKd=0, 
                               minDist=1L, onlyCanonical=FALSE, p3.extra=FALSE,
-                              p3.mismatch=TRUE, p3.maxLoop=10L, offset=0L, 
+                              p3.params=list(), offset=0L, 
                               ret=c("GRanges","data.frame","aggregated"), 
                               verbose=FALSE){
   ret <- match.arg(ret)
+  p3.params <- .check3pParams(p3.params)
 
   if(is.null(maxLogKd)) maxLogKd <- c(Inf,Inf)
   if(length(maxLogKd)==1) maxLogKd <- rep(maxLogKd,2)
@@ -217,7 +222,8 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
     mcols(m)$type <- getMatchTypes(ms, substr(seed,1,7))
     m <- m[order(seqnames(m), m$type)]
   }else{
-    plen <- p3.maxLoop+nchar(mirseq)-8L
+    maxLoop <- max(unlist(p3.params[c("maxMirLoop","maxTargetLoop")]))
+    plen <- maxLoop+nchar(mirseq)-8L
     start(r) <- start(r)-1L-plen
     end(r) <- end(r)+2L
     r <- split(r, seqnames(m))
@@ -225,24 +231,25 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
     ms <- unlist(extractAt(seqs, r))
     names(ms) <- NULL
     p3 <- get3pAlignment( subseq(ms,1L,1+plen), mirseq, 
-                          allow.mismatch=p3.mismatch )
+                          allow.mismatch=p3.params$mismatch,
+                          maxMirLoop=p3.params$maxMirLoop, 
+                          maxLoopDiff=p3.params$maxLoopDiff,
+                          maxTargetLoop=p3.params$maxTargetLoop)
     if(p3.extra){
       mcols(m) <- cbind(mcols(m), p3)
       if(keepMatchSeq) mcols(m)$sequence <- ms
     }else{
-      p3$score <- p3$p3.score
-      p3$score[p3$p3.mir.bulge>p3.maxLoop] <- 0L
-      mcols(m)$p3.score <- p3$score
+      mcols(m)$p3.score <- p3$p3.score
     }
     ms <- subseq(ms, width(r)[[1]]-11L, width(r)[[1]])
     if(keepMatchSeq && !p3.extra) mcols(m)$sequence <- as.factor(ms)
     if(isPureSeed){
       mcols(m)$type <- getMatchTypes(ms, substr(seed,1,7))
-      mcols(m)$TDMD <- .TDMD(cbind(type=mcols(m)$type, p3),mirseq = mirseq)
+      mcols(m)$note <- .TDMD(cbind(type=mcols(m)$type, p3), mirseq=mirseq)
       m <- m[order(seqnames(m), m$type)]
     }else{
       mcols(m) <- cbind(mcols(m), assignKdType(ms, mod))
-      mcols(m)$TDMD <- .TDMD(cbind(type=mcols(m)$type, p3),mirseq = mirseq)
+      mcols(m)$note <- .TDMD(cbind(type=mcols(m)$type, p3), mirseq=mirseq)
       if(maxLogKd[[1]]!=Inf){
         if(all(maxLogKd>=0)) maxLogKd <- -maxLogKd
         if(all(maxLogKd > -10)) maxLogKd <- maxLogKd*1000L
@@ -301,7 +308,17 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
   d
 }
 
-
+.check3pParams <- function(p3.params){
+  stopifnot(is.list(p3.params))
+  def <- list(maxMirLoop=5L, maxTargetLoop=9L, maxLoopDiff=4L, mismatch=TRUE)
+  for(f in names(def)){
+    if(!(f %in% names(p3.params))) p3.params[[f]] <- def[[f]]
+  }
+  stopifnot(is.logical(p3.params$mismatch))
+  stopifnot(is.numeric(unlist(p3.params[names(def)[1:3]])))
+  for(f in names(def)[1:3]) p3.params[[f]] <- as.integer(p3.params[[f]])
+  p3.params
+}
 
 #' get3pAlignment
 #'
@@ -310,6 +327,9 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
 #' @param mir3p.start The position in `mirseq` in which to start looking
 #' @param allow.mismatch Logical; whether to allow mismatches
 #' @param TGsub Logical; whether to allow T/G substitutions
+#' @param maxMirLoop Maximum miRNA loop size
+#' @param maxTargetLoop Maximum target loop size
+#' @param maxLoopDiff Maximum size difference between miRNA and target loops
 #'
 #' @return A data.frame with one row for each element of `seqs`.
 #' @export
@@ -317,7 +337,8 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
 #' @examples
 #' get3pAlignment(seqs="NNAGTGTGCCATNN", mirseq="TGGAGTGTGACAATGGTGTTTG")
 get3pAlignment <- function(seqs, mirseq, mir3p.start=9L, allow.mismatch=TRUE, 
-                            TGsub=TRUE){
+                           maxMirLoop=5L, maxTargetLoop=9L, maxLoopDiff=4L,
+                           TGsub=TRUE){
   target.len <- width(seqs[1])
   mir.3p <- as.character(reverseComplement(DNAString(
     substr(x=mirseq, start=mir3p.start, stop=nchar(mirseq))
@@ -328,29 +349,32 @@ get3pAlignment <- function(seqs, mirseq, mir3p.start=9L, allow.mismatch=TRUE,
                     p3.target.bulge=target.len-end(pattern(al)) )
   df$p3.mismatch <- nchar(mir.3p)-width(pattern(al))-df$p3.mir.bulge
   df$p3.score <- as.integer(score(al))
-  df$p3.score <- ifelse(df$p3.mir.bulge > 5L,0L,df$p3.score)
-  df$absbulgediff <- abs(df$p3.mir.bulge-df$p3.target.bulge)
-  df$p3.score <- ifelse(df$absbulgediff > 4L,0L,df$p3.score)
-  df$p3.score <- ifelse(df$absbulgediff >= 2L, df$p3.score - df$absbulgediff,df$p3.score)
+  diff <- abs(df$p3.mir.bulge-df$p3.target.bulge)
+  df[which(df$p3.mir.bulge>maxMirLoop | df$p3.target.bulge>maxTargetLoop | 
+             diff>maxLoopDiff), 
+     c("p3.mir.bulge","p3.target.bulge","p3.score")] <- 0L
   df
 }
 
 .TDMD <- function(m,mirseq){
+  is78 <- which(m$type %in% c("8mer","7mer-m8","7mer-a1"))
+  m2 <- m[is78,]
+  m2$TDMD <- rep(1L,nrow(m2))
+  absbulgediff <- abs(m2$p3.mir.bulge-m2$p3.target.bulge)
+  w <- which(m2$p3.mismatch==0L & m2$p3.mir.bulge <= 5L & 
+             m2$p3.mir.bulge>0L & absbulgediff <= 4L & m2$p3.score >= 6L)
+  m2$TDMD[w] <- 2L
+  w <- which(m2$p3.mismatch==0L & m2$p3.mir.bulge < 5L & 
+             m2$p3.mir.bulge>0L & absbulgediff <= 2L & m2$p3.score >= 6L)
+  m2$TDMD[w] <- 3L
+  is8 <- m2$type == "8mer"
+  #m$not.bound <- nchar(mirseq) - 8L - m$p3.score
+  w <- which(is8 & m2$p3.mismatch<=1L & m2$p3.mir.bulge == 0L & 
+               absbulgediff == 0L & m2$p3.score > 1L)
+  m2$TDMD[w] <- 4L
   TDMD <- rep(1L,nrow(m))
-  absbulgediff <- abs(m$p3.mir.bulge-m$p3.target.bulge)
-  is78 <- m$type %in% c("8mer","7mer-m8","7mer-a1")
-  w <- which(is78 & m$p3.mismatch<=1L & m$p3.mir.bulge <= 5L & 
-               absbulgediff <= 4L & m$p3.score >= 6)
-  TDMD[w] <- 2L
-  w <- which(is78 & m$p3.mismatch==0L & m$p3.mir.bulge < 5L & 
-               absbulgediff <= 2L & m$p3.score >= 6)
-  TDMD[w] <- 3L
-  is8 <- m$type == "8mer"
-  m$not.bound <- nchar(mirseq) - 8L - m$p3.score
-  w <- which(is8 & m$p3.mismatch==0L & m$p3.mir.bulge == 0L & 
-               absbulgediff == 0L & m$not.bound == 0L)
-  TDMD[w] <- 4L
-  factor(TDMD, levels = 1L:4L, labels = c("No","Maybe","Yes","Slicing"))
+  TDMD[is78] <- m2$TDMD
+  factor(TDMD, levels = 1L:4L, labels = c("-","TDMD?","TDMD","Slicing"))
 }
 
 .default3pSubMatrix <- function(mismatch=-3, TG=TRUE){

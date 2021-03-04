@@ -10,7 +10,9 @@ viewTargetAlignment(
   seqs = NULL,
   flagBulgeMatches = FALSE,
   maxBulgeSize = Inf,
-  maxBulgeDiff = Inf
+  maxBulgeDiff = Inf,
+  min3pMatch = 3L,
+  UGsub = TRUE
 )
 }
 \arguments{
@@ -30,6 +32,10 @@ including the model.}
 \item{maxBulgeSize}{The maximum bulge size to consider (default none)}
 
 \item{maxBulgeDiff}{The maximum difference between miRNA and target bulges}
+
+\item{min3pMatch}{The minimum 3' alignment for any to be plotted}
+
+\item{UGsub}{Logical; whether to show U-G matches}
 }
 \value{
 A data.frame containing the aligned sequences.
