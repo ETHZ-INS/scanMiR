@@ -147,8 +147,6 @@ viewTargetAlignment <- function(m, miRNA, seqs=NULL, flagBulgeMatches=FALSE,
   s1 <- strsplit(s1,"")[[1]]
   s2 <- strsplit(s2,"")[[1]]
   mm <- ifelse(s1==s2, "|", " ")
-  print(paste(s1,collapse=""))
-  print(paste(s2,collapse=""))
   if(UGsub){
     mm[s1!=s2 & s1 %in% c("U","C") & s2 %in% c("U","C")] <- "-"
   }
