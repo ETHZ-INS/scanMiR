@@ -87,6 +87,7 @@ viewTargetAlignment <- function(m, miRNA, seqs=NULL, flagBulgeMatches=FALSE,
     m$p3.mir.bulge <- m$p3.target.bulge <- 3L
   }
   mirseq <- gsub("T","U",miRNA)
+  if(grepl("g-bulged",m$type)) mirseq <- paste0(substr(mirseq,1,5),"-",substr(mirseq,6,nchar(mirseq)))
   target <- stringi::stri_reverse(gsub("T","U",as.character(m$sequence)))
   target2 <- target
   mirseq2 <- as.character(complement(RNAString(mirseq)))
