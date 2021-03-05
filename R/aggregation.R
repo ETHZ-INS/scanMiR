@@ -34,7 +34,7 @@ aggregateSites <- function(m,ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.08095, coe
 }
 
 
-.aggregate_miRNA <- function(m,ll = NULL, ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.08095, coef_utr = -0.19346,coef_orf = -0.20453, p3.range=c(2L,8L), toInt=FALSE){
+.aggregate_miRNA <- function(m,ll = NULL, ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.08095, coef_utr = -0.19346,coef_orf = -0.20453, p3.range=c(3L,8L), toInt=FALSE){
   if(is(m,"GRanges")){
     m$transcript <- as.factor(seqnames(m))
     m <- mcols(m)

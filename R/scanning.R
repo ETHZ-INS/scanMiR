@@ -340,16 +340,16 @@ get3pAlignment <- function(seqs, mirseq, mir3p.start=9L, allow.mismatch=TRUE,
                            maxMirLoop=5L, maxTargetLoop=9L, maxLoopDiff=4L,
                            TGsub=TRUE){
   target.len <- width(seqs[1])
-  mir.3p <- as.character(reverseComplement(DNAString(
-    substr(x=mirseq, start=mir3p.start, stop=nchar(mirseq))
-  )))
-  subm <- .default3pSubMatrix(ifelse(allow.mismatch,-2,-Inf), TG=TGsub)
+  mir.3p <- as.character(DNAString(substr(x=mirseq, start=mir3p.start, stop=nchar(mirseq))))
+  seqs <- reverseComplement(seqs)
+  subm <- .default3pSubMatrix(ifelse(allow.mismatch,-3,-Inf), TG=TGsub)
   al <- pairwiseAlignment(seqs, mir.3p, type="local", substitutionMatrix=subm)
-  df <- data.frame( p3.mir.bulge=nchar(mir.3p)-end(subject(al)),
-                    p3.target.bulge=target.len-end(pattern(al)) )
+  df <- data.frame( p3.mir.bulge=start(subject(al))-1L,
+                    p3.target.bulge=start(pattern(al))-1L )
   df$p3.mismatch <- nchar(mir.3p)-width(pattern(al))-df$p3.mir.bulge
   df$p3.score <- as.integer(score(al))
   diff <- abs(df$p3.mir.bulge-df$p3.target.bulge)
+  df$p3.score <- ifelse(diff > 2,df$p3.score - (diff - 2),df$p3.score)
   df[which(df$p3.mir.bulge>maxMirLoop | df$p3.target.bulge>maxTargetLoop | 
              diff>maxLoopDiff), 
      c("p3.mir.bulge","p3.target.bulge","p3.score")] <- 0L
@@ -368,20 +368,20 @@ get3pAlignment <- function(seqs, mirseq, mir3p.start=9L, allow.mismatch=TRUE,
              m2$p3.mir.bulge>0L & absbulgediff <= 2L & m2$p3.score >= 6L)
   m2$TDMD[w] <- 3L
   is8 <- m2$type == "8mer"
-  #m$not.bound <- nchar(mirseq) - 8L - m$p3.score
+  m2$not.bound <- nchar(mirseq) - 8L - m2$p3.score
   w <- which(is8 & m2$p3.mismatch<=1L & m2$p3.mir.bulge == 0L & 
-               absbulgediff == 0L & m2$p3.score > 1L)
+               absbulgediff == 0L & m2$not.bound <= 6)
   m2$TDMD[w] <- 4L
   TDMD <- rep(1L,nrow(m))
   TDMD[is78] <- m2$TDMD
-  factor(TDMD, levels = 1L:4L, labels = c("-","TDMD?","TDMD","Slicing"))
+  factor(TDMD, levels = 1L:4L, labels = c("-","TDMD?","TDMD","pot. Slicing"))
 }
 
 .default3pSubMatrix <- function(mismatch=-3, TG=TRUE){
   subm <- Biostrings::nucleotideSubstitutionMatrix(match=1, mismatch=mismatch)
   l <- c("A","C","G","T","N")
   subm <- subm[l,l]
-  if(TG) subm["G", "T"] <- subm["T", "G"] <- 0
+  if(TG) subm["A", "G"] <- subm["C", "T"] <- 0
   subm
 }
 
