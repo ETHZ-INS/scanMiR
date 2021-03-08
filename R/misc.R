@@ -194,7 +194,7 @@ getTranscriptSequence <- function(tx, species=NULL, ensdbs=NULL, genome=NULL,
     ah <- AnnotationHub(...)
     ahid <- switch(species,
       hsa=rev(query(ah, c("EnsDb", "Homo sapiens"))$ah_id)[1],
-      mmu=rev(query(ah, c("EnsDb", "Mus musculus"))$ah_id)[1],
+      mmu=rev(query(ah, c("EnsDb", "Mus musculus"))$ah_id)[2],
       rno=rev(query(ah, c("EnsDb", "Rattus norvegicus"))$ah_id)[1],
       stop("Species not among the pre-defined one, please provide `ensdbs` ",
            "and `genome` manually.")
@@ -228,7 +228,7 @@ getTranscriptSequence <- function(tx, species=NULL, ensdbs=NULL, genome=NULL,
     gbuild <- em[["genome_build"]]
     genome <- switch(gbuild,
       GRCh38=BSgenome.Hsapiens.UCSC.hg38:::BSgenome.Hsapiens.UCSC.hg38,
-      GRCm39=BSgenome.Mmusculus.UCSC.mm10:::BSgenome.Mmusculus.UCSC.mm10,
+      GRCm38=BSgenome.Mmusculus.UCSC.mm10:::BSgenome.Mmusculus.UCSC.mm10,
       "Rnor_6.0"=BSgenome.Rnorvegicus.UCSC.rn6:::BSgenome.Rnorvegicus.UCSC.rn6,
       stop("Genome not among the pre-defined one, please provide `genome` ",
            "manually.")

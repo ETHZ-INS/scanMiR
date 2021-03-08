@@ -370,11 +370,14 @@ get3pAlignment <- function(seqs, mirseq, mir3p.start=9L, allow.mismatch=TRUE,
   is8 <- m2$type == "8mer"
   m2$not.bound <- nchar(mirseq) - 8L - m2$p3.score
   w <- which(is8 & m2$p3.mismatch<=1L & m2$p3.mir.bulge == 0L & 
-               absbulgediff == 0L & m2$not.bound <= 6)
+               absbulgediff == 0L & m2$not.bound <= 6L)
   m2$TDMD[w] <- 4L
+  w <- which(is8 & m2$p3.mismatch == 0L & m2$p3.mir.bulge == 0L & 
+               absbulgediff == 0L & m2$not.bound == 0L)
+  m2$TDMD[w] <- 5L
   TDMD <- rep(1L,nrow(m))
   TDMD[is78] <- m2$TDMD
-  factor(TDMD, levels = 1L:4L, labels = c("-","TDMD?","TDMD","pot. Slicing"))
+  factor(TDMD, levels = 1L:5L, labels = c("-","TDMD?","TDMD","Slicing?","Slicing"))
 }
 
 .default3pSubMatrix <- function(mismatch=-3, TG=TRUE){
@@ -515,7 +518,7 @@ getMatchTypes <- function(x, seed){
 #' runFullScan
 #' 
 #' @export
-runFullScan <- function(species, mods=NULL, UTRonly=TRUE, shadow=15, cores=8, minLogKd=c(-0.3,-1), save.path=NULL, ...){
+runFullScan <- function(species, mods=NULL, UTRonly=TRUE, shadow=15, cores=8, maxLogKd=c(-0.3,-0.3), save.path=FALSE, ...){
   message("Loading annotation")
   suppressPackageStartupMessages({
     library(ensembldb)
@@ -532,7 +535,7 @@ runFullScan <- function(species, mods=NULL, UTRonly=TRUE, shadow=15, cores=8, mi
   }else if(species=="mmu"){
     genome <- BSgenome.Mmusculus.UCSC.mm10::BSgenome.Mmusculus.UCSC.mm10
     if(is.null(mods)) mods <- readRDS(file = "/mnt/schratt/miRNA_KD/Data_Output/mods_mmu_comp.rds")
-    ahid <- rev(query(ah, c("EnsDb", "Mus musculus"))$ah_id)[1]
+    ahid <- rev(query(ah, c("EnsDb", "Mus musculus"))$ah_id)[2]
   }else if(species=="rno"){
     genome <- BSgenome.Rnorvegicus.UCSC.rn6::BSgenome.Rnorvegicus.UCSC.rn6
     if(is.null(mods)) mods <- readRDS(file = "/mnt/schratt/miRNA_KD/Data_Output/mods_rno_comp.rds")
@@ -571,11 +574,11 @@ runFullScan <- function(species, mods=NULL, UTRonly=TRUE, shadow=15, cores=8, mi
   }else{
     BP <- SerialParam()
   }
-  m <- findSeedMatches(seqs, mods, shadow=shadow, minLogKd=minLogKd, BP=BP, ...)
+  m <- findSeedMatches(seqs, mods, shadow=shadow, maxLogKd=maxLogKd, BP=BP, ...)
 
   metadata(m)$tx_info <- tx_info
   metadata(m)$ah_id <- ahid
-  if(!is.null(save.path)) save.path <- paste(species, ifelse(UTRonly,"utrs","full"), "matches.rds", sep=".")
+  if(!isFALSE(save.path)) save.path <- paste(species, ifelse(UTRonly,"utrs","full"), "matches.rds", sep=".")
   if(isFALSE(save.path)) return(m)
   saveRDS(m, file=save.path)
   rm(m)
@@ -585,6 +588,6 @@ runFullScan <- function(species, mods=NULL, UTRonly=TRUE, shadow=15, cores=8, mi
 
 
 .defaultAggParams <- function(){
-  c(ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.08095, 
-    coef_utr = -0.19346, coef_orf = -0.20453)
+  c(ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403, 
+    coef_utr = -0.28019, coef_orf = -0.08622)
 }
