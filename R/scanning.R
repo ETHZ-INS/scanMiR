@@ -339,7 +339,6 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
 get3pAlignment <- function(seqs, mirseq, mir3p.start=9L, allow.mismatch=TRUE, 
                            maxMirLoop=5L, maxTargetLoop=9L, maxLoopDiff=4L,
                            TGsub=TRUE){
-  target.len <- width(seqs[1])
   mir.3p <- as.character(DNAString(substr(x=mirseq, start=mir3p.start, stop=nchar(mirseq))))
   seqs <- reverseComplement(seqs)
   subm <- .default3pSubMatrix(ifelse(allow.mismatch,-3,-Inf), TG=TGsub)
