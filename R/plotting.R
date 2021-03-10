@@ -73,18 +73,28 @@ viewTargetAlignment <- function(m, miRNA, seqs=NULL, flagBulgeMatches=FALSE,
     stopifnot(as.character(m$miRNA) %in% names(miRNA))
     miRNA <- miRNA[[as.character(m$miRNA)]]
   }
+  mod <- miRNA
   if(is(miRNA,"KdModel")){
     miRNA <- miRNA$mirseq
   }else{
     stopifnot(is.character(miRNA) && length(miRNA)==1)
   }
-  if(!("p3.mir.bulge" %in% colnames(mcols(m))))
-    stop("`m` does not contain detailed 3' alignment information. Re-run the ",
-         "scan with p3.extra=TRUE to be able to use this features.")
+  if(is.null(seqs) && ( !("p3.mir.bulge" %in% colnames(mcols(m))) ||
+                        !("sequence" %in% colnames(mcols(m))) ) ){
+    stop("`m` does not contain target RNA sequences. Please provide them ",
+           "via the `seqs` argument.")
+  }
+  if(!("p3.mir.bulge" %in% colnames(mcols(m)))){
+    # re-scan to get additional data
+    seq2 <- subseq(DNAStringSet(seqs[[as.character(seqnames(m))]]), 
+                   max(1L,start(m)-(nchar(miRNA)+maxBulgeSize-8L)), end(m)+2L)
+    m <- findSeedMatches(seq2, mod, keepMatchSeq=TRUE, p3.extra=TRUE,
+                         p3.params = list(maxMirLoop=maxBulgeSize, 
+                                          maxTargetLoop=maxBulgeSize, 
+                                          maxLoopDiff=maxBulgeDiff),
+                         verbose=FALSE)
+  }
   if(!("sequence" %in% colnames(mcols(m)))){
-    if(is.null(seqs))
-      stop("`m` does not contain target RNA sequences. Please provide them ",
-         "via the `seqs` argument.")
     stopifnot(as.character(seqnames(m)) %in% names(seqs))
     seqs <- DNAString(seqs[[as.character(seqnames(m))]])
     bulgeDiff <- max(m$p3.target.bulge-m$p3.mir.bulge,0L)
