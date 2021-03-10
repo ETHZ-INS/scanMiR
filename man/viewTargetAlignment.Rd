@@ -9,10 +9,11 @@ viewTargetAlignment(
   miRNA,
   seqs = NULL,
   flagBulgeMatches = FALSE,
-  maxBulgeSize = Inf,
-  maxBulgeDiff = Inf,
+  maxBulgeSize = 9L,
+  maxBulgeDiff = 4L,
   min3pMatch = 3L,
-  UGsub = TRUE
+  UGsub = TRUE,
+  outputType = c("print", "data.frame", "plot")
 )
 }
 \arguments{
@@ -36,9 +37,14 @@ including the model.}
 \item{min3pMatch}{The minimum 3' alignment for any to be plotted}
 
 \item{UGsub}{Logical; whether to show U-G matches}
+
+\item{outputType}{Either 'print' (default, prints to console), 'data.frame',
+or 'plot'.}
 }
 \value{
-A data.frame containing the aligned sequences.
+Returns nothing `outputType="print"`. If `outputType="data.frame"`, 
+returns a data.frame containing the alignment strings; if 
+`outputType="plot"` returns a `ggplot` object.
 }
 \description{
 viewTargetAlignment

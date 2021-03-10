@@ -9,10 +9,10 @@ aggregateSites(
   ag = -4.863126,
   b = 0.5735,
   c = -1.7091,
-  p3 = 0.08095,
-  coef_utr = -0.19346,
-  coef_orf = -0.20453,
-  p3.range = c(2L, 8L),
+  p3 = 0.04403,
+  coef_utr = -0.28019,
+  coef_orf = -0.08622,
+  p3.range = c(3L, 8L),
   toInt = FALSE,
   BP = NULL
 )

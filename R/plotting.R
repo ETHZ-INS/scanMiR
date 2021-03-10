@@ -54,15 +54,21 @@ plotKdModel <- function(mod, what=c("both","seeds","logo"), n=10){
 #' @param maxBulgeDiff The maximum difference between miRNA and target bulges
 #' @param min3pMatch The minimum 3' alignment for any to be plotted
 #' @param UGsub Logical; whether to show U-G matches
+#' @param outputType Either 'print' (default, prints to console), 'data.frame',
+#' or 'plot'.
 #'
-#' @return A data.frame containing the aligned sequences.
+#' @return Returns nothing `outputType="print"`. If `outputType="data.frame"`, 
+#' returns a data.frame containing the alignment strings; if 
+#' `outputType="plot"` returns a `ggplot` object.
 #' @importFrom stringi stri_reverse
 #' @export
 viewTargetAlignment <- function(m, miRNA, seqs=NULL, flagBulgeMatches=FALSE,
-                                maxBulgeSize=Inf, maxBulgeDiff=Inf, 
-                                min3pMatch=3L, UGsub=TRUE){
+                                maxBulgeSize=9L, maxBulgeDiff=4L, 
+                                min3pMatch=3L, UGsub=TRUE,
+                                outputType=c("print","data.frame","plot")){
   stopifnot(is(m,"GRanges"))
   stopifnot(length(m)==1)
+  outputType <- match.arg(outputType)
   if(is.list(miRNA) && is(miRNA[[1]],"KdModelList") && !is.null(m$miRNA)){
     stopifnot(as.character(m$miRNA) %in% names(miRNA))
     miRNA <- miRNA[[as.character(m$miRNA)]]
@@ -102,7 +108,7 @@ viewTargetAlignment <- function(m, miRNA, seqs=NULL, flagBulgeMatches=FALSE,
     minBulge <- 0
   }
   mm <- .matchStrings(substr(mirseq2,1,8+bulged+minBulge),
-                      substr(target,3,10+minBulge), FALSE )
+                      substr(target,3,10+bulged+minBulge), FALSE )
   if(!flagBulgeMatches && m$p3.mir.bulge==m$p3.target.bulge){
     mm <- c(mm,rep(" ",m$p3.mir.bulge))
   }else if(m$p3.mir.bulge<m$p3.target.bulge){
@@ -128,7 +134,7 @@ viewTargetAlignment <- function(m, miRNA, seqs=NULL, flagBulgeMatches=FALSE,
   if(min3pMatch>1L && 
      !grepl(paste(rep("|",min3pMatch),collapse=""), 
             gsub("-","|",paste(mm2,collapse=""),fixed=TRUE), fixed=TRUE)){
-    mm2 <- rep(" ",length(mm2))
+    mm2 <- rep(" ",sum(nchar(mm2)))
   }
   mm <- paste(c(mm,mm2),collapse="", sep="")
   sp <- function(x) paste0(rep(" ",x),collapse="")
@@ -140,7 +146,14 @@ viewTargetAlignment <- function(m, miRNA, seqs=NULL, flagBulgeMatches=FALSE,
   d$alignment <- paste0(sapply(max(nchar(d$alignment))-nchar(d$alignment),
                                FUN=function(x) paste0(rep(" ",x),collapse="")),
                         d$alignment)
-  d
+  if(outputType=="data.frame") return(d)
+  d2 <- paste0(paste(c("miRNA ","      ","target"), d$alignment), collapse="\n")
+  if(outputType=="plot"){
+    p <- ggplot(data.frame(x=1,y=1,label=d2), aes(x,y,label=label)) + 
+      theme_void() + geom_text(family="mono", fontface="bold")
+    return(p)
+  }
+  cat(paste0("\n",d2,"\n"))
 }
 
 .matchStrings <- function(s1, s2, UGsub=TRUE){
