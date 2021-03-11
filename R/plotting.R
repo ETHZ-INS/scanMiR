@@ -198,7 +198,6 @@ viewTargetAlignment <- function(m, miRNA, seqs=NULL, flagBulgeMatches=FALSE,
 #' @return Returns a ggplot.
 #' @import ggplot2
 #' @export
-
 plotSitesOnUTR <- function(species = NULL, transcriptID = NULL, miRNA = NULL, 
                           label_6mers = FALSE, label_notes = FALSE){
   
