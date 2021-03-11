@@ -182,7 +182,7 @@ viewTargetAlignment <- function(m, miRNA, seqs=NULL, flagBulgeMatches=FALSE,
 
 #' plotSitesOnUTR
 #'
-#' User-friendly wrapper function with minimal arguments to plot scanMiR-Binding
+#' Wrapper function with minimal arguments to plot scanMiR-Binding
 #' sites on 3'UTRs of specified transcripts. The red dashed line indicates the
 #' background threshhold is indicated, the lightblue dashed line shows the
 #' average 8mer dissociation rate of the given miRNA
@@ -237,7 +237,7 @@ plotSitesOnUTR <- function(species = NULL, transcriptID = NULL, miRNA = NULL,
   
   p <- ggplot(m, aes(x = start, y = -`logKd`)) + 
     geom_hline(yintercept=1, linetype="dashed", color = "red", size=1) + 
-    geom_hline(yintercept=mer8, linetype="dashed", color = "deepskyblue", size=1) + 
+    geom_hline(yintercept=mer8, linetype="dashed", color = "gray64", size=1) + 
     geom_point(size=2) + geom_text(label = m$type,nudge_y = -0.2) +
     xlab("sequence length") + ylab("-logKd") + xlim(0,width(Seq)) +
     theme_light() + ggtitle(title)
