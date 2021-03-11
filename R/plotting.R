@@ -194,23 +194,29 @@ viewTargetAlignment <- function(m, miRNA, seqs=NULL, flagBulgeMatches=FALSE,
 #' @param label_6mers Logical whether to label 6mer sites in the plot
 #' @param label_notes Logical whether to label special sites in the plot (as
 #'   TDMD or Slicing)
+#' @param verbose Logical; whether to print updates on the processing
 #'
 #' @return Returns a ggplot.
 #' @import ggplot2
 #' @export
-plotSitesOnUTR <- function(species = NULL, transcriptID = NULL, miRNA = NULL, 
-                          label_6mers = FALSE, label_notes = FALSE){
+plotSitesOnUTR <- function(species=NULL, transcriptID=NULL, miRNA=NULL, 
+                          label_6mers=FALSE, label_notes=FALSE, verbose=TRUE){
   
   # Prepare everything & scan
-  message("Prepare miRNA model")
+  if(verbose) message("Prepare miRNA model")
   species <- match.arg(species, c("hsa","rno","mmu"))
-  mods <- getKdModels(species = species,NULL)
-  mods <- mods[[miRNA]]
-  if(is.null(mods)) stop("The specified microRNA is not listed for this species. Please check
-                         spelling (eg. 'hsa-mir-485-5p') and the organism")
-  message("Get Transcript Sequence")
+  mods <- getKdModels(species = species, NULL)
+  if(miRNA %in% names(mods)){
+    mods <- mods[[miRNA]]
+  }else if(length(w <- grep(miRNA,names(mods),ignore.case = TRUE))==1){
+    mods <- mods[[w]]
+  }else{
+    stop("The specified microRNA is not listed for this species. Please check",
+         "\nthe spelling (eg. 'hsa-mir-485-5p') and the organism")
+  }
+  if(verbose) message("Get Transcript Sequence")
   Seq <- getTranscriptSequence(tx = transcriptID ,species = species,UTRonly = TRUE)
-  message("Scan")
+  if(verbose) message("Scan")
   m <- findSeedMatches(seqs = Seq,seeds = mods, shadow = 15L, keepMatchSeq = TRUE,
                       p3.extra = TRUE, ret = "data.frame")
   
