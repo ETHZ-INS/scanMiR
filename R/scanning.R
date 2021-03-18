@@ -127,8 +127,6 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
       }
       m
     } )
-      
-    if(ret=="GRanges") m <- GRangesList(m)
     
     if(is.null(names(m))){
       if(!is.character(seeds)) seeds <- sapply(seeds, FUN=function(x){
@@ -139,14 +137,12 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
     }
     
     if(ret=="GRanges"){
-      mirs <- Rle(as.factor(names(m)),lengths(m))
-      m <- unlist(m)
+      m <- .unlistGRL(m, .id="miRNA")
       metadata(m)$call.params <- params
       metadata(m)$length.info <- length.info
       names(m) <- row.names(m) <- NULL
-      m$miRNA <- mirs
+      mcols(m)$miRNA <- Rle(as.factor(mcols(m)$miRNA))
     }else{
-      mirs <- rep(as.factor(names(m)),lengths(m))
       m <- dplyr::bind_rows(m, .id="miRNA")
       m$miRNA <- as.factor(m$miRNA)
       attr(m, "call.params") <- params
@@ -207,7 +203,7 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
     return(GRanges())
   }
   m <- GRanges( rep(names(seqs), lengths(pos)), IRanges( start=unlist(pos), width=8 ) )
-  m <- keepSeqlevels(m, seqlevelsInUse(m))
+  #m <- keepSeqlevels(m, seqlevelsInUse(m))
   m <- m[order(seqnames(m))]
   
   if(verbose) message("Extracting sequences and characterizing matches...")
@@ -589,4 +585,17 @@ runFullScan <- function(species, mods=NULL, UTRonly=TRUE, shadow=15, cores=8, ma
 .defaultAggParams <- function(){
   c(ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403, 
     coef_utr = -0.28019, coef_orf = -0.08622)
+}
+
+.unlistGRL <- function(m, .id=NULL){
+  # to avoid c-stack errors on some systems
+  gr <- try(unlist(GRangesList(m)), silent=TRUE)
+  if(!is(gr,"try-error")) return(gr)
+  sq <- unique(unlist(lapply(m,FUN=seqlevels)))
+  sq <- unlist(lapply(m,FUN=function(x) factor(as.factor(seqnames(x)), sql)))
+  gr <- GRanges(sq, IRanges(unlist(lapply(m, start)), unlist(lapply(m,end))))
+  mcols(gr) <- dplyr::bind_rows(lapply(m, FUN=function(x){
+    as.data.frame(mcols(x))
+  }), .id=.id)
+  gr
 }
