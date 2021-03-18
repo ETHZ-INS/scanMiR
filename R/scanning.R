@@ -106,7 +106,7 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
       ll$transcript <- row.names(ll)
       m <- .aggregate_miRNA(m,ll, ag=agg.params$ag, b=agg.params$b, 
                             c=agg.params$c, p3 = agg.params$p3, coef_utr = agg.params$coef_utr,
-                            coef_orf = agg.params$coef_orf, toInt=TRUE)
+                            coef_orf = agg.params$coef_orf, keepSiteInfo = FALSE, toInt=TRUE)
     }
   }else{
     if(is.null(BP)) BP <- SerialParam()
@@ -123,7 +123,7 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
         ll$transcript <- row.names(ll)
         m <- .aggregate_miRNA(m,ll, ag=agg.params$ag, b=agg.params$b, 
                               c=agg.params$c,p3 = agg.params$p3, coef_utr = agg.params$coef_utr,
-                              coef_orf = agg.params$coef_orf, toInt=TRUE)
+                              coef_orf = agg.params$coef_orf, keepSiteInfo = FALSE, toInt=TRUE)
       }
       m
     } )
