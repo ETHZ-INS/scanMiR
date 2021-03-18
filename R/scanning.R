@@ -590,7 +590,11 @@ runFullScan <- function(species, mods=NULL, UTRonly=TRUE, shadow=15, cores=8, ma
 .unlistGRL <- function(m, .id=NULL){
   # to avoid c-stack errors on some systems
   gr <- try(unlist(GRangesList(m)), silent=TRUE)
-  if(!is(gr,"try-error")) return(gr)
+  if(!is(gr,"try-error")){
+    if(!is.null(.id))
+      mcols(gr)[[.id]] <- rep(as.factor(names(m)), lengths(m))
+    return(gr)
+  }
   sq <- unique(unlist(lapply(m,FUN=seqlevels)))
   sq <- unlist(lapply(m,FUN=function(x) factor(as.factor(seqnames(x)), sql)))
   gr <- GRanges(sq, IRanges(unlist(lapply(m, start)), unlist(lapply(m,end))))
