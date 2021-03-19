@@ -68,9 +68,14 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
   ret <- match.arg(ret)
   if(ret=="aggregated"){
     if(!is.list(agg.params)) agg.params <- as.list(agg.params)
-    if(!all(c("ag","b","c","p3","coef_utr","coef_orf") %in% names(agg.params)))
-      stop("`agg.params` should be a named list with slots ",
-           "`ag`, `b`, `c`, `p3`, `coef_utr` and `coef_orf`.")
+    if(!all(names(agg.params) %in% names(.defaultAggParams())))
+      stop("`agg.params` should be a named list with slots among ",
+           "`ag`, `b`, `c`, `p3`, `coef_utr`, `coef_orf` and `keepSiteInfo.")
+    for(name in names(.defaultAggParams())){
+      if(!name %in% names(agg.params)){
+        agg.params[[name]] <- .defaultAggParams()[[name]]
+      }
+    }
   }
   seedInputType <- .checkSeedsInput(seeds)
   if(is.null(verbose)) verbose <- is(seeds,"KdModel") || length(seeds)==1 || is.null(BP)
@@ -583,8 +588,14 @@ runFullScan <- function(species, mods=NULL, UTRonly=TRUE, shadow=15, cores=8, ma
 
 
 .defaultAggParams <- function(){
-  c(ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403, 
-    coef_utr = -0.28019, coef_orf = -0.08622)
+  c(ag=-4.863126,
+    b=0.5735,
+    c=-1.7091,
+    p3=0.04403, 
+    coef_utr = -0.28019,
+    coef_orf = -0.08622,
+    keepSiteInfo = TRUE
+    )
 }
 
 .unlistGRL <- function(m, .id=NULL){
