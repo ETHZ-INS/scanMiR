@@ -83,14 +83,14 @@ aggregateSites <- function(m,ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403,
     # get the utr score
     m$utr_len <- log10(m$utr_len)
     qu_un <- m[!duplicated(m$transcript),"utr_len"]
-    qu <- quantile(qu_un, probs = c(0.05,0.95))
+    qu <- quantile(qu_un, probs = c(0.05,0.95), na.rm = TRUE)
     m$utr_score <- (m$utr_len - qu[1]) / (qu[2] - qu[1])
     
     # get the orf score
     if(sum(m$orf_len) > 0){
       m$orf_len <- log10(m$orf_len)
       qu_un <- m[!duplicated(m$transcript),"orf_len"]
-      qu <- quantile(qu_un, probs = c(0.05,0.95))
+      qu <- quantile(qu_un, probs = c(0.05,0.95), na.rm = TRUE)
       m$orf_score <- (m$orf_len - qu[1]) / (qu[2] - qu[1])
     }else{
       m$orf_score <- 0
