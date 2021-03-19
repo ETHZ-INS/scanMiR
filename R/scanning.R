@@ -57,10 +57,10 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
   length.seqs <- width(seqs)
   if(is.character(seqs) || is.null(mcols(seqs)$ORF.length)){
     utr_len <- length.seqs
-    orf_len <- rep(0, length.out = length(utr_len))
+    orf_len <- rep(0L, length.out = length(utr_len))
   }else{
-    orf_len <- mcols(seqs)[,"ORF.length"] - 15
-    utr_len <- length.seqs - orf_len
+    orf_len <- mcols(seqs)[,"ORF.length"] + shadow
+    utr_len <- ifelse(length.seqs > orf_len, length.seqs - orf_len, 0L)
   }
   length.info <- cbind(orf_len,utr_len)
   if(!is.null(names(seqs))) row.names(length.info) <- names(seqs)
