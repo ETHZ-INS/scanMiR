@@ -11,7 +11,7 @@
 #' @return a data.frame
 #' @export
 aggregateSites <- function(m,ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403, 
-                           coef_utr = -0.28019,coef_orf = -0.08622, p3.range=c(3L,8L), 
+                           coef_utr = -0.28019, coef_orf = -0.08622, p3.range=c(3L,8L), 
                            keepSiteInfo = FALSE, toInt=FALSE, BP=NULL){
   if(is.null(BP)) BP <- BiocParallel::SerialParam()
   if(is(m,"GRanges")){
@@ -38,7 +38,7 @@ aggregateSites <- function(m,ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403,
 }
 
 
-.aggregate_miRNA <- function(m,ll = NULL, ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403, 
+.aggregate_miRNA <- function(m, ll = NULL, ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403, 
                              coef_utr = -0.28019,coef_orf = -0.08622, p3.range=c(3L,8L), 
                              keepSiteInfo = FALSE, toInt=FALSE){
   if(is(m,"GRanges")){
@@ -82,6 +82,7 @@ aggregateSites <- function(m,ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403,
     
     # get the utr score
     m$utr_len <- log10(m$utr_len)
+    m$utr_len[is.infinite(m$utr_len)] <- 0
     qu_un <- m[!duplicated(m$transcript),"utr_len"]
     qu <- quantile(qu_un, probs = c(0.05,0.95), na.rm = TRUE)
     m$utr_score <- (m$utr_len - qu[1]) / (qu[2] - qu[1])
@@ -89,6 +90,7 @@ aggregateSites <- function(m,ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403,
     # get the orf score
     if(sum(m$orf_len) > 0){
       m$orf_len <- log10(m$orf_len)
+      m$orf_len[is.infinite(m$orf_len)] <- 0
       qu_un <- m[!duplicated(m$transcript),"orf_len"]
       qu <- quantile(qu_un, probs = c(0.05,0.95), na.rm = TRUE)
       m$orf_score <- (m$orf_len - qu[1]) / (qu[2] - qu[1])
@@ -96,7 +98,7 @@ aggregateSites <- function(m,ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403,
       m$orf_score <- 0
     }
   m$repression <- m$repression + coef_utr*m$utr_score*m$repression + coef_orf*m$orf_score*m$repression
-  m <- subset(m,select = - c(orf_len,utr_len,utr_score,orf_score))
+  m <- subset(m, select = - c(orf_len,utr_len,utr_score,orf_score))
   }
   if(toInt) m$repression <- as.integer(round(1000*m$repression))
   m$repression <- ifelse(m$repression >= 0, 0, m$repression)
