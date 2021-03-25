@@ -10,7 +10,7 @@
 #'
 #' @return a data.frame
 #' @export
-aggregateSites <- function(m,ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403, 
+aggregateSites <- function(m, ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403, 
                            coef_utr = -0.28019, coef_orf = -0.08622, p3.range=c(3L,8L), 
                            keepSiteInfo = FALSE, toInt=FALSE, BP=NULL){
   if(is.null(BP)) BP <- BiocParallel::SerialParam()
@@ -29,6 +29,7 @@ aggregateSites <- function(m,ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403,
                        keepSiteInfo = keepSiteInfo, toInt=toInt, p3.range=p3.range)
     })
     dplyr::bind_rows(m, .id="miRNA")
+    m <- dplyr::mutate_if(m, is.numeric, tidyr::replace_na, 0L)
   }else{
     m <- m[,c("transcript","ORF","log_kd","p3.score","type")]
     m <- .aggregate_miRNA(m, ag=ag, b=b, c=c, p3=p3,coef_utr = coef_utr, coef_orf = coef_orf, 
