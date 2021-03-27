@@ -124,9 +124,9 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
                  minDist=minDist, maxLogKd=maxLogKd, p3.extra=p3.extra,
                  onlyCanonical=onlyCanonical, p3.params=p3.params, ret=ret, 
                  offset=offset, verbose=verbose, ...)
-      if(length(m)==0) return(m)
       if(ret=="aggregated"){
         if(verbose) message("Aggregating...")
+        if(length(m)==0) return(data.frame())
         ll <- as.data.frame(length.info)
         ll$transcript <- row.names(ll)
         m <- .aggregate_miRNA(m, ll, ag=agg.params$ag, b=agg.params$b,
@@ -472,7 +472,7 @@ removeOverlappingRanges <- function(x, minDist=7L, retIndices=FALSE, ignore.stra
 
 #' getMatchTypes
 #' 
-#' Given a seed and a set of sequences mathcing it, returns the type of match.
+#' Given a seed and a set of sequences matching it, returns the type of match.
 #'
 #' @param x A character vector of short sequences.
 #' @param seed A 7 or 8 nucleotides string indicating the seed (5' to 3' 
@@ -597,7 +597,7 @@ runFullScan <- function(species, mods=NULL, UTRonly=TRUE, shadow=15, cores=8, ma
 
 
 .defaultAggParams <- function(){
-  c(ag=-4.863126,
+  list(ag=-4.863126,
     b=0.5735,
     c=-1.7091,
     p3=0.04403, 
