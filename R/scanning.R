@@ -28,7 +28,7 @@
 #' multithreading.
 #' @param verbose Logical; whether to print additional progress messages (default on if 
 #' not multithreading)
-#'
+#' @param n_seeds The number of seeds that are processed in parallel to avoid memory issues.
 #' @return A GRanges of all matches. If `seeds` is a `KdModel` or `KdModelList`, the 
 #' `log_kd` column will report the ln(Kd) multiplied by 1000, rounded and saved as an 
 #' integer.
@@ -51,7 +51,7 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
                                             maxLoopDiff=4L, mismatch=TRUE),
                              agg.params=.defaultAggParams(),
                              ret=c("GRanges","data.frame","aggregated"), 
-                             BP=NULL, verbose=NULL, ...){
+                             BP=NULL, verbose=NULL, n_seeds=NULL, ...){
   p3.params <- .check3pParams(p3.params)
   # This might not be most efficient:
   length.seqs <- width(seqs)
@@ -119,22 +119,32 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
   }else{
     if(is.null(BP)) BP <- SerialParam()
     if(is.null(verbose)) verbose <- !(bpnworkers(BP)>1 | length(seeds)>5)
-    m <- bplapply( seeds, BPPARAM=BP, FUN=function(oneseed){
-      m <- .find1SeedMatches(seqs=seqs, seed=oneseed, keepMatchSeq=keepMatchSeq,
-                 minDist=minDist, maxLogKd=maxLogKd, p3.extra=p3.extra,
-                 onlyCanonical=onlyCanonical, p3.params=p3.params, ret=ret, 
-                 offset=offset, verbose=verbose, ...)
-      if(ret=="aggregated"){
-        if(verbose) message("Aggregating...")
-        if(length(m)==0) return(data.frame())
-        ll <- as.data.frame(length.info)
-        ll$transcript <- row.names(ll)
-        m <- .aggregate_miRNA(m, ll, ag=agg.params$ag, b=agg.params$b,
-                              c=agg.params$c,p3 = agg.params$p3, coef_utr = agg.params$coef_utr,
-                              coef_orf = agg.params$coef_orf, keepSiteInfo = agg.params$keepSiteInfo, toInt=TRUE)
-      }
-      m
-    } )
+    if(is.null(n_seeds)) n_seeds <- length(seeds)
+    if(verbose) {
+      if(is.numeric(BP$workers)) message(paste("Scanning with", n_seeds, "seeds at a time on", BP$workers, "cores..."))
+      else message(paste("Scanning with", n_seeds, "seeds at a time..."))
+    }
+    split_seeds <- split(seeds, ceiling(seq_along(seeds)/n_seeds))
+    m <- lapply(split_seeds, function(seeds) {
+      m <- bplapply( seeds, BPPARAM=BP, FUN=function(oneseed){
+        m <- .find1SeedMatches(seqs=seqs, seed=oneseed, keepMatchSeq=keepMatchSeq,
+                   minDist=minDist, maxLogKd=maxLogKd, p3.extra=p3.extra,
+                   onlyCanonical=onlyCanonical, p3.params=p3.params, ret=ret, 
+                   offset=offset, verbose=verbose, ...)
+        if(ret=="aggregated"){
+          if(verbose) message("Aggregating...")
+          if(length(m)==0) return(data.frame())
+          ll <- as.data.frame(length.info)
+          ll$transcript <- row.names(ll)
+          m <- .aggregate_miRNA(m, ll, ag=agg.params$ag, b=agg.params$b,
+                                c=agg.params$c,p3 = agg.params$p3, coef_utr = agg.params$coef_utr,
+                                coef_orf = agg.params$coef_orf, keepSiteInfo = agg.params$keepSiteInfo, toInt=TRUE)
+        }
+        m
+      } )
+    })
+    m <- do.call(c, m)
+    names(m) <- NULL
     
     if(is.null(names(m))){
       if(!is.character(seeds)) seeds <- sapply(seeds, FUN=function(x){
@@ -212,17 +222,18 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
     return(GRanges())
   }
   m <- GRanges( rep(names(seqs), lengths(pos)), IRanges( start=unlist(pos), width=8 ) )
+  rm(pos)
   #m <- keepSeqlevels(m, seqlevelsInUse(m))
   m <- m[order(seqnames(m))]
   
   if(verbose) message("Extracting sequences and characterizing matches...")
-  seqs <- seqs[seqlevels(m)]
   r <- ranges(m)
   
   if(isPureSeed && is.null(mirseq)){
     r <- split(r, seqnames(m))
     names(r) <- NULL
-    ms <- as.factor(unlist(extractAt(seqs, r)))
+    ms <- as.factor(unlist(extractAt(seqs[seqlevels(m)], r)))
+    rm(r)
     if(keepMatchSeq) mcols(m)$sequence <- ms
     mcols(m)$type <- getMatchTypes(ms, substr(seed,1,7))
     m <- m[order(seqnames(m), m$type)]
@@ -233,7 +244,7 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
     end(r) <- end(r)+2L
     r <- split(r, seqnames(m))
     names(r) <- NULL
-    ms <- unlist(extractAt(seqs, r))
+    ms <- unlist(extractAt(seqs[seqlevels(m)], r))
     names(ms) <- NULL
     p3 <- get3pAlignment( subseq(ms,1L,1+plen), mirseq, 
                           allow.mismatch=p3.params$mismatch,
@@ -247,6 +258,7 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
       mcols(m)$p3.score <- p3$p3.score
     }
     ms <- subseq(ms, width(r)[[1]]-11L, width(r)[[1]])
+    rm(r)
     if(keepMatchSeq && !p3.extra) mcols(m)$sequence <- as.factor(ms)
     if(isPureSeed){
       mcols(m)$type <- getMatchTypes(ms, substr(seed,1,7))
@@ -267,7 +279,7 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
   }
   rm(ms)
   if(!is.null(mcols(seqs)$C.length)){
-    mcols(m)$ORF <- start(m) <= mcols(seqs)[as.integer(seqnames(m)),"C.length"]
+    mcols(m)$ORF <- start(m) <= mcols(seqs[seqlevels(m)])[as.integer(seqnames(m)),"C.length"]
     if(!isPureSeed && maxLogKd[2]!=Inf){
       m <- m[which(!m$ORF | m$log_kd <= as.integer(round(maxLogKd[2])))]
     }
