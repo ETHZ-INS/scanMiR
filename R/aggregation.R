@@ -28,7 +28,7 @@ aggregateSites <- function(m, ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403,
       .aggregate_miRNA(x, ag=ag, b=b, c=c, p3=p3,coef_utr = coef_utr, coef_orf = coef_orf, 
                        keepSiteInfo = keepSiteInfo, toInt=toInt, p3.range=p3.range)
     })
-    dplyr::bind_rows(m, .id="miRNA")
+    m <- dplyr::bind_rows(m, .id="miRNA")
     m <- dplyr::mutate_if(m, is.numeric, tidyr::replace_na, 0L)
   }else{
     m <- m[,c("transcript","ORF","log_kd","p3.score","type")]
