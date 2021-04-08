@@ -490,7 +490,7 @@ getMatchTypes <- function(x, seed){
   y[grep(paste0(substr(seed,1,6),"[ACGT][ACGT]"),x)] <- 3L # 6mer-m8
   if(substr(seedGb6,2,7)!=seed6)
     y[grep(seedGb6,x,fixed=TRUE)] <- 4L # g-bulged 6mer
-  y[grep(paste0("[ACGT]",substr(seed,2,7)),x)] <- 5L # 6mer
+  y[grep(paste0("[ACGT]",seed6),x)] <- 5L # 6mer
   if(seedGb6!=substr(seed,1,7)){
     y[grep(paste0(seedGb6,"A|",seedGb7),x)] <- 6L # g-bulged 7mer
     y[grep(paste0(seedGb7,"A"),x,fixed=TRUE)] <- 7L # g-bulged 8mer
