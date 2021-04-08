@@ -28,7 +28,7 @@
 #' multithreading.
 #' @param verbose Logical; whether to print additional progress messages (default on if 
 #' not multithreading)
-#'
+#' @param n_seeds The number of seeds that are processed in parallel to avoid memory issues.
 #' @return A GRanges of all matches. If `seeds` is a `KdModel` or `KdModelList`, the 
 #' `log_kd` column will report the ln(Kd) multiplied by 1000, rounded and saved as an 
 #' integer.
@@ -51,26 +51,34 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
                                             maxLoopDiff=4L, mismatch=TRUE),
                              agg.params=.defaultAggParams(),
                              ret=c("GRanges","data.frame","aggregated"), 
-                             BP=NULL, verbose=NULL, ...){
+                             BP=NULL, verbose=NULL, n_seeds=NULL, ...){
   p3.params <- .check3pParams(p3.params)
   # This might not be most efficient:
   length.seqs <- width(seqs)
   if(is.character(seqs) || is.null(mcols(seqs)$ORF.length)){
     utr_len <- length.seqs
-    orf_len <- rep(0, length.out = length(utr_len))
+    orf_len <- rep(0L, length.out = length(utr_len))
+    mcols(seqs)$C.length <- orf_len    
   }else{
-    orf_len <- mcols(seqs)[,"ORF.length"] - 15
-    utr_len <- length.seqs - orf_len
+    orf_len <- mcols(seqs)[,"ORF.length"]
+    utr_len <- ifelse(length.seqs > orf_len, length.seqs - orf_len, 0L)
+    mcols(seqs)$C.length <- orf_len + shadow
+    shadow <- 0L
   }
-  length.info <- cbind(orf_len,utr_len)
+  length.info <- cbind(orf_len, utr_len)
   if(!is.null(names(seqs))) row.names(length.info) <- names(seqs)
   ###
   ret <- match.arg(ret)
   if(ret=="aggregated"){
     if(!is.list(agg.params)) agg.params <- as.list(agg.params)
-    if(!all(c("ag","b","c","p3","coef_utr","coef_orf") %in% names(agg.params)))
-      stop("`agg.params` should be a named list with slots ",
-           "`ag`, `b`, `c`, `p3`, `coef_utr` and `coef_orf`.")
+    if(!all(names(agg.params) %in% names(.defaultAggParams())))
+      stop("`agg.params` should be a named list with slots among ",
+           "`ag`, `b`, `c`, `p3`, `coef_utr`, `coef_orf` and `keepSiteInfo.")
+    for(name in names(.defaultAggParams())){
+      if(!name %in% names(agg.params)){
+        agg.params[[name]] <- .defaultAggParams()[[name]]
+      }
+    }
   }
   seedInputType <- .checkSeedsInput(seeds)
   if(is.null(verbose)) verbose <- is(seeds,"KdModel") || length(seeds)==1 || is.null(BP)
@@ -104,29 +112,39 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
       if(verbose) message("Aggregating...")
       ll <- as.data.frame(length.info)
       ll$transcript <- row.names(ll)
-      m <- .aggregate_miRNA(m,ll, ag=agg.params$ag, b=agg.params$b, 
+      m <- .aggregate_miRNA(m, ll, ag=agg.params$ag, b=agg.params$b,
                             c=agg.params$c, p3 = agg.params$p3, coef_utr = agg.params$coef_utr,
-                            coef_orf = agg.params$coef_orf, keepSiteInfo = FALSE, toInt=TRUE)
+                            coef_orf = agg.params$coef_orf, keepSiteInfo = agg.params$keepSiteInfo, toInt=TRUE)
     }
   }else{
     if(is.null(BP)) BP <- SerialParam()
     if(is.null(verbose)) verbose <- !(bpnworkers(BP)>1 | length(seeds)>5)
-    m <- bplapply( seeds, BPPARAM=BP, FUN=function(oneseed){
-      m <- .find1SeedMatches(seqs=seqs, seed=oneseed, keepMatchSeq=keepMatchSeq,
-                 minDist=minDist, maxLogKd=maxLogKd, p3.extra=p3.extra,
-                 onlyCanonical=onlyCanonical, p3.params=p3.params, ret=ret, 
-                 offset=offset, verbose=verbose, ...)
-      if(length(m)==0) return(m)
-      if(ret=="aggregated"){
-        if(verbose) message("Aggregating...")
-        ll <- as.data.frame(length.info)
-        ll$transcript <- row.names(ll)
-        m <- .aggregate_miRNA(m,ll, ag=agg.params$ag, b=agg.params$b, 
-                              c=agg.params$c,p3 = agg.params$p3, coef_utr = agg.params$coef_utr,
-                              coef_orf = agg.params$coef_orf, keepSiteInfo = FALSE, toInt=TRUE)
-      }
-      m
-    } )
+    if(is.null(n_seeds)) n_seeds <- length(seeds)
+    if(verbose) {
+      if(is.numeric(BP$workers)) message(paste("Scanning with", n_seeds, "seeds at a time on", BP$workers, "cores..."))
+      else message(paste("Scanning with", n_seeds, "seeds at a time..."))
+    }
+    split_seeds <- split(seeds, ceiling(seq_along(seeds)/n_seeds))
+    m <- lapply(split_seeds, function(seeds) {
+      m <- bplapply( seeds, BPPARAM=BP, FUN=function(oneseed){
+        m <- .find1SeedMatches(seqs=seqs, seed=oneseed, keepMatchSeq=keepMatchSeq,
+                   minDist=minDist, maxLogKd=maxLogKd, p3.extra=p3.extra,
+                   onlyCanonical=onlyCanonical, p3.params=p3.params, ret=ret, 
+                   offset=offset, verbose=verbose, ...)
+        if(ret=="aggregated"){
+          if(verbose) message("Aggregating...")
+          if(length(m)==0) return(data.frame())
+          ll <- as.data.frame(length.info)
+          ll$transcript <- row.names(ll)
+          m <- .aggregate_miRNA(m, ll, ag=agg.params$ag, b=agg.params$b,
+                                c=agg.params$c,p3 = agg.params$p3, coef_utr = agg.params$coef_utr,
+                                coef_orf = agg.params$coef_orf, keepSiteInfo = agg.params$keepSiteInfo, toInt=TRUE)
+        }
+        m
+      } )
+    })
+    m <- do.call(c, m)
+    names(m) <- NULL
     
     if(is.null(names(m))){
       if(!is.character(seeds)) seeds <- sapply(seeds, FUN=function(x){
@@ -144,6 +162,7 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
       mcols(m)$miRNA <- Rle(as.factor(mcols(m)$miRNA))
     }else{
       m <- dplyr::bind_rows(m, .id="miRNA")
+      m <- dplyr::mutate_if(m, is.numeric, tidyr::replace_na, 0L)
       m$miRNA <- as.factor(m$miRNA)
       attr(m, "call.params") <- params
       row.names(m) <- NULL
@@ -203,17 +222,18 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
     return(GRanges())
   }
   m <- GRanges( rep(names(seqs), lengths(pos)), IRanges( start=unlist(pos), width=8 ) )
+  rm(pos)
   #m <- keepSeqlevels(m, seqlevelsInUse(m))
   m <- m[order(seqnames(m))]
   
   if(verbose) message("Extracting sequences and characterizing matches...")
-  seqs <- seqs[seqlevels(m)]
   r <- ranges(m)
   
   if(isPureSeed && is.null(mirseq)){
     r <- split(r, seqnames(m))
     names(r) <- NULL
-    ms <- as.factor(unlist(extractAt(seqs, r)))
+    ms <- as.factor(unlist(extractAt(seqs[seqlevels(m)], r)))
+    rm(r)
     if(keepMatchSeq) mcols(m)$sequence <- ms
     mcols(m)$type <- getMatchTypes(ms, substr(seed,1,7))
     m <- m[order(seqnames(m), m$type)]
@@ -224,7 +244,7 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
     end(r) <- end(r)+2L
     r <- split(r, seqnames(m))
     names(r) <- NULL
-    ms <- unlist(extractAt(seqs, r))
+    ms <- unlist(extractAt(seqs[seqlevels(m)], r))
     names(ms) <- NULL
     p3 <- get3pAlignment( subseq(ms,1L,1+plen), mirseq, 
                           allow.mismatch=p3.params$mismatch,
@@ -238,6 +258,7 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
       mcols(m)$p3.score <- p3$p3.score
     }
     ms <- subseq(ms, width(r)[[1]]-11L, width(r)[[1]])
+    rm(r)
     if(keepMatchSeq && !p3.extra) mcols(m)$sequence <- as.factor(ms)
     if(isPureSeed){
       mcols(m)$type <- getMatchTypes(ms, substr(seed,1,7))
@@ -257,8 +278,8 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
     }
   }
   rm(ms)
-  if(!is.null(mcols(seqs)$ORF.length)){
-    mcols(m)$ORF <- start(m) <= mcols(seqs)[as.integer(seqnames(m)),"ORF.length"]
+  if(!is.null(mcols(seqs)$C.length)){
+    mcols(m)$ORF <- start(m) <= mcols(seqs[seqlevels(m)])[as.integer(seqnames(m)),"C.length"]
     if(!isPureSeed && maxLogKd[2]!=Inf){
       m <- m[which(!m$ORF | m$log_kd <= as.integer(round(maxLogKd[2])))]
     }
@@ -456,14 +477,14 @@ removeOverlappingRanges <- function(x, minDist=7L, retIndices=FALSE, ignore.stra
   seqs <- padAndClip(seqs, views=IRanges( start=1-shadow-ret$offset,
                                           width=lengths(seqs)+shadow+ret$offset+pad[2] ),
                      Lpadding.letter = "N", Rpadding.letter = "N")
-  if(!is.null(mcols(seqs)$ORF.length))
-    mcols(seqs)$ORF.length <- mcols(seqs)$ORF.length + ret$offset + shadow
+  if(!is.null(mcols(seqs)$C.length))
+    mcols(seqs)$C.length <- mcols(seqs)$C.length + ret$offset + shadow
   c(ret, list(seqs=seqs))
 }
 
 #' getMatchTypes
 #' 
-#' Given a seed and a set of sequences mathcing it, returns the type of match.
+#' Given a seed and a set of sequences matching it, returns the type of match.
 #'
 #' @param x A character vector of short sequences.
 #' @param seed A 7 or 8 nucleotides string indicating the seed (5' to 3' 
@@ -486,16 +507,16 @@ getMatchTypes <- function(x, seed){
   seed6 <- substr(seed,2,7)
   seedGb6 <- paste0(substr(seed,2,3),"G",substr(seed,4,7))
   seedGb7 <- paste0(substr(seed,1,3),"G",substr(seed,4,7))
-  y[grep(paste0("[ACGT][ACGT]",substr(seed,3,8)),x)] <- 2L # 6mer-a1
-  y[grep(paste0(substr(seed,1,6),"[ACGT][ACGT]"),x)] <- 3L # 6mer-m8
+  y[grep(paste0("[ACGTN][ACGTN]",substr(seed,3,8)),x)] <- 2L # 6mer-a1
+  y[grep(paste0(substr(seed,1,6),"[ACGTN][ACGTN]"),x)] <- 3L # 6mer-m8
   if(substr(seedGb6,2,7)!=seed6)
     y[grep(seedGb6,x,fixed=TRUE)] <- 4L # g-bulged 6mer
-  y[grep(paste0("[ACGT]",seed6),x)] <- 5L # 6mer
+  y[grep(paste0("[ACGTN]",seed6),x)] <- 5L # 6mer
   if(seedGb6!=substr(seed,1,7)){
     y[grep(paste0(seedGb6,"A|",seedGb7),x)] <- 6L # g-bulged 7mer
     y[grep(paste0(seedGb7,"A"),x,fixed=TRUE)] <- 7L # g-bulged 8mer
   }
-  y[grep(paste0("[ACGT]",substr(seed,2,8)),x)] <- 8L # 7mer-a1
+  y[grep(paste0("[ACGTN]",substr(seed,2,8)),x)] <- 8L # 7mer-a1
   y[grep(substr(seed,1,7),x,fixed=TRUE)] <- 9L # 7mer-m8
   y[grep(seed,x,fixed=TRUE)] <- 10L # 8mer
   factor(y, levels=10L:1L, labels=.matchLevels())
@@ -513,7 +534,7 @@ getMatchTypes <- function(x, seed){
 #' runFullScan
 #' 
 #' @export
-runFullScan <- function(species, mods=NULL, UTRonly=TRUE, shadow=15, cores=8, maxLogKd=c(-0.3,-0.3), save.path=FALSE, ...){
+runFullScan <- function(species, mods=NULL, UTRonly=TRUE, shadow=15, cores=8, maxLogKd=c(-0.3,-0.3), save.path=NULL, ...){
   message("Loading annotation")
   suppressPackageStartupMessages({
     library(ensembldb)
@@ -547,6 +568,7 @@ runFullScan <- function(species, mods=NULL, UTRonly=TRUE, shadow=15, cores=8, ma
   grl_UTR <- suppressWarnings(threeUTRsByTranscript(ensdb, filter=filt))
   seqs <- extractTranscriptSeqs(genome, grl_UTR)
   utr.len <- lengths(seqs)
+  names(utr.len) <- names(seqs)
   if(!UTRonly){
     grl_ORF <- cdsBy(ensdb, by="tx", filter=filt)
     seqs_ORF <- extractTranscriptSeqs(genome, grl_ORF)
@@ -570,12 +592,16 @@ runFullScan <- function(species, mods=NULL, UTRonly=TRUE, shadow=15, cores=8, ma
     BP <- SerialParam()
   }
   m <- findSeedMatches(seqs, mods, shadow=shadow, maxLogKd=maxLogKd, BP=BP, ...)
-
-  metadata(m)$tx_info <- tx_info
-  metadata(m)$ah_id <- ahid
-  if(!isFALSE(save.path)) save.path <- paste(species, ifelse(UTRonly,"utrs","full"), "matches.rds", sep=".")
-  if(isFALSE(save.path)) return(m)
-  saveRDS(m, file=save.path)
+  
+  if(is(m, "GRanges")) {
+    metadata(m)$tx_info <- tx_info
+    metadata(m)$ah_id <- ahid
+  } else {
+    attr(m, "tx_info") <- tx_info
+    attr(m, "ah_id") <- ahid
+  }
+  if(is.null(save.path)) return(m)
+  else saveRDS(m, file=save.path)
   rm(m)
   gc()
   message("Saved in: ", save.path)
@@ -583,8 +609,14 @@ runFullScan <- function(species, mods=NULL, UTRonly=TRUE, shadow=15, cores=8, ma
 
 
 .defaultAggParams <- function(){
-  c(ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403, 
-    coef_utr = -0.28019, coef_orf = -0.08622)
+  list(ag=-4.863126,
+    b=0.5735,
+    c=-1.7091,
+    p3=0.04403, 
+    coef_utr = -0.28019,
+    coef_orf = -0.08622,
+    keepSiteInfo = TRUE
+    )
 }
 
 .unlistGRL <- function(m, .id=NULL){
