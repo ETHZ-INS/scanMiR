@@ -13,7 +13,8 @@ viewTargetAlignment(
   maxBulgeDiff = 4L,
   min3pMatch = 3L,
   UGsub = TRUE,
-  outputType = c("print", "data.frame", "plot")
+  ...,
+  outputType = c("print", "data.frame", "plot", "ggplot")
 )
 }
 \arguments{
@@ -37,6 +38,8 @@ including the model.}
 \item{min3pMatch}{The minimum 3' alignment for any to be plotted}
 
 \item{UGsub}{Logical; whether to show U-G matches}
+
+\item{...}{Passed to `text` if `outputType="plot"`.}
 
 \item{outputType}{Either 'print' (default, prints to console), 'data.frame',
 or 'plot'.}

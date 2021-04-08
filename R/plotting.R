@@ -56,6 +56,7 @@ plotKdModel <- function(mod, what=c("both","seeds","logo"), n=10){
 #' @param UGsub Logical; whether to show U-G matches
 #' @param outputType Either 'print' (default, prints to console), 'data.frame',
 #' or 'plot'.
+#' @param ... Passed to `text` if `outputType="plot"`.
 #'
 #' @return Returns nothing `outputType="print"`. If `outputType="data.frame"`, 
 #' returns a data.frame containing the alignment strings; if 
@@ -64,8 +65,8 @@ plotKdModel <- function(mod, what=c("both","seeds","logo"), n=10){
 #' @export
 viewTargetAlignment <- function(m, miRNA, seqs=NULL, flagBulgeMatches=FALSE,
                                 maxBulgeSize=9L, maxBulgeDiff=4L, 
-                                min3pMatch=3L, UGsub=TRUE,
-                                outputType=c("print","data.frame","plot")){
+                                min3pMatch=3L, UGsub=TRUE, ...,
+                                outputType=c("print","data.frame","plot","ggplot")){
   stopifnot(is(m,"GRanges"))
   stopifnot(length(m)==1)
   outputType <- match.arg(outputType)
@@ -158,12 +159,17 @@ viewTargetAlignment <- function(m, miRNA, seqs=NULL, flagBulgeMatches=FALSE,
                         d$alignment)
   if(outputType=="data.frame") return(d)
   d2 <- paste0(paste(c("miRNA ","      ","target"), d$alignment), collapse="\n")
-  if(outputType=="plot"){
+  if(outputType=="ggplot"){
     p <- ggplot(data.frame(x=1,y=1,label=d2), aes(x,y,label=label)) + 
       theme_void() + geom_text(family="mono", fontface="bold")
     return(p)
+  }else if(outputType=="plot"){
+    par(xpd = NA, mar=c(0,0,0,0))
+    plot(1,1,ann = F, bty = 'n', type = 'n', xaxt = 'n', yaxt = 'n')
+    text(x = 1, y = 1, d2, family="mono", font=2, ...)
+  }else{
+    cat(paste0("\n",d2,"\n"))
   }
-  cat(paste0("\n",d2,"\n"))
 }
 
 .matchStrings <- function(s1, s2, UGsub=TRUE){
