@@ -155,7 +155,7 @@ enrichedMirTxPairs <- function(m, minSites=5, max.binom.p=0.001){
   S$sites <- b$sites
   rm(b)
   S <- S[S$logp.binom < as.integer(log(max.binom.p)) & 
-           Sd$sites>=as.integer(minSites),]
+           S$sites>=as.integer(minSites),]
   S[order(S$logp.binom),]
 }
 
