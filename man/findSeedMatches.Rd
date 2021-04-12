@@ -16,9 +16,11 @@ findSeedMatches(
   p3.params = list(maxMirLoop = 5L, maxTargetLoop = 9L, maxLoopDiff = 4L, mismatch =
     TRUE),
   agg.params = .defaultAggParams(),
+  writeToDir = NULL,
   ret = c("GRanges", "data.frame", "aggregated"),
   BP = NULL,
   verbose = NULL,
+  n_seeds = NULL,
   ...
 )
 }
@@ -59,6 +61,8 @@ multithreading.}
 
 \item{verbose}{Logical; whether to print additional progress messages (default on if 
 not multithreading)}
+
+\item{n_seeds}{The number of seeds that are processed in parallel to avoid memory issues.}
 
 \item{seedtype}{Either RNA, DNA or 'auto' (default)}
 

@@ -16,7 +16,7 @@ sequence of the target RNA). If of length 7, an "A" will be appended.}
 A factor of match types.
 }
 \description{
-Given a seed and a set of sequences mathcing it, returns the type of match.
+Given a seed and a set of sequences matching it, returns the type of match.
 }
 \examples{
 x <- c("AACACTCCAG","GACACTCCGC","GTACTCCAT","ACGTACGTAC")
