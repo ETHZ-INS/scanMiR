@@ -1,0 +1,123 @@
+---
+title: "The IndexedFst class"
+author: Pierre-Luc Germain
+package: scanMiR
+output:
+  BiocStyle::html_document
+abstract: |
+  Indexed wrapper for fst objects, enabling indexed fast random access to on-disk data.frames or GRanges
+vignette: |
+  %\VignetteIndexEntry{4_IndexedFst}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include=FALSE}
+library(BiocStyle)
+library(scanMiR)
+```
+
+# IndexedFst
+
+The `IndexedFst` class provides fast named random access to indexed `fst` files. It is based on the `r CRANpkg("fst")` package, which provides fast random reading of data frames. This is particularly useful to manipulate large collections of binding sites without loading them all in memory.
+
+Creating an indexed fst file from a data.frame is very simple:
+
+```{r}
+# we create a temporary directory in which the file will be saved
+tmp <- tempdir()
+f <- file.path(tmp, "test")
+# we create a dummy data.frame
+d <- data.frame( category=sample(LETTERS[1:4], 10000, replace=TRUE),
+                 var2=sample(LETTERS, 10000, replace=TRUE),
+                 var3=runif(10000) )
+
+saveIndexedFst(d, index.by="category", file.prefix=f)
+```
+
+The file can then be loaded (without having all the data in memory) in the following way:
+
+```{r}
+d2 <- loadIndexedFst(f)
+class(d2)
+summary(d2)
+```
+
+We can see that `d2` is considerably smaller than the original `d`:
+
+```{r}
+format(object.size(d),units="Kb")
+format(object.size(d2),units="Kb")
+```
+
+Nevertheless, a number of functions can be used normally on the object:
+
+```{r}
+nrow(d2)
+ncol(d2)
+colnames(d2)
+head(d2)
+```
+
+In addition, the object can be accessed as a list (using the indexed variable). Since in this case the file is indexed using the category column, the different categories can be accessed as `names` of the object:
+
+```{r}
+names(d2)
+lengths(d2)
+```
+We can read specifically the rows pertaining to one category using:
+
+```{r}
+catB <- d2$B
+head(catB)
+```
+
+# Storing GRanges as IndexedFst
+
+In addition to data.frames, [GRanges](https://bioconductor.org/packages/release/bioc/html/GenomicRanges.html) can be saved as indexed Fst. To demonstrate this, we first create a dummy GRanges object:
+
+```{r}
+gr <- GRanges(sample(LETTERS[1:3],200,replace=TRUE), IRanges(seq_len(200), width=2))
+gr$propertyA <- factor(sample(letters[1:5],200,replace=TRUE))
+gr
+```
+Again the file can then be loaded (without having all the data in memory) in the following way:
+
+```{r}
+f2 <- file.path(tmp, "test2")
+saveIndexedFst(gr, index.by="seqnames", file.prefix=f2)
+d1 <- loadIndexedFst(f2)
+names(d1)
+head(d1$A)
+```
+Similarly, we could index using a different column:
+
+```{r}
+saveIndexedFst(gr, index.by="propertyA", file.prefix=f2)
+d2 <- loadIndexedFst(f2)
+names(d2)
+```
+
+# More...
+
+## Multithreading
+
+The `r CRANpkg("fst")` package supports multithreaded reading and writing. This can also be applied for `IndexedFst`, using the `nthreads` argument of `loadIndexedFst` and `saveIndexedFst`.
+
+## Under the hood
+
+The `IndexedFst` class is simply a wrapper around the `fst` package. In addition to the `fst` file, an `rds` file is saved containing the index data. For example, for our last example, the following files have been saved:
+
+```{r}
+list.files(tmp, "test2")
+```
+Either file (or the prefix) can be used for loading, but both files need to have the same prefix.
+
+
+<br/><br/>
+
+# Session info {.unnumbered}
+
+```{r sessionInfo, echo=FALSE}
+sessionInfo()
+```
