@@ -41,7 +41,7 @@ setMethod("summary", "KdModel", function(object){
 #' to a text/csv file containing such a table. Should contain the columns 
 #' 'log_kd', '12mer' (or 'X12mer'), and eventually 'mirseq' (if the `mirseq`
 #' argument is NULL) and 'mir' (if the `name` argument is NULL).
-#' @param mirseq The miRNA sequence.
+#' @param mirseq The miRNA (cDNA) sequence.
 #' @param name The name of the miRNA.
 #' @param conservation The conservation level of the miRNA. See 
 #' `scanMiR:::.conservation_levels()` for possible values.
@@ -49,22 +49,27 @@ setMethod("summary", "KdModel", function(object){
 #'
 #' @return An object of class `KdModel`.
 #' @export
-getKdModel <- function(kd,mirseq=NULL,name=NULL,conservation=NA_integer_, ...){
+#' @examples
+#' kd <- dummyKdData()
+#' mod <- getKdModel(kd=kd, mirseq="TTAATGCTAATCGTGATAGGGGTT", name="my-miRNA")
+getKdModel <- function(kd, mirseq=NULL, name=NULL, conservation=NA_integer_, ...){
   if(is.character(kd) && length(kd)==1){
     if(is.null(name)) name <- gsub("\\.txt$|\\.csv$","",
                                    gsub("_kds","",basename(kd)))
     kd <- read.delim(kd, header=TRUE, stringsAsFactors=FALSE)[,c(1,2,4)]
   }
-  if(is.null(mirseq)) mirseq <- as.character(kd$mirseq[1])
-  if(is.null(name)) name <- as.character(kd$mir[1])
+  if(is.null(mirseq) && !is.null(kd$mirseq))
+    mirseq <- as.character(kd$mirseq[1])
+  if(is.null(name) && !is.null(kd$mir)) name <- as.character(kd$mir[1])
+  stopifnot(!is.null(name) && !is.null(mirseq))
   if(!("X12mer" %in% colnames(kd)) && "12mer" %in% colnames(kd))
     colnames(kd) <- gsub("^12mer$","X12mer",colnames(kd))
   kd <- kd[,c("X12mer","log_kd")]
   seed <- paste0(as.character(reverseComplement(DNAString(substr(mirseq, 2,8)))),"A")
-  w <- grep("X|N",kd$X12mer)
+  w <- grep("X|N",kd$X12mer,invert=TRUE)
   pwm <- Biostrings::consensusMatrix(
-    as.character(rep(kd$X12mer[-w], floor( (exp(-kd$log_kd[-w]))/3 ))),
-    as.prob=TRUE
+    as.character(rep(kd$X12mer[w], floor( (exp(-kd$log_kd[w]))/3 ))),
+    as.prob=TRUE, width=12L
   )
   fields <- c("mer8","fl.score")
   if(!all(fields %in% colnames(kd))) kd <- .prep12mers(kd, seed=seed)
@@ -158,12 +163,17 @@ getKdModel <- function(kd,mirseq=NULL,name=NULL,conservation=NA_integer_, ...){
 #' `log_kd`. To save space, the reported log_kd is multiplied by 1000, rounded and saved
 #' as an integer.
 #' @export
+#' @examples 
+#' data(SampleKdModel)
+#' assignKdType(c("CTAGCATTAAGT","ACGTACGTACGT"), SampleKdModel)
 assignKdType <- function(x, mod, mer8=NULL){
   if(is.null(mer8)) mer8 <- getSeed8mers(mod$canonical.seed, addNs=TRUE)
   mod <- .add8merN(mod, mer8)
   fl.score <- as.numeric(.getFlankingScore(x)$score)
   mer9 <- factor(as.character(subseq(x, 2, 10)))
   mer8 <- factor(as.character(subseq(x, 3,10)), levels=mer8)
-  data.frame(type=getMatchTypes(levels(mer9), mod$canonical.seed)[as.integer(mer9)],
+  d <- data.frame(type=getMatchTypes(levels(mer9), mod$canonical.seed)[as.integer(mer9)],
              log_kd=as.integer(round(mod$mer8[mer8] + fl.score*mod$fl[mer8])))
+  d$log_kd[is.na(d$log_kd)] <- 0L
+  d
 }

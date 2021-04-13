@@ -16,6 +16,9 @@ setClass(
 #'
 #' @return A KdModelList
 #' @export
+#' @examples
+#' data(SampleKdModel)
+#' KdModelList(list(SampleKdModel,SampleKdModel))
 KdModelList <- function(x, description=NULL){
   names(x) <- vapply(x, FUN.VALUE=character(1), FUN=function(x) x$name)
   x <- new("KdModelList", x)
@@ -43,6 +46,9 @@ setMethod("summary", "KdModelList", function(object){
 #'
 #' @return A vector of the conservation status for each miRNA
 #' @export
+#' @examples 
+#' data(SampleKdModel)
+#' conservation(SampleKdModel)
 conservation <- function(x){
   lvls <- .conservation_levels()
   if(is(x,"KdModelList")){

@@ -17,3 +17,7 @@ A KdModelList
 \description{
 KdModelList
 }
+\examples{
+data(SampleKdModel)
+KdModelList(list(SampleKdModel,SampleKdModel))
+}

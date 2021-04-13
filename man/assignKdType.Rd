@@ -22,3 +22,7 @@ as an integer.
 \description{
 Assigns a log_kd and match type to a set of matched sequences.
 }
+\examples{
+data(SampleKdModel)
+assignKdType(c("CTAGCATTAAGT","ACGTACGTACGT"), SampleKdModel)
+}

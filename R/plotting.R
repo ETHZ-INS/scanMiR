@@ -10,6 +10,9 @@
 #' Otherwise returns a ggplot.
 #' @import ggplot2
 #' @export
+#' @examples 
+#' data(SampleKdModel)
+#' plotKdModel(SampleKdModel)
 plotKdModel <- function(mod, what=c("both","seeds","logo"), n=10){
   what <- match.arg(what)
   if(what=="seeds"){
@@ -63,6 +66,11 @@ plotKdModel <- function(mod, what=c("both","seeds","logo"), n=10){
 #' `outputType="plot"` returns a `ggplot` object.
 #' @importFrom stringi stri_reverse
 #' @export
+#' @examples
+#' data(SampleKdModel)
+#' seq <- c(seq1="CGACCCCTATCACGTCCGCAGCATTAAAT")
+#' m <- findSeedMatches(seq, SampleKdModel)
+#' viewTargetAlignment(m, miRNA=SampleKdModel, seqs=seq)
 viewTargetAlignment <- function(m, miRNA, seqs=NULL, flagBulgeMatches=FALSE,
                                 maxBulgeSize=9L, maxBulgeDiff=4L, 
                                 min3pMatch=3L, UGsub=TRUE, ...,

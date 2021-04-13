@@ -58,6 +58,7 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
   if(is.character(seqs) || is.null(mcols(seqs)$ORF.length)){
     utr_len <- length.seqs
     orf_len <- rep(0L, length.out = length(utr_len))
+    seqs <- DNAStringSet(seqs)
     mcols(seqs)$C.length <- orf_len    
   }else{
     orf_len <- mcols(seqs)[,"ORF.length"]

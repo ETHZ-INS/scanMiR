@@ -52,3 +52,9 @@ returns a data.frame containing the alignment strings; if
 \description{
 viewTargetAlignment
 }
+\examples{
+data(SampleKdModel)
+seq <- c(seq1="CGACCCCTATCACGTCCGCAGCATTAAAT")
+m <- findSeedMatches(seq, SampleKdModel)
+viewTargetAlignment(m, miRNA=SampleKdModel, seqs=seq)
+}

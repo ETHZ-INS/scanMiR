@@ -19,3 +19,7 @@ Otherwise returns a ggplot.
 Plots the summary of an affinity model. Requires the packages `seqLogo` and 
 `cow_plot`.
 }
+\examples{
+data(SampleKdModel)
+plotKdModel(SampleKdModel)
+}

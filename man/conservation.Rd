@@ -15,3 +15,7 @@ A vector of the conservation status for each miRNA
 \description{
 conservation
 }
+\examples{
+data(SampleKdModel)
+conservation(SampleKdModel)
+}

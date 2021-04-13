@@ -12,7 +12,7 @@ to a text/csv file containing such a table. Should contain the columns
 'log_kd', '12mer' (or 'X12mer'), and eventually 'mirseq' (if the `mirseq`
 argument is NULL) and 'mir' (if the `name` argument is NULL).}
 
-\item{mirseq}{The miRNA sequence.}
+\item{mirseq}{The miRNA (cDNA) sequence.}
 
 \item{name}{The name of the miRNA.}
 
@@ -26,4 +26,8 @@ An object of class `KdModel`.
 }
 \description{
 getKdModel
+}
+\examples{
+kd <- dummyKdData()
+mod <- getKdModel(kd=kd, mirseq="TTAATGCTAATCGTGATAGGGGTT", name="my-miRNA")
 }

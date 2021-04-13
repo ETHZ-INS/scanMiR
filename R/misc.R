@@ -158,3 +158,22 @@ enrichedMirTxPairs <- function(m, minSites=5, max.binom.p=0.001){
            S$sites>=as.integer(minSites),]
   S[order(S$logp.binom),]
 }
+
+
+#' Create dummy log_kd per 12-mer data
+#'
+#' @param mod Optional model from which to create the dummy data
+#'
+#' @return A data.frame with 12-mers and log_kds
+#' @export
+#'
+#' @examples
+#' kd <- dummyKdData()
+dummyKdData <- function(mod=NULL){
+  if(is.null(mod)){
+    data("SampleKdModel")
+    mod <- SampleKdModel
+  }
+  mer12 <- paste0(getKmers(2),getSeed8mers(mod$canonical.seed),getKmers(2))
+  data.frame(X12mer=mer12, log_kd=mod$mer8/1000)
+}
