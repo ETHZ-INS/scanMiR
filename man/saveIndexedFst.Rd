@@ -15,14 +15,14 @@ saveIndexedFst(
 )
 }
 \arguments{
-\item{d}{A data.frame}
+\item{d}{A data.frame or GRanges object}
 
 \item{index.by}{A column of `d` by which it should be indexed.}
 
 \item{file.prefix}{Path and prefix of the output files.}
 
-\item{nthreads}{Number of threads to use when writing (default 1). If NULL, will use
-`threads_fst()`}
+\item{nthreads}{Number of threads to use when writing (default 1). If NULL, 
+will use `threads_fst()`}
 
 \item{index.properties}{An optional data.frame of properties, with the levels
 of `index.by` as row names.}
@@ -35,7 +35,7 @@ of `index.by` as row names.}
 Nothing.
 }
 \description{
-Saves a data.frame into an indexed FST file.
+Saves a data.frame (or GRanges object) into an indexed FST file.
 }
 \seealso{
 \code{\link{IndexedFst-class}}

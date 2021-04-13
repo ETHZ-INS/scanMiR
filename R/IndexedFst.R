@@ -186,11 +186,11 @@ setMethod("as.data.frame", "IndexedFst", definition=function(x, name) {
     }
     threads_fst(ont)
   }
-  if(convertGR){
-    if(all(c("seqnames","start","end") %in% colnames(f))){
-      f <- GRanges(seqnames=f$seqnames, IRanges(f$start, f$end), strand=f$strand,
-                   f[,setdiff(colnames(f), c("seqnames","start","end","width","strand"))])
-    }
+  if(convertGR && !is.null(x@add.info$isGR) && x@add.info$isGR){
+    f <- tryCatch(.df2gr(f, x@add.info), error=function(e){
+      warning("Could not convert to GRanges:", e)
+      f
+    })
   }
   f
 }
@@ -215,13 +215,13 @@ loadIndexedFst <- function(file, nthreads=1){
 
 #' saveIndexedFst
 #' 
-#' Saves a data.frame into an indexed FST file.
+#' Saves a data.frame (or GRanges object) into an indexed FST file.
 #'
-#' @param d A data.frame
+#' @param d A data.frame or GRanges object
 #' @param index.by A column of `d` by which it should be indexed.
 #' @param file.prefix Path and prefix of the output files.
-#' @param nthreads Number of threads to use when writing (default 1). If NULL, will use
-#' `threads_fst()`
+#' @param nthreads Number of threads to use when writing (default 1). If NULL, 
+#' will use `threads_fst()`
 #' @param index.properties An optional data.frame of properties, with the levels
 #' of `index.by` as row names.
 #' @param add.info An optional list of additional information to save.
@@ -231,21 +231,42 @@ loadIndexedFst <- function(file, nthreads=1){
 #' @seealso \code{\link{IndexedFst-class}}
 #' @importFrom fst write.fst threads_fst
 #' @export
-saveIndexedFst <- function(d, index.by, file.prefix, nthreads=1, index.properties=NULL, add.info=list(), ...){
+saveIndexedFst <- function(d, index.by, file.prefix, nthreads=1, 
+                           index.properties=NULL, add.info=list(), ...){
+  if(is(d, "GRanges")){
+    d <- as.data.frame(d)
+    d$end <- NULL
+    if(all(d$strand=="*")){
+      d$strand <- NULL
+    }else if(length(unique(d$strand))==1){
+      add.info$strand <- as.factor(d$strand[1])
+      d$strand <- NULL
+    }
+    if(length(unique(d$width))==1){
+      add.info$width <- d$width[1]
+      d$width <- NULL
+    }
+    if(length(unique(d$seqnames))==1){
+      add.info$seqnames <- d$seqnames[1]
+      d$seqnames <- NULL
+    }
+    add.info$isGR <- TRUE
+  }
   if(!is.data.frame(d)) stop("`d` should be a data.frame.")
-  if((!is.character(index.by) && !is.integer(index.by)) || length(index.by)!=1 ||
-     is.null(d[[index.by]]))  stop("`index.by` should be a scalar character or integer ",
-                                   "indicating the column by which to index.")
+  if((!is.character(index.by) && !is.integer(index.by)) || 
+     length(index.by)!=1 || is.null(d[[index.by]]))
+    stop("`index.by` should be a scalar character or integer indicating the ",
+         "column by which to index.")
   if(is.numeric(d[[index.by]]))
-    warning("The `index.by` column selected is numeric! ",
-            "If the column is really continuous, rather than having many repeated ",
-            "values, this might lead to very suboptimal behaviors!")
+    warning("The `index.by` column selected is numeric!\n",
+            "If the column is really continuous, rather than having many ",
+            "repeated values, this might lead to very suboptimal behaviors!")
   if(!is.null(nthreads)) threads_fst(nthreads)
   d <- d[order(d[[index.by]]),]
   file.prefix <- gsub("\\.fst$","",file.prefix)
-  idx <- lapply(split(seq_len(nrow(d)), d[[index.by]]), FUN=range)
-  idx <- data.frame( row.names=names(idx), start=sapply(idx,FUN=function(x) x[1]), 
-                     end=sapply(idx,FUN=function(x) x[2]))
+  idx <- range(S4Vectors::splitAsList(seq_len(nrow(d)),
+                                      as.factor(d[[index.by]])))
+  idx <- data.frame( row.names=row.names(idx), start=idx[,1], end=idx[,2])
   if(!is.null(index.properties)){
     idx <- merge(idx, as.data.frame(index.properties), 
                  by="row.names", all.x=TRUE)
@@ -257,3 +278,19 @@ saveIndexedFst <- function(d, index.by, file.prefix, nthreads=1, index.propertie
   write.fst(d, paste0(file.prefix, ".fst"), ...)
 }
 
+.df2gr <- function(x, add.info=list()){
+  if(is.null(x$end)){
+    if(is.null(x$width)){
+      stopifnot(!is.null(add.info$width))
+      x$end <- x$start + add.info$width-1L
+    }else{
+      x$end <- x$start + x$width-1L
+    }
+  }
+  x$width <- NULL
+  if(is.null(x$strand) && !is.null(add.info$strand))
+    x$strand <- add.info$strand
+  if(is.null(x$seqnames) && !is.null(add.info$seqnames))
+    x$seqnames <- add.info$seqnames
+  makeGRangesFromDataFrame(x, keep.extra.columns = TRUE)
+}
