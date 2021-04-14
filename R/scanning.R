@@ -37,7 +37,8 @@
 #' saved as an integer.
 #' 
 #' @importFrom BiocParallel bplapply SerialParam bpnworkers
-#' @import Biostrings GenomicRanges
+#' @importFrom GenomeInfoDb seqlevels
+#' @import GenomeInfoDb Biostrings GenomicRanges S4Vectors
 #' @export
 #'
 #' @examples
@@ -77,6 +78,8 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
 
   ret <- match.arg(ret)
   if(ret=="aggregated"){
+    if(is.character(seeds)) stop("Aggregation is possible only if seeds are ",
+    "given as KdModels.")
     if(!is.list(agg.params)) agg.params <- as.list(agg.params)
     if(!all(names(agg.params) %in% names(.defaultAggParams())))
       stop("`agg.params` should be a named list with slots among ",
@@ -323,7 +326,7 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
          "The size of the characters in `seeds` is compatible with neither.")
   }
   if(!is(seeds,"KdModel") & !is(seeds,"KdModelList") &
-     !(is.list(seeds) && all(vapply(seeds, class)=="KdModel", character(1))))
+     !(is.list(seeds) && all(vapply(seeds, class, character(1))=="KdModel")))
     stop("`seeds` should either be a character vector or an object of class ",
          "`KdModel` or `KdModelList`")
   NULL
@@ -468,7 +471,7 @@ removeOverlappingRanges <- function(x, minDist=7L, retIndices=FALSE,
     ## (i.e. lowest in the list)
     top <- min(red) ## indexes of the top entry per overlap set, relative to i
     ## overlap of non-top entries to the top entries:
-    o <- overlapsAny(x[i[-top]],x[i[top]],maxgap=minDist)
+    o <- IRanges::overlapsAny(x[i[-top]],x[i[top]],maxgap=minDist)
     torem <- i[-top][which(o)] ## entries to remove, relative to x
     toRemove <- c(toRemove, torem) ## relative to x
     i <- setdiff(i,torem)
