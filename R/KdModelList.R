@@ -40,6 +40,16 @@ setMethod("summary", "KdModelList", function(object){
   }
 })
 
+#' @export
+setMethod("[", "KdModelList", function(x, i, j=NULL, ..., drop = TRUE){
+  xo <- new("KdModelList", unclass(x)[i])
+  if(!is.null(attr(x, "created"))) attr(xo, "created") <- attr(x, "created")
+  if(!is.null(attr(x, "description")))
+    attr(xo, "description") <- attr(x, "description")
+  xo
+})
+
+
 #' conservation
 #'
 #' @param x A KdModelList, or a KdModel
