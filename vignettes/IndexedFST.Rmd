@@ -24,7 +24,7 @@ The `IndexedFst` class provides fast named random access to indexed `fst` files.
 Creating an indexed fst file from a data.frame is very simple:
 
 ```{r}
-# we create a temporary directory in which the file will be saved
+# we create a temporary directory in which the files will be saved
 tmp <- tempdir()
 f <- file.path(tmp, "test")
 # we create a dummy data.frame
