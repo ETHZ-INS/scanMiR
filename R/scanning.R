@@ -8,14 +8,16 @@
 #' @param seedtype Either RNA, DNA or 'auto' (default)
 #' @param shadow Integer giving the shadow, i.e. the number of nucleotides
 #'  hidden at the beginning of the sequence (default 0)
-#' @param maxLogKd Maximum log_kd value to keep (default 0). Set to Inf to disable.
+#' @param maxLogKd Maximum log_kd value to keep (default 0). Set to Inf to
+#' disable.
 #' @param keepMatchSeq Logical; whether to keep the sequence (including flanking
 #' dinucleotides) for each seed match (default FALSE).
-#' @param onlyCanonical Logical; whether to restrict the search only to canonical
-#' binding sites.
-#' @param minDist Integer specifying the minimum distance between matches of the same 
-#' miRNA (default 1). Closer matches will be reduced to the highest-affinity. To 
-#' disable the removal of overlapping features, use `minDist=-Inf`.
+#' @param onlyCanonical Logical; whether to restrict the search only to 
+#' canonical binding sites.
+#' @param minDist Integer specifying the minimum distance between matches of the
+#' same miRNA (default 1). Closer matches will be reduced to the 
+#' highest-affinity. To disable the removal of overlapping features, use 
+#' `minDist=-Inf`.
 #' @param p3.maxLoop The maximum loop size for the 3' alignment
 #' @param p3.mismatch Logical; whether to allow mismatches in 3' alignment
 #' @param p3.params Named list of parameters for the 3' alignment.
@@ -24,14 +26,15 @@
 #' @param ret The type of data to return, either "GRanges" (default), 
 #' "data.frame" (lighter weight than GRanges), or "aggregated" (aggregated per 
 #' transcript).
-#' @param BP Pass `BiocParallel::MulticoreParam(ncores, progressbar=TRUE)` to enable 
-#' multithreading.
-#' @param verbose Logical; whether to print additional progress messages (default on if 
-#' not multithreading)
-#' @param n_seeds The number of seeds that are processed in parallel to avoid memory issues.
-#' @return A GRanges of all matches. If `seeds` is a `KdModel` or `KdModelList`, the 
-#' `log_kd` column will report the ln(Kd) multiplied by 1000, rounded and saved as an 
-#' integer.
+#' @param BP Pass `BiocParallel::MulticoreParam(ncores, progressbar=TRUE)` to 
+#' enable multithreading.
+#' @param verbose Logical; whether to print additional progress messages
+#' (default on if not multithreading)
+#' @param n_seeds The number of seeds that are processed in parallel to avoid 
+#' memory issues.
+#' @return A GRanges of all matches. If `seeds` is a `KdModel` or `KdModelList`,
+#' the `log_kd` column will report the ln(Kd) multiplied by 1000, rounded and 
+#' saved as an integer.
 #' 
 #' @importFrom BiocParallel bplapply SerialParam bpnworkers
 #' @import Biostrings GenomicRanges
@@ -39,21 +42,21 @@
 #'
 #' @examples
 #' # we create mock RNA sequences and seeds:
-#' seqs <- sapply(1:10, FUN=function(x) paste(sample(strsplit("ACGU", "")[[1]], 
-#'                                      1000, replace=TRUE),collapse=""))
+#' seqs <- vapply(1:10, FUN=function(x) paste(sample(strsplit("ACGU", "")[[1]], 
+#'                                      1000, replace=TRUE),collapse=""),
+#'                                      character(1))
 #' names(seqs) <- paste0("seq",1:length(seqs))
 #' seeds <- c("AAACCAC", "AAACCUU")
 #' findSeedMatches(seqs, seeds)
 findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE, 
                              maxLogKd=c(-0.3,-0.3), keepMatchSeq=FALSE, 
-                             minDist=7L, p3.extra=FALSE, 
+                             minDist=7L, p3.extra=FALSE,
                              p3.params=list(maxMirLoop=5L, maxTargetLoop=9L, 
                                             maxLoopDiff=4L, mismatch=TRUE),
                              agg.params=.defaultAggParams(), writeToDir=NULL,
                              ret=c("GRanges","data.frame","aggregated"), 
                              BP=NULL, verbose=NULL, n_seeds=NULL, ...){
   p3.params <- .check3pParams(p3.params)
-  # This might not be most efficient:
   length.seqs <- width(seqs)
   if(is.character(seqs) || is.null(mcols(seqs)$ORF.length)){
     utr_len <- length.seqs
@@ -68,7 +71,7 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
   }
   length.info <- cbind(orf_len, utr_len)
   if(!is.null(names(seqs))) row.names(length.info) <- names(seqs)
-  ###
+
   ret <- match.arg(ret)
   if(ret=="aggregated"){
     if(!is.list(agg.params)) agg.params <- as.list(agg.params)
@@ -82,7 +85,9 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
     }
   }
   seedInputType <- .checkSeedsInput(seeds)
-  if(is.null(verbose)) verbose <- is(seeds,"KdModel") || length(seeds)==1 || is.null(BP)
+  if(is.null(verbose)) {
+    verbose <- is(seeds,"KdModel") || length(seeds)==1 || is.null(BP)
+  }
   if(verbose) message("Preparing sequences...")
   maxLoop <- max(unlist(p3.params[c("maxMirLoop","maxTargetLoop")]))
   args <- .prepSeqs(seqs, seeds, shadow=shadow, pad=c(maxLoop+30L,8L))
@@ -147,13 +152,13 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
     m <- do.call(c, m)
     names(m) <- NULL
     
-    if(is.null(names(m))){
-      if(!is.character(seeds)) seeds <- sapply(seeds, FUN=function(x){
+    if(!is.character(seeds)) {
+      seeds <- vapply(seeds, FUN=function(x){
         if(is.null(x$name)) return(x$canonical.seed)
         x$name
-      })
-      names(m) <- seeds
+        }, character(1))
     }
+    names(m) <- seeds
     
     if(ret=="GRanges"){
       m <- .unlistGRL(m, .id="miRNA")
