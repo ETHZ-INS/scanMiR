@@ -25,7 +25,8 @@ findSeedMatches(
 )
 }
 \arguments{
-\item{seqs}{A character vector or `XStringSet` of sequences in which to look.}
+\item{seqs}{A character vector or `DNAStringSet` of sequences in which to 
+look.}
 
 \item{seeds}{A character vector of 7-nt seeds to look for. If RNA, will be 
 reversed and complemented before matching. If DNA, they are assumed to be
@@ -35,17 +36,19 @@ the target sequence to look for. Alternatively, a list of objects of class
 \item{shadow}{Integer giving the shadow, i.e. the number of nucleotides
 hidden at the beginning of the sequence (default 0)}
 
-\item{onlyCanonical}{Logical; whether to restrict the search only to canonical
-binding sites.}
+\item{onlyCanonical}{Logical; whether to restrict the search only to 
+canonical binding sites.}
 
-\item{maxLogKd}{Maximum log_kd value to keep (default 0). Set to Inf to disable.}
+\item{maxLogKd}{Maximum log_kd value to keep (default 0). Set to Inf to
+disable.}
 
 \item{keepMatchSeq}{Logical; whether to keep the sequence (including flanking
 dinucleotides) for each seed match (default FALSE).}
 
-\item{minDist}{Integer specifying the minimum distance between matches of the same 
-miRNA (default 1). Closer matches will be reduced to the highest-affinity. To 
-disable the removal of overlapping features, use `minDist=-Inf`.}
+\item{minDist}{Integer specifying the minimum distance between matches of the
+same miRNA (default 1). Closer matches will be reduced to the 
+highest-affinity. To disable the removal of overlapping features, use 
+`minDist=-Inf`.}
 
 \item{p3.params}{Named list of parameters for the 3' alignment.}
 
@@ -56,13 +59,14 @@ parameters for the aggregation. Ignored if `ret!="aggregated"`.}
 "data.frame" (lighter weight than GRanges), or "aggregated" (aggregated per 
 transcript).}
 
-\item{BP}{Pass `BiocParallel::MulticoreParam(ncores, progressbar=TRUE)` to enable 
-multithreading.}
+\item{BP}{Pass `BiocParallel::MulticoreParam(ncores, progressbar=TRUE)` to 
+enable multithreading.}
 
-\item{verbose}{Logical; whether to print additional progress messages (default on if 
-not multithreading)}
+\item{verbose}{Logical; whether to print additional progress messages
+(default on if not multithreading)}
 
-\item{n_seeds}{The number of seeds that are processed in parallel to avoid memory issues.}
+\item{n_seeds}{The number of seeds that are processed in parallel to avoid 
+memory issues.}
 
 \item{seedtype}{Either RNA, DNA or 'auto' (default)}
 
@@ -71,17 +75,18 @@ not multithreading)}
 \item{p3.mismatch}{Logical; whether to allow mismatches in 3' alignment}
 }
 \value{
-A GRanges of all matches. If `seeds` is a `KdModel` or `KdModelList`, the 
-`log_kd` column will report the ln(Kd) multiplied by 1000, rounded and saved as an 
-integer.
+A GRanges of all matches. If `seeds` is a `KdModel` or `KdModelList`,
+the `log_kd` column will report the ln(Kd) multiplied by 1000, rounded and 
+saved as an integer.
 }
 \description{
 findSeedMatches
 }
 \examples{
 # we create mock RNA sequences and seeds:
-seqs <- sapply(1:10, FUN=function(x) paste(sample(strsplit("ACGU", "")[[1]], 
-                                     1000, replace=TRUE),collapse=""))
+seqs <- vapply(1:10, FUN=function(x) paste(sample(strsplit("ACGT", "")[[1]], 
+                                     1000, replace=TRUE), collapse=""),
+                                     character(1))
 names(seqs) <- paste0("seq",1:length(seqs))
 seeds <- c("AAACCAC", "AAACCUU")
 findSeedMatches(seqs, seeds)

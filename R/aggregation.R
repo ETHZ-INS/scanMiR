@@ -1,18 +1,19 @@
 #' aggregateSites
 #'
 #' @param m A GRanges or data.frame of matches.
-#' @param ag 
-#' @param b 
-#' @param c 
-#' @param p3 
+#' @param ag
+#' @param b
+#' @param c
+#' @param p3
 #' @param toInt Logical; whether to convert repression scores to integers
 #' @param BP BPPARAM argument for multithreading
 #'
 #' @return a data.frame
 #' @export
 aggregateSites <- function(m, ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403, 
-                           coef_utr = -0.28019, coef_orf = -0.08622, p3.range=c(3L,8L), 
-                           keepSiteInfo = FALSE, toInt=FALSE, BP=NULL){
+                           coef_utr = -0.28019, coef_orf = -0.08622,
+                           p3.range=c(3L,8L), keepSiteInfo = FALSE, toInt=FALSE,
+                           BP=NULL){
   if(is.null(BP)) BP <- BiocParallel::SerialParam()
   if(is(m,"GRanges")){
     m$transcript <- as.factor(seqnames(m))
@@ -25,22 +26,25 @@ aggregateSites <- function(m, ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403,
     m <- m[,c("miRNA","transcript","ORF","log_kd","p3.score","type")]
     m <- split(m, m$miRNA)
     m <- bplapply(m, BPPARAM=BP, FUN=function(x){
-      .aggregate_miRNA(x, ag=ag, b=b, c=c, p3=p3,coef_utr = coef_utr, coef_orf = coef_orf, 
-                       keepSiteInfo = keepSiteInfo, toInt=toInt, p3.range=p3.range)
+      .aggregate_miRNA(x, ag=ag, b=b, c=c, p3=p3,coef_utr = coef_utr, 
+                       coef_orf = coef_orf, keepSiteInfo = keepSiteInfo, 
+                       toInt=toInt, p3.range=p3.range)
     })
     m <- dplyr::bind_rows(m, .id="miRNA")
     m <- dplyr::mutate_if(m, is.numeric, tidyr::replace_na, 0L)
   }else{
     m <- m[,c("transcript","ORF","log_kd","p3.score","type")]
-    m <- .aggregate_miRNA(m, ag=ag, b=b, c=c, p3=p3,coef_utr = coef_utr, coef_orf = coef_orf, 
-                          keepSiteInfo = keepSiteInfo, toInt=toInt, p3.range=p3.range)
+    m <- .aggregate_miRNA(m, ag=ag, b=b, c=c, p3=p3,coef_utr = coef_utr, 
+                          coef_orf = coef_orf, keepSiteInfo = keepSiteInfo,
+                          toInt=toInt, p3.range=p3.range)
     m
   }
 }
 
 
-.aggregate_miRNA <- function(m, ll = NULL, ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403, 
-                             coef_utr = -0.28019,coef_orf = -0.08622, p3.range=c(3L,8L), 
+.aggregate_miRNA <- function(m, ll = NULL, ag=-4.863126 , b=0.5735, c=-1.7091,
+                             p3=0.04403, coef_utr = -0.28019,
+                             coef_orf = -0.08622, p3.range=c(3L,8L),
                              keepSiteInfo = FALSE, toInt=FALSE){
   if(is(m,"GRanges")){
     m$transcript <- as.factor(seqnames(m))
@@ -61,7 +65,8 @@ aggregateSites <- function(m, ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403,
   if(keepSiteInfo){
     if(!is.null(m$miRNA)){
       m_type_table <- dcast( m[,.(N=.N), by=c("transcript","miRNA","type")],
-                           formula=transcript+miRNA~type, value.var="N", fill=0L)
+                           formula=transcript+miRNA~type, value.var="N",
+                           fill=0L)
     }else{
       m_type_table <- dcast( m[,.(N=.N), by=c("transcript","type")],
                              formula=transcript~type, value.var="N", fill=0L)
@@ -83,22 +88,25 @@ aggregateSites <- function(m, ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403,
     
     # get the utr score
     m$utr_len <- log10(m$utr_len)
-    m$utr_len[is.infinite(m$utr_len)] <- 0
+    m$utr_len[is.infinite(m$utr_len) || is.na(m$utr_len)] <- 0
     qu_un <- m[!duplicated(m$transcript),"utr_len"]
     qu <- quantile(qu_un, probs = c(0.05,0.95), na.rm = TRUE)
     m$utr_score <- (m$utr_len - qu[1]) / (qu[2] - qu[1])
+    m$utr_score[is.na(m$utr_score)] <- 0
     
     # get the orf score
-    if(sum(m$orf_len) > 0){
+    if(sum(m$orf_len, na.rm = TRUE) > 0){
       m$orf_len <- log10(m$orf_len)
-      m$orf_len[is.infinite(m$orf_len)] <- 0
+      m$orf_len[is.infinite(m$orf_len) || is.na(m$orf_len)] <- 0
       qu_un <- m[!duplicated(m$transcript),"orf_len"]
       qu <- quantile(qu_un, probs = c(0.05,0.95), na.rm = TRUE)
       m$orf_score <- (m$orf_len - qu[1]) / (qu[2] - qu[1])
+      m$orf_score[is.na(m$orf_score)] <- 0
     }else{
       m$orf_score <- 0
     }
-  m$repression <- m$repression + coef_utr*m$utr_score*m$repression + coef_orf*m$orf_score*m$repression
+  m$repression <- m$repression + coef_utr*m$utr_score*m$repression + 
+    coef_orf*m$orf_score*m$repression
   m <- subset(m, select = - c(orf_len,utr_len,utr_score,orf_score))
   }
   if(toInt) m$repression <- as.integer(round(1000*m$repression))
@@ -135,8 +143,8 @@ aggregateMatches <- function(e, fn=agg.repr){
   d$transcript <- as.factor(seqnames(e))
   d <- as.data.table(d)
   d2 <- subset(d, type!="non-canonical")
-  ag1a <- d2[,.( log_kd.canonical=log10(1/sum(1/10^log_kd)), repr.canonical=fn(log_kd)),
-             by=c("transcript","seed")]
+  ag1a <- d2[,.( log_kd.canonical=log10(1/sum(1/10^log_kd)),
+                 repr.canonical=fn(log_kd)), by=c("transcript","seed")]
   ag2 <- d[,.( log_kd=log10(1/sum(1/10^log_kd)), repr=fn(log_kd)),
            by=c("transcript","seed")]  
   ag1b <- dcast( d2[,.(N=.N), by=c("transcript","seed","type")],
@@ -179,13 +187,15 @@ agg.repr <- function(x, b=1.8, ag=10^-2){
 #' @importFrom data.table data.table as.data.table dcast
 #' @importFrom GenomicRanges mcols
 #' @export
-aggregateMatches_Biochem <- function(e, kd_cut_off = 0, ag = -6.5, keepSiteInfo=FALSE){
+aggregateMatches_Biochem <- function(e, kd_cut_off = 0, ag = -6.5, 
+                                     keepSiteInfo=FALSE){
   b <- 0.8655766248703003
   c <- -1.848806619644165
   m <- as.data.frame(mcols(e))
   m$transcript <- as.factor(seqnames(e))
-  m <- as.data.table(m[,intersect(colnames(m), 
-                                  c("transcript","miRNA","type","log_kd","ORF"))])
+  m <- as.data.table(
+    m[,intersect(colnames(m), c("transcript","miRNA","type","log_kd","ORF"))]
+    )
 
   if(keepSiteInfo)
     m_agg2 <- dcast( m[,.(N=.N), by=c("transcript","miRNA","type")],

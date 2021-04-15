@@ -1,6 +1,7 @@
 #' findSeedMatches
 #'
-#' @param seqs A character vector or `XStringSet` of sequences in which to look.
+#' @param seqs A character vector or `DNAStringSet` of sequences in which to 
+#' look.
 #' @param seeds A character vector of 7-nt seeds to look for. If RNA, will be 
 #' reversed and complemented before matching. If DNA, they are assumed to be
 #' the target sequence to look for. Alternatively, a list of objects of class
@@ -8,14 +9,16 @@
 #' @param seedtype Either RNA, DNA or 'auto' (default)
 #' @param shadow Integer giving the shadow, i.e. the number of nucleotides
 #'  hidden at the beginning of the sequence (default 0)
-#' @param maxLogKd Maximum log_kd value to keep (default 0). Set to Inf to disable.
+#' @param maxLogKd Maximum log_kd value to keep (default 0). Set to Inf to
+#' disable.
 #' @param keepMatchSeq Logical; whether to keep the sequence (including flanking
 #' dinucleotides) for each seed match (default FALSE).
-#' @param onlyCanonical Logical; whether to restrict the search only to canonical
-#' binding sites.
-#' @param minDist Integer specifying the minimum distance between matches of the same 
-#' miRNA (default 1). Closer matches will be reduced to the highest-affinity. To 
-#' disable the removal of overlapping features, use `minDist=-Inf`.
+#' @param onlyCanonical Logical; whether to restrict the search only to 
+#' canonical binding sites.
+#' @param minDist Integer specifying the minimum distance between matches of the
+#' same miRNA (default 1). Closer matches will be reduced to the 
+#' highest-affinity. To disable the removal of overlapping features, use 
+#' `minDist=-Inf`.
 #' @param p3.maxLoop The maximum loop size for the 3' alignment
 #' @param p3.mismatch Logical; whether to allow mismatches in 3' alignment
 #' @param p3.params Named list of parameters for the 3' alignment.
@@ -24,41 +27,46 @@
 #' @param ret The type of data to return, either "GRanges" (default), 
 #' "data.frame" (lighter weight than GRanges), or "aggregated" (aggregated per 
 #' transcript).
-#' @param BP Pass `BiocParallel::MulticoreParam(ncores, progressbar=TRUE)` to enable 
-#' multithreading.
-#' @param verbose Logical; whether to print additional progress messages (default on if 
-#' not multithreading)
-#' @param n_seeds The number of seeds that are processed in parallel to avoid memory issues.
-#' @return A GRanges of all matches. If `seeds` is a `KdModel` or `KdModelList`, the 
-#' `log_kd` column will report the ln(Kd) multiplied by 1000, rounded and saved as an 
-#' integer.
+#' @param BP Pass `BiocParallel::MulticoreParam(ncores, progressbar=TRUE)` to 
+#' enable multithreading.
+#' @param verbose Logical; whether to print additional progress messages
+#' (default on if not multithreading)
+#' @param n_seeds The number of seeds that are processed in parallel to avoid 
+#' memory issues.
+#' @return A GRanges of all matches. If `seeds` is a `KdModel` or `KdModelList`,
+#' the `log_kd` column will report the ln(Kd) multiplied by 1000, rounded and 
+#' saved as an integer.
 #' 
 #' @importFrom BiocParallel bplapply SerialParam bpnworkers
-#' @import Biostrings GenomicRanges
+#' @importFrom GenomeInfoDb seqlevels
+#' @import GenomeInfoDb Biostrings GenomicRanges S4Vectors
 #' @export
 #'
 #' @examples
 #' # we create mock RNA sequences and seeds:
-#' seqs <- sapply(1:10, FUN=function(x) paste(sample(strsplit("ACGU", "")[[1]], 
-#'                                      1000, replace=TRUE),collapse=""))
+#' seqs <- vapply(1:10, FUN=function(x) paste(sample(strsplit("ACGT", "")[[1]], 
+#'                                      1000, replace=TRUE), collapse=""),
+#'                                      character(1))
 #' names(seqs) <- paste0("seq",1:length(seqs))
 #' seeds <- c("AAACCAC", "AAACCUU")
 #' findSeedMatches(seqs, seeds)
 findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE, 
                              maxLogKd=c(-0.3,-0.3), keepMatchSeq=FALSE, 
-                             minDist=7L, p3.extra=FALSE, 
+                             minDist=7L, p3.extra=FALSE,
                              p3.params=list(maxMirLoop=5L, maxTargetLoop=9L, 
                                             maxLoopDiff=4L, mismatch=TRUE),
                              agg.params=.defaultAggParams(), writeToDir=NULL,
                              ret=c("GRanges","data.frame","aggregated"), 
                              BP=NULL, verbose=NULL, n_seeds=NULL, ...){
   p3.params <- .check3pParams(p3.params)
-  # This might not be most efficient:
   length.seqs <- width(seqs)
-  if(is.character(seqs) || is.null(mcols(seqs)$ORF.length)){
+  seqtype <- .guessSeqType(seqs)
+  if(seqtype=="RNA")
+    stop("Target sequences should be in DNA format.")
+  if(is.character(seqs)) seqs <- DNAStringSet(seqs)
+  if(is.null(mcols(seqs)$ORF.length)){
     utr_len <- length.seqs
     orf_len <- rep(0L, length.out = length(utr_len))
-    seqs <- DNAStringSet(seqs)
     mcols(seqs)$C.length <- orf_len    
   }else{
     orf_len <- mcols(seqs)[,"ORF.length"]
@@ -68,9 +76,11 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
   }
   length.info <- cbind(orf_len, utr_len)
   if(!is.null(names(seqs))) row.names(length.info) <- names(seqs)
-  ###
+
   ret <- match.arg(ret)
   if(ret=="aggregated"){
+    if(is.character(seeds)) stop("Aggregation is possible only if seeds are ",
+    "given as KdModels.")
     if(!is.list(agg.params)) agg.params <- as.list(agg.params)
     if(!all(names(agg.params) %in% names(.defaultAggParams())))
       stop("`agg.params` should be a named list with slots among ",
@@ -82,7 +92,9 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
     }
   }
   seedInputType <- .checkSeedsInput(seeds)
-  if(is.null(verbose)) verbose <- is(seeds,"KdModel") || length(seeds)==1 || is.null(BP)
+  if(is.null(verbose)) {
+    verbose <- is(seeds,"KdModel") || length(seeds)==1 || is.null(BP)
+  }
   if(verbose) message("Preparing sequences...")
   maxLoop <- max(unlist(p3.params[c("maxMirLoop","maxTargetLoop")]))
   args <- .prepSeqs(seqs, seeds, shadow=shadow, pad=c(maxLoop+30L,8L))
@@ -114,20 +126,26 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
       ll <- as.data.frame(length.info)
       ll$transcript <- row.names(ll)
       m <- .aggregate_miRNA(m, ll, ag=agg.params$ag, b=agg.params$b,
-                            c=agg.params$c, p3 = agg.params$p3, coef_utr = agg.params$coef_utr,
-                            coef_orf = agg.params$coef_orf, keepSiteInfo = agg.params$keepSiteInfo, toInt=TRUE)
+                            c=agg.params$c, p3 = agg.params$p3,
+                            coef_utr = agg.params$coef_utr,
+                            coef_orf = agg.params$coef_orf,
+                            keepSiteInfo = agg.params$keepSiteInfo, toInt=TRUE)
     }
   }else{
     if(is.null(BP)) BP <- SerialParam()
     if(is.null(verbose)) verbose <- !(bpnworkers(BP)>1 | length(seeds)>5)
     if(is.null(n_seeds)) n_seeds <- length(seeds)
     if(verbose) {
-      if(is.numeric(BP$workers)) message(paste("Scanning with", n_seeds, "seeds at a time on", BP$workers, "cores..."))
-      else message(paste("Scanning with", n_seeds, "seeds at a time..."))
+      if(is.numeric(BP$workers)) {
+        message(paste("Scanning with", n_seeds,
+                      "seeds at a time on", BP$workers, "cores..."))
+      } else {
+        message(paste("Scanning with", n_seeds, "seeds at a time..."))
+      }
     }
     split_seeds <- split(seeds, ceiling(seq_along(seeds)/n_seeds))
     m <- lapply(split_seeds, function(seeds) {
-      m <- bplapply( seeds, BPPARAM=BP, FUN=function(oneseed){
+      m <- bplapply(seeds, BPPARAM=BP, FUN=function(oneseed){
         m <- .find1SeedMatches(seqs=seqs, seed=oneseed, keepMatchSeq=keepMatchSeq,
                    minDist=minDist, maxLogKd=maxLogKd, p3.extra=p3.extra,
                    onlyCanonical=onlyCanonical, p3.params=p3.params, ret=ret, 
@@ -138,22 +156,25 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
           ll <- as.data.frame(length.info)
           ll$transcript <- row.names(ll)
           m <- .aggregate_miRNA(m, ll, ag=agg.params$ag, b=agg.params$b,
-                                c=agg.params$c,p3 = agg.params$p3, coef_utr = agg.params$coef_utr,
-                                coef_orf = agg.params$coef_orf, keepSiteInfo = agg.params$keepSiteInfo, toInt=TRUE)
+                                c=agg.params$c,p3 = agg.params$p3, 
+                                coef_utr = agg.params$coef_utr, 
+                                coef_orf = agg.params$coef_orf, 
+                                keepSiteInfo = agg.params$keepSiteInfo,
+                                toInt=TRUE)
         }
-        m
-      } )
+        return(m)
+        })
     })
     m <- do.call(c, m)
     names(m) <- NULL
     
-    if(is.null(names(m))){
-      if(!is.character(seeds)) seeds <- sapply(seeds, FUN=function(x){
+    if(!is.character(seeds)) {
+      seeds <- vapply(seeds, FUN=function(x){
         if(is.null(x$name)) return(x$canonical.seed)
         x$name
-      })
-      names(m) <- seeds
+        }, character(1))
     }
+    names(m) <- seeds
     
     if(ret=="GRanges"){
       m <- .unlistGRL(m, .id="miRNA")
@@ -222,9 +243,9 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
     if(verbose) message("Nothing found!")
     return(GRanges())
   }
-  m <- GRanges( rep(names(seqs), lengths(pos)), IRanges( start=unlist(pos), width=8 ) )
+  m <- GRanges(rep(names(seqs), lengths(pos)),
+               IRanges(start=unlist(pos), width=8))
   rm(pos)
-  #m <- keepSeqlevels(m, seqlevelsInUse(m))
   m <- m[order(seqnames(m))]
   
   if(verbose) message("Extracting sequences and characterizing matches...")
@@ -280,7 +301,8 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
   }
   rm(ms)
   if(!is.null(mcols(seqs)$C.length)){
-    mcols(m)$ORF <- start(m) <= mcols(seqs[seqlevels(m)])[as.integer(seqnames(m)),"C.length"]
+    mcols(m)$ORF <- 
+      start(m) <= mcols(seqs[seqlevels(m)])[as.integer(seqnames(m)),"C.length"]
     if(!isPureSeed && maxLogKd[2]!=Inf){
       m <- m[which(!m$ORF | m$log_kd <= as.integer(round(maxLogKd[2])))]
     }
@@ -305,7 +327,7 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
          "The size of the characters in `seeds` is compatible with neither.")
   }
   if(!is(seeds,"KdModel") & !is(seeds,"KdModelList") &
-     !(is.list(seeds) && all(sapply(seeds, class)=="KdModel")))
+     !(is.list(seeds) && all(vapply(seeds, class, character(1))=="KdModel")))
     stop("`seeds` should either be a character vector or an object of class ",
          "`KdModel` or `KdModelList`")
   NULL
@@ -319,7 +341,11 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
   d$type <- m$type
   d$log_kd <- m$log_kd
   d$TDMD <- m$TDMD
-  for(f in c("p3.mir.bulge","p3.target.bulge","p3.mismatch","p3.matches","p3.score")){
+  for(f in c("p3.mir.bulge",
+             "p3.target.bulge",
+             "p3.mismatch",
+             "p3.matches",
+             "p3.score")){
     if(p3 && f %in% colnames(mcols(m)))
       d[[f]] <- mcols(m)[[f]]
   }
@@ -357,7 +383,9 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
 get3pAlignment <- function(seqs, mirseq, mir3p.start=9L, allow.mismatch=TRUE, 
                            maxMirLoop=5L, maxTargetLoop=9L, maxLoopDiff=4L,
                            TGsub=TRUE){
-  mir.3p <- as.character(DNAString(substr(x=mirseq, start=mir3p.start, stop=nchar(mirseq))))
+  mir.3p <- as.character(DNAString(substr(x=mirseq, 
+                                          start=mir3p.start,
+                                          stop=nchar(mirseq))))
   seqs <- reverseComplement(seqs)
   subm <- .default3pSubMatrix(ifelse(allow.mismatch,-3,-Inf), TG=TGsub)
   al <- pairwiseAlignment(seqs, mir.3p, type="local", substitutionMatrix=subm)
@@ -394,7 +422,11 @@ get3pAlignment <- function(seqs, mirseq, mir3p.start=9L, allow.mismatch=TRUE,
   m2$TDMD[w] <- 5L
   TDMD <- rep(1L,nrow(m))
   TDMD[is78] <- m2$TDMD
-  factor(TDMD, levels = 1L:5L, labels = c("-","TDMD?","TDMD","Slicing?","Slicing"))
+  factor(TDMD, levels = 1L:5L, labels = c("-",
+                                          "TDMD?",
+                                          "TDMD",
+                                          "Slicing?",
+                                          "Slicing"))
 }
 
 .default3pSubMatrix <- function(mismatch=-3, TG=TRUE){
@@ -408,15 +440,15 @@ get3pAlignment <- function(seqs, mirseq, mir3p.start=9L, allow.mismatch=TRUE,
 
 #' removeOverlappingRanges
 #' 
-#' Removes elements from a GRanges that overlap (or are within a given distance of) other 
-#' elements higher up in the list (i.e. assumes that the ranges are sorted in order of
-#' priority). The function handles overlaps between more than two ranges by successively
-#' removing those that overlap higher-priority ones.
+#' Removes elements from a GRanges that overlap (or are within a given distance
+#' of) other elements higher up in the list (i.e. assumes that the ranges are 
+#' sorted in order of priority). The function handles overlaps between more than
+#' two ranges by successively removing those that overlap higher-priority ones.
 #'
 #' @param x A GRanges, sorted by (decreasing) importance
 #' @param minDist Minimum distance between ranges
-#' @param retIndices Logical; whether to return the indices of entries to remove, rather
-#' than the filtered GRanges.
+#' @param retIndices Logical; whether to return the indices of entries to 
+#' remove, rather than the filtered GRanges.
 #'
 #' @return A filtered GRanges, or an integer vector of indices to be removed if 
 #' `retIndices==TRUE`.
@@ -424,8 +456,10 @@ get3pAlignment <- function(seqs, mirseq, mir3p.start=9L, allow.mismatch=TRUE,
 #' @examples
 #' gr <- GRanges(seqnames=rep("A",4), IRanges(start=c(10,25,45,35), width=6))
 #' removeOverlappingRanges(gr, minDist=7)
-removeOverlappingRanges <- function(x, minDist=7L, retIndices=FALSE, ignore.strand=FALSE){
-  red <- GenomicRanges::reduce(x, with.revmap=TRUE, min.gapwidth=minDist, ignore.strand=ignore.strand)$revmap
+removeOverlappingRanges <- function(x, minDist=7L, retIndices=FALSE, 
+                                    ignore.strand=FALSE){
+  red <- GenomicRanges::reduce(x, with.revmap=TRUE, min.gapwidth=minDist,
+                               ignore.strand=ignore.strand)$revmap
   red <- red[lengths(red)>1]
   if(length(red)==0){
     if(retIndices) return(c())
@@ -438,12 +472,13 @@ removeOverlappingRanges <- function(x, minDist=7L, retIndices=FALSE, ignore.stra
     ## (i.e. lowest in the list)
     top <- min(red) ## indexes of the top entry per overlap set, relative to i
     ## overlap of non-top entries to the top entries:
-    o <- overlapsAny(x[i[-top]],x[i[top]],maxgap=minDist)
+    o <- IRanges::overlapsAny(x[i[-top]],x[i[top]],maxgap=minDist)
     torem <- i[-top][which(o)] ## entries to remove, relative to x
     toRemove <- c(toRemove, torem) ## relative to x
     i <- setdiff(i,torem)
-    ## and check again overlaps among this subset (revmap indexes are relative to i)
-    red <- GenomicRanges::reduce(x[i], with.revmap=TRUE, min.gapwidth=minDist, ignore.strand=ignore.strand)$revmap
+    ## and check again overlaps among this subset (revmap ind are relative to i)
+    red <- GenomicRanges::reduce(x[i], with.revmap=TRUE, min.gapwidth=minDist,
+                                 ignore.strand=ignore.strand)$revmap
     red <- red[lengths(red)>1]
   }
   if(retIndices) return(toRemove)
@@ -451,7 +486,8 @@ removeOverlappingRanges <- function(x, minDist=7L, retIndices=FALSE, ignore.stra
   x
 }
 
-# determines target and seed sequence type, converts if necessary, and adds padding/shadow
+## determines target and seed sequence type, converts if necessary, 
+## and adds padding/shadow
 .prepSeqs <- function(seqs, seeds, shadow=0, pad=c(0,0)){
   if(is.null(names(seqs))) names(seqs) <- paste0("seq",seq_along(seqs))
   seqtype <- .guessSeqType(seqs)
@@ -459,7 +495,7 @@ removeOverlappingRanges <- function(x, minDist=7L, retIndices=FALSE, ignore.stra
     stop("Both the seeds and the target sequences should be in DNA format.")
   ret <- list()
   if( is(seeds, "KdModel") || 
-      (is.list(seeds) && all(sapply(seeds, is.list))) ){
+      (is.list(seeds) && all(vapply(seeds, is.list, logical(1)))) ){
     if(is.null(names(seeds)))
       stop("If `seeds` is a list of KdModels, it should be named.")
   }else{
@@ -475,8 +511,9 @@ removeOverlappingRanges <- function(x, minDist=7L, retIndices=FALSE, ignore.stra
   ret$offset <- max(c(0,pad[1]-max(0,shadow)))
   seqs <- seqs[lengths(seqs)>=(shadow+8)]
   seqs <- subseq(seqs,1+shadow,lengths(seqs))
-  seqs <- padAndClip(seqs, views=IRanges( start=1-shadow-ret$offset,
-                                          width=lengths(seqs)+shadow+ret$offset+pad[2] ),
+  seqs <- padAndClip(seqs, views=IRanges(start=1-shadow-ret$offset,
+                                         width=lengths(seqs)+
+                                           shadow+ret$offset+pad[2]),
                      Lpadding.letter = "N", Rpadding.letter = "N")
   if(!is.null(mcols(seqs)$C.length))
     mcols(seqs)$C.length <- mcols(seqs)$C.length + ret$offset + shadow

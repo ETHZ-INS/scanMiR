@@ -21,14 +21,6 @@ aggregateSites(
 \arguments{
 \item{m}{A GRanges or data.frame of matches.}
 
-\item{ag}{}
-
-\item{b}{}
-
-\item{c}{}
-
-\item{p3}{}
-
 \item{toInt}{Logical; whether to convert repression scores to integers}
 
 \item{BP}{BPPARAM argument for multithreading}
