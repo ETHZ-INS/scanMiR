@@ -7,7 +7,7 @@ author:
     - Lab of Statistical Bioinformatics, UZH
 - name: Michael Soutschek
   affiliation: Lab of Systems Neuroscience, D-HEST Institute for Neuroscience, ETH
-- name: Fridolin Groß
+- name: Fridolin Gross
   affiliation: Lab of Systems Neuroscience, D-HEST Institute for Neuroscience, ETH
 package: scanMiR
 output:
