@@ -21,16 +21,19 @@ getKmers <- function(n=4, from=c("A", "C", "G", "T")){
 #'
 #' @param length Length of the sequence
 #' @param alphabet Letters from which to sample
+#' @param n The number of sequences to generate
 #'
 #' @return A character vector of length 1
 #' @export
 #'
 #' @examples
-#' getRandomSeq()
-getRandomSeq <- function(length=3000, alphabet=c("A","C","G","T"), xs=FALSE){
-  x <- paste(sample(alphabet, size = length, replace=TRUE), collapse="")
-  names(x) <- "seq1"
-  x
+#' getRandomSeq(100)
+getRandomSeq <- function(length=3000, alphabet=c("A","C","G","T"), n=1){
+  seqs <- vapply(seq_len(n), FUN.VALUE=character(1), FUN=function(i){
+    paste(sample(alphabet, size = length, replace=TRUE), collapse="")
+  })
+  names(seqs) <- paste0("seq",seq_len(n))
+  seqs
 }
 
 

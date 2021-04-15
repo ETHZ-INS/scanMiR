@@ -4,12 +4,14 @@
 \alias{getRandomSeq}
 \title{getRandomSeq}
 \usage{
-getRandomSeq(length = 3000, alphabet = c("A", "C", "G", "T"), xs = FALSE)
+getRandomSeq(length = 3000, alphabet = c("A", "C", "G", "T"), n = 1)
 }
 \arguments{
 \item{length}{Length of the sequence}
 
 \item{alphabet}{Letters from which to sample}
+
+\item{n}{The number of sequences to generate}
 }
 \value{
 A character vector of length 1
@@ -18,5 +20,5 @@ A character vector of length 1
 Produces a random sequence of the given letters
 }
 \examples{
-getRandomSeq()
+getRandomSeq(100)
 }
