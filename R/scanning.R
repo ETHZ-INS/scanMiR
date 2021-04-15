@@ -1,6 +1,7 @@
 #' findSeedMatches
 #'
-#' @param seqs A character vector or `XStringSet` of sequences in which to look.
+#' @param seqs A character vector or `DNAStringSet` of sequences in which to 
+#' look.
 #' @param seeds A character vector of 7-nt seeds to look for. If RNA, will be 
 #' reversed and complemented before matching. If DNA, they are assumed to be
 #' the target sequence to look for. Alternatively, a list of objects of class
@@ -44,7 +45,7 @@
 #' @examples
 #' # we create mock RNA sequences and seeds:
 #' seqs <- vapply(1:10, FUN=function(x) paste(sample(strsplit("ACGT", "")[[1]], 
-#'                                      1000, replace=TRUE),collapse=""),
+#'                                      1000, replace=TRUE), collapse=""),
 #'                                      character(1))
 #' names(seqs) <- paste0("seq",1:length(seqs))
 #' seeds <- c("AAACCAC", "AAACCUU")

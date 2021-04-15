@@ -5,7 +5,7 @@ author:
   affiliation: D-HEST Institute for Neuroscience, ETH & Lab of Statistical Bioinformatics, UZH
 - name: Michael Soutschek
   affiliation: Lab of Systems Neuroscience, D-HEST Institute for Neuroscience, ETH
-- name: Fridolin Groß
+- name: Fridolin Gross
   affiliation: Lab of Systems Neuroscience, D-HEST Institute for Neuroscience, ETH
 package: scanMiR
 output:
@@ -20,80 +20,62 @@ vignette: |
 
 ```{r, include=FALSE}
 library(BiocStyle)
-library(scanMiR)
+# only for testing
+devtools::load_all("/mnt/schratt/miRNA_KD/fg_test/scanMiR")
+# library(scanMiR)
+```
+
+# Basic Scan
+The main function used for determining matches of miRNA seeds in a given set of sequences is `findSeedMatches`. It accepts a set of DNA sequences either as a character vector or as a [DNAStringSet](https://bioconductor.org/packages/release/bioc/html/Biostrings.html). Seeds can be given either as a character vector or as a `KdModelList`. The following example illustrates the basic usage:
+
+```{r}
+# generate a set of mock sequences and seeds
+seqs <- vapply(1:10,
+               FUN=function(x) {
+                 paste(sample(c("A", "C", "G", "T"), 1000, replace=TRUE),
+                       collapse="")},
+               character(1))
+names(seqs) <- paste0("seq",1:length(seqs))
+
+seeds <- c("AAACCAC", "AAACCUU")
+
+# run the scan
+matches <- findSeedMatches(seqs, seeds, verbose = FALSE)
+```
+
+By default, a [GRanges](https://bioconductor.org/packages/release/bioc/html/GenomicRanges.html) object is returned. Apart from the position of the matches, it provides information on the match type. Setting `ret = "data.frame"` returns the same information as a data.frame. The scan can be restricted to canonical sites using `onlyCanonical = TRUE`.
+
+# Further Options
+
+## ORF length
+If the transcript sequences are provided as a `DNAStringSet`, one may specify the length of the open reading frame region of the transcripts in order to distinguish between matches in the ORF and 3'UTR regions.
+```{r}
+seqs <- DNAStringSet(seqs)
+mcols(seqs)$ORF.length <- sample(500:800, length(seqs))
+```
+
+## Shadow and Overlapping Matches
+The `shadow` argument can be used to take into account the observation that sites within the first ~15 nucleotides of the 3'UTR show poor efficiency ([Grimson et al. 2007](https://www.sciencedirect.com/science/article/pii/S1097276507004078)). `findSeedMatches` will treat matches within the first `shadow` positions of the UTR in the same way as matches in the ORF region. If no information on ORF lengths is provided, it will simply ignore the first `shadow` positions. The default setting is `shadow = 0L`.
+
+The parameter `minDist` can be used to specify the minimum distance between matches of the
+same miRNA (default 1). If there are multiple matches within `minDist`, only the highest affinity match will be considered.
+
+## Site Affinities
+If the seeds are given in the form of a `KdModelList`, `findSeedMatches` also returns the predicted affinity value for each match. The `log_kd` column contains log(KD) values multiplied by 1000, where KD is the predicted dissociation constant of miRNA:mRNA binding at the respective site. In addition, a column `p3.score` is returned, which carries information on 3p alignment.
+
+```{r}
+# load KdModel
+data(SampleKdModel)
+kd_seeds <- KdModelList(list(SampleKdModel))
+kd_matches <- findSeedMatches(seqs, kd_seeds, verbose = F)
 ```
 
 
+## Aggregation on the fly
+With `ret = "aggregated"` one obtains a data.frame that contains the predicted repression for each sequence-seed-pair aggregated over all matches along with information about the types and number of matches. For further details on how the repression value is determined, see the vignette on [aggregation](aggregation.html).
 
-
-
-SampleKdModel
-
-    VignetteBuilder: knitr
-    Suggests: BiocStyle, knitr, rmarkdown
-
-
-# Style macros
-
-_BiocStyle_ introduces the following macros for referring to _R_ packages:
-
-* `r Biocpkg("IRanges")`, for _Bioconductor_ software, annotation and experiment data packages,
-* `r CRANpkg("data.table")`, for _R_ packages available on CRAN,
-* `r Githubpkg("rstudio/rmarkdown")`, for _R_ packages available on GitHub,
-* `r Rpackage("MyPkg")`, for _R_ packages that are _not_ available on _Bioconductor_, CRAN or GitHub.
-
-
-# Figures
-
-Assign captions to figures in the code chunk option `fig.cap` to automatically number them, and to be able to reference them, see Figure \@ref(fig:plot). The figure label is generated from the code chunk label by prefixing it with `fig:`.
-
-```{r plot, fig.cap="Regular figure. The first sentence of the figure caption is automatically emphasized to serve as figure title.", echo=FALSE}
-plot(cars)
-```
-
-Small and wide figures can be specified by `fig.small` and `fig.wide` code chunk options.
-
-```{r small, fig.cap="Small figure. A plot produced by a code chunk with option `fig.small = TRUE`.", fig.small=TRUE, echo=FALSE}
-plot(cars)
-```
-
-```{r wide, fig.cap="Wide figure. A plot produced by a code chunk with option `fig.wide = TRUE`.", fig.wide=TRUE, echo=FALSE}
-plot(cars)
-```
-
-
-# Equations
-
-To number and reference equations, put them in equation environments and assign labels to them, see Equation \@ref(eq:binom).
-
-\begin{equation}
-  f\left(k\right) = \binom{n}{k} p^k\left(1-p\right)^{n-k}
-  (\#eq:binom)
-\end{equation}
-
-
-# Tables
-
-Like figures, tables with captions will also be numbered and can be referenced, see Table \@ref(tab:table).
-
-Fruit   | Price
-------- | -----
-bananas | 1.2
-apples  | 1.0
-oranges | 2.5
-
-: (\#tab:table) A simple table. With caption.
-
-
-# Cross-references
-
-Apart from referencing figures (Section \@ref(figures)), tables (Section \@ref(tables)), and equations (Section \@ref(equations)), you can also use the same syntax to refer to sections by their default labels generated by pandoc.
-
-
-# Side notes
-
-Footnotes are displayed as side notes on the right margin^[this is a side note entered as a footnote], which has the advantage that they appear close to the place where they are defined.
-
+## Parallel Processing
+To deal with large amounts of sequences and/or seeds, `findSeedMatches` supports multithreading using the `r Biocpkg("BiocParallel")` package. This can be activated by passing `BP = MulticoreParam(ncores)`. In addition, the number of seeds that is processed simultaneously can be restricted using the parameter `n_seeds` in order to avoid memory issues.
 
 # Session info {.unnumbered}
 
