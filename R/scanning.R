@@ -6,7 +6,6 @@
 #' reversed and complemented before matching. If DNA, they are assumed to be
 #' the target sequence to look for. Alternatively, a list of objects of class
 #' `KdModel` or an object of class `KdModelList` can be given.
-#' @param seedtype Either RNA, DNA or 'auto' (default)
 #' @param shadow Integer giving the shadow, i.e. the number of nucleotides
 #'  hidden at the beginning of the sequence (default 0)
 #' @param maxLogKd Maximum log_kd value to keep (default 0). Set to Inf to
@@ -57,8 +56,9 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
                                             maxLoopDiff=4L, mismatch=TRUE),
                              agg.params=.defaultAggParams(), writeToDir=NULL,
                              ret=c("GRanges","data.frame","aggregated"), 
-                             BP=NULL, verbose=NULL, n_seeds=NULL, ...){
+                             BP=NULL, verbose=NULL, n_seeds=NULL){
   p3.params <- .check3pParams(p3.params)
+  if(length(maxLogKd)==1) maxLogKd <- rep(maxLogKd,2)
   length.seqs <- width(seqs)
   seqtype <- .guessSeqType(seqs)
   if(seqtype=="RNA")
@@ -66,11 +66,13 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
   if(is.character(seqs)) seqs <- DNAStringSet(seqs)
   if(is.null(mcols(seqs)$ORF.length)){
     utr_len <- length.seqs
-    orf_len <- rep(0L, length.out = length(utr_len))
-    mcols(seqs)$C.length <- orf_len    
+    orf_len <- 0L
+    mcols(seqs)$ORF.length <- orf_len
+    mcols(seqs)$C.length <- orf_len
   }else{
     orf_len <- mcols(seqs)[,"ORF.length"]
     utr_len <- ifelse(length.seqs > orf_len, length.seqs - orf_len, 0L)
+    mcols(seqs)$ORF.length <- orf_len
     mcols(seqs)$C.length <- orf_len + shadow
     shadow <- 0L
   }
@@ -119,7 +121,7 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
                            minDist=minDist, maxLogKd=maxLogKd, 
                            onlyCanonical=onlyCanonical, p3.extra=p3.extra,
                            p3.params=p3.params, offset=offset, 
-                           verbose=verbose, ret=ret, ...)
+                           verbose=verbose, ret=ret)
     if(length(m)==0) return(m)
     if(ret=="aggregated"){
       if(verbose) message("Aggregating...")
@@ -149,7 +151,7 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
         m <- .find1SeedMatches(seqs=seqs, seed=oneseed, keepMatchSeq=keepMatchSeq,
                    minDist=minDist, maxLogKd=maxLogKd, p3.extra=p3.extra,
                    onlyCanonical=onlyCanonical, p3.params=p3.params, ret=ret, 
-                   offset=offset, verbose=verbose, ...)
+                   offset=offset, verbose=verbose)
         if(ret=="aggregated"){
           if(verbose) message("Aggregating...")
           if(length(m)==0) return(data.frame())
@@ -300,7 +302,7 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
     }
   }
   rm(ms)
-  if(!is.null(mcols(seqs)$C.length)){
+  if(!is.null(mcols(seqs)$C.length) && !all(mcols(seqs)$ORF.length == 0)) {
     mcols(m)$ORF <- 
       start(m) <= mcols(seqs[seqlevels(m)])[as.integer(seqnames(m)),"C.length"]
     if(!isPureSeed && maxLogKd[2]!=Inf){
@@ -326,7 +328,7 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
          " miRNA sequences (RNA sequence).\n",
          "The size of the characters in `seeds` is compatible with neither.")
   }
-  if(!is(seeds,"KdModel") & !is(seeds,"KdModelList") &
+  if(!is(seeds,"KdModel") && !is(seeds,"KdModelList") &&
      !(is.list(seeds) && all(vapply(seeds, class, character(1))=="KdModel")))
     stop("`seeds` should either be a character vector or an object of class ",
          "`KdModel` or `KdModelList`")
