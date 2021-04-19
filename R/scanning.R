@@ -18,14 +18,14 @@
 #' same miRNA (default 1). Closer matches will be reduced to the
 #' highest-affinity. To disable the removal of overlapping features, use
 #' `minDist=-Inf`.
-#' @param p3.extra 
-#' @param p3.params Named list of parameters for 3' alignment with slots 
+#' @param p3.extra Logical; whether to keep extra information about 3' alignment
+#' @param p3.params Named list of parameters for 3' alignment with slots
 #' `maxMirLoop` (integer, default = 5), `maxTargetLoop` (integer, default = 9),
-#' `maxLoopDiff` (integer, default = 4), and `mismatch` 
+#' `maxLoopDiff` (integer, default = 4), and `mismatch`
 #' (logical, default = TRUE).
 #' @param agg.params A named list with slots `ag`, `b`, `c`, `p3`, `coef_utr`,
-#' `coef_orf` and `keepSiteInfo` indicating the parameters for the aggregation. 
-#' Ignored if `ret!="aggregated"`. For further details see documentation of 
+#' `coef_orf` and `keepSiteInfo` indicating the parameters for the aggregation.
+#' Ignored if `ret!="aggregated"`. For further details see documentation of
 #' `aggregateMatches`.
 #' @param ret The type of data to return, either "GRanges" (default),
 #' "data.frame" (lighter weight than GRanges), or "aggregated" (aggregates
@@ -43,6 +43,7 @@
 #' @importFrom BiocParallel bplapply SerialParam bpnworkers
 #' @importFrom GenomeInfoDb seqlevels
 #' @import GenomeInfoDb Biostrings GenomicRanges S4Vectors
+#' @importFrom IRanges IRanges
 #' @export
 #'
 #' @examples
@@ -150,7 +151,7 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
     split_seeds <- split(seeds, ceiling(seq_along(seeds)/n_seeds))
     m <- lapply(split_seeds, function(seeds) {
       m <- bplapply(seeds, BPPARAM=BP, FUN=function(oneseed){
-        m <- .find1SeedMatches(seqs=seqs, seed=oneseed, 
+        m <- .find1SeedMatches(seqs=seqs, seed=oneseed,
                                keepMatchSeq=keepMatchSeq, minDist=minDist,
                                maxLogKd=maxLogKd, p3.extra=p3.extra,
                                onlyCanonical=onlyCanonical, p3.params=p3.params,

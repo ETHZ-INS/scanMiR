@@ -1,15 +1,34 @@
 Package: scanMiR
 Type: Package
 Title: scanMiR
-Version: 0.99.9
-Date: 2020-11-21
+Version: 0.99.10
+Date: 2021-04-19
 Authors@R: c(
-    person("Pierre-Luc", "Germain", email="pierre-luc.germain@hest.ethz.ch", role=c("cre","aut"), comment=c(ORCID="0000-0003-3418-4218")),
+    person("Pierre-Luc", "Germain", email="pierre-luc.germain@hest.ethz.ch", 
+            role=c("cre","aut"), comment=c(ORCID="0000-0003-3418-4218")),
     person("Michael", "Soutschek", email="michael.soutschek@hest.ethz.ch", role="aut"),
     person("Fridolin", "Gross", email="fridolin.gross@hest.ethz.ch", role="aut"))
-Imports: Biostrings, GenomicRanges, IRanges, data.table, BiocParallel, methods, GenomeInfoDb, S4Vectors, ggplot2, stats
+Imports:
+    Biostrings,
+    GenomicRanges,
+    IRanges,
+    data.table,
+    BiocParallel,
+    methods,
+    GenomeInfoDb,
+    S4Vectors,
+    ggplot2,
+    stats,
+    stringi,
+    utils
 Suggests: knitr, rmarkdown
-Description: A set of tools for scanning for miRNA binding sites and working with dissociation rate models.
+Description:
+    A set of tools for working with miRNA dissociate rate models (KdModels),
+    efficient scanning for miRNA binding sites, and predicting target 
+    repression. It supports scanning using miRNA seeds, full miRNA sequences 
+    (enabling 3' alignment) and KdModels, and includes the prediction of slicing
+    and TDMD sites. Finally, it includes utility and plotting functions (e.g. 
+    for the visual representation of miRNA-target alignemnt).
 License: GPL-3
 VignetteBuilder: knitr
 RoxygenNote: 7.1.1

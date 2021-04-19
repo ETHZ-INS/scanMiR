@@ -16,7 +16,7 @@ If `what="logo"`, returns nothing a plots a position weight matrix.
 Otherwise returns a ggplot.
 }
 \description{
-Plots the summary of an affinity model. Requires the packages `seqLogo` and 
+Plots the summary of an affinity model. Requires the packages `seqLogo` and
 `cow_plot`.
 }
 \examples{

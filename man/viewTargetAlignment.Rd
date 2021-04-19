@@ -45,8 +45,8 @@ including the model.}
 or 'plot'.}
 }
 \value{
-Returns nothing `outputType="print"`. If `outputType="data.frame"`, 
-returns a data.frame containing the alignment strings; if 
+Returns nothing `outputType="print"`. If `outputType="data.frame"`,
+returns a data.frame containing the alignment strings; if
 `outputType="plot"` returns a `ggplot` object.
 }
 \description{

@@ -116,7 +116,7 @@ getSeed8mers <- function(seed, addNs=FALSE){
 #'
 #' @return A data.frame with 12-mers and log_kds
 #' @export
-#'
+#' @importFrom utils data
 #' @examples
 #' kd <- dummyKdData()
 dummyKdData <- function(mod=NULL){

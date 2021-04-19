@@ -13,7 +13,7 @@ aggregateMatches(
   coef_utr = -0.28019,
   coef_orf = -0.08622,
   p3.range = c(3L, 8L),
-  keepSiteInfo = FALSE,
+  keepSiteInfo = TRUE,
   toInt = FALSE,
   BP = NULL
 )
@@ -35,9 +35,11 @@ aggregateMatches(
 
 \item{p3.range}{Range used for 3p alignment.}
 
-\item{keepSiteInfo}{Logical; whether to return information about site types.}
+\item{keepSiteInfo}{Logical; whether to return information about site types
+(default = TRUE).}
 
-\item{toInt}{Logical; whether to convert repression scores to integers.}
+\item{toInt}{Logical; whether to convert repression scores to integers
+(default = FALSE).}
 
 \item{BP}{Pass `BiocParallel::MulticoreParam(ncores, progressbar=TRUE)` to
 enable multithreading.}

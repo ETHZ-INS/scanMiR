@@ -51,6 +51,7 @@ setMethod("summary", "KdModel", function(object){
 #' @export
 #' @importFrom stats .lm.fit median
 #' @importFrom utils read.delim
+#' @importFrom methods is new
 #' @examples
 #' kd <- dummyKdData()
 #' mod <- getKdModel(kd=kd, mirseq="TTAATGCTAATCGTGATAGGGGTT", name="my-miRNA")
@@ -77,7 +78,8 @@ getKdModel <- function(kd, mirseq=NULL, name=NULL, conservation=NA_integer_, ...
   if(!all(fields %in% colnames(kd))) kd <- .prep12mers(kd, seed=seed)
   fields <- c(fields, "log_kd")
   if(!all(fields %in% colnames(kd))) stop("Malformed `kd` data.frame.")
-  co <- t(sapply(split(kd[,c("log_kd","fl.score")], kd$mer8), FUN=function(x){
+  co <- t(vapply(split(kd[,c("log_kd","fl.score")], kd$mer8),
+                 FUN.VALUE=numeric(2), FUN=function(x){
     .lm.fit(cbind(1,x$fl.score),x$log_kd)$coefficients
   }))
   fitted <- co[kd$mer8,1]+co[kd$mer8,2]*kd$fl.score

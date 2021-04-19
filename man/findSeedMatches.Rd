@@ -48,16 +48,14 @@ same miRNA (default 1). Closer matches will be reduced to the
 highest-affinity. To disable the removal of overlapping features, use
 `minDist=-Inf`.}
 
-\item{p3.extra}{}
-
-\item{p3.params}{Named list of parameters for 3' alignment with slots 
+\item{p3.params}{Named list of parameters for 3' alignment with slots
 `maxMirLoop` (integer, default = 5), `maxTargetLoop` (integer, default = 9),
-`maxLoopDiff` (integer, default = 4), and `mismatch` 
+`maxLoopDiff` (integer, default = 4), and `mismatch`
 (logical, default = TRUE).}
 
 \item{agg.params}{A named list with slots `ag`, `b`, `c`, `p3`, `coef_utr`,
-`coef_orf` and `keepSiteInfo` indicating the parameters for the aggregation. 
-Ignored if `ret!="aggregated"`. For further details see documentation of 
+`coef_orf` and `keepSiteInfo` indicating the parameters for the aggregation.
+Ignored if `ret!="aggregated"`. For further details see documentation of
 `aggregateMatches`.}
 
 \item{ret}{The type of data to return, either "GRanges" (default),
