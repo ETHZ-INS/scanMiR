@@ -1,6 +1,6 @@
 #' plotKdModel
 #'
-#' Plots the summary of an affinity model. Requires the packages `seqLogo` and 
+#' Plots the summary of an affinity model. Requires the packages `seqLogo` and
 #' `cow_plot`.
 #'
 #' @param mod A `KdModel`
@@ -10,7 +10,7 @@
 #' Otherwise returns a ggplot.
 #' @import ggplot2
 #' @export
-#' @examples 
+#' @examples
 #' data(SampleKdModel)
 #' plotKdModel(SampleKdModel)
 plotKdModel <- function(mod, what=c("both","seeds","logo"), n=10){
@@ -29,12 +29,12 @@ plotKdModel <- function(mod, what=c("both","seeds","logo"), n=10){
     d$seed <- factor(as.character(d$seed), rev(as.character(d$seed)))
     levels(d$type) <- .matchLevels(FALSE)
     d2 <- data.frame(seed=rep(d$seed,2), log_kd=c(d$base,d$A), type=c(as.character(d$type), rep("+A",n)))
-    p <- ggplot(d2, aes(seed, log_kd, fill=type)) + geom_col() + coord_flip() + 
+    p <- ggplot(d2, aes(seed, log_kd, fill=type)) + geom_col() + coord_flip() +
       ylab("-log(KD)") + xlab("7-mer") + ggtitle(mod$name)
     if(mod$name != mod$mirseq) p <- p + labs(subtitle=gsub("T","U",mod$mirseq))
     return( p )
   }
-  
+
   if(what=="logo") return(seqLogo::seqLogo(mod$pwm, xfontsize=12, yfontsize=12, xaxis=FALSE))
   cowplot::plot_grid( plotKdModel(mod, "seeds"),
                       grid::grid.grabExpr(plotKdModel(mod, "logo")),
@@ -61,8 +61,8 @@ plotKdModel <- function(mod, what=c("both","seeds","logo"), n=10){
 #' or 'plot'.
 #' @param ... Passed to `text` if `outputType="plot"`.
 #'
-#' @return Returns nothing `outputType="print"`. If `outputType="data.frame"`, 
-#' returns a data.frame containing the alignment strings; if 
+#' @return Returns nothing `outputType="print"`. If `outputType="data.frame"`,
+#' returns a data.frame containing the alignment strings; if
 #' `outputType="plot"` returns a `ggplot` object.
 #' @importFrom stringi stri_reverse
 #' @export
@@ -72,9 +72,10 @@ plotKdModel <- function(mod, what=c("both","seeds","logo"), n=10){
 #' m <- findSeedMatches(seq, SampleKdModel)
 #' viewTargetAlignment(m, miRNA=SampleKdModel, seqs=seq)
 viewTargetAlignment <- function(m, miRNA, seqs=NULL, flagBulgeMatches=FALSE,
-                                maxBulgeSize=9L, maxBulgeDiff=4L, 
+                                maxBulgeSize=9L, maxBulgeDiff=4L,
                                 min3pMatch=3L, UGsub=TRUE, ...,
-                                outputType=c("print","data.frame","plot","ggplot")){
+                                outputType=c("print","data.frame",
+                                             "plot","ggplot")){
   stopifnot(is(m,"GRanges"))
   stopifnot(length(m)==1)
   outputType <- match.arg(outputType)
@@ -95,11 +96,11 @@ viewTargetAlignment <- function(m, miRNA, seqs=NULL, flagBulgeMatches=FALSE,
   }
   if(!("p3.mir.bulge" %in% colnames(mcols(m)))){
     # re-scan to get additional data
-    seq2 <- subseq(DNAStringSet(seqs[[as.character(seqnames(m))]]), 
+    seq2 <- subseq(DNAStringSet(seqs[[as.character(seqnames(m))]]),
                    max(1L,start(m)-(nchar(miRNA)+maxBulgeSize-8L)), end(m)+2L)
     m <- findSeedMatches(seq2, mod, keepMatchSeq=TRUE, p3.extra=TRUE,
-                         p3.params = list(maxMirLoop=maxBulgeSize, 
-                                          maxTargetLoop=maxBulgeSize, 
+                         p3.params = list(maxMirLoop=maxBulgeSize,
+                                          maxTargetLoop=maxBulgeSize,
                                           maxLoopDiff=maxBulgeDiff),
                          verbose=FALSE)
   }
@@ -143,15 +144,16 @@ viewTargetAlignment <- function(m, miRNA, seqs=NULL, flagBulgeMatches=FALSE,
       paste(rep("-",m$p3.mir.bulge-m$p3.target.bulge),collapse=""),
       paste(substr(target,11+m$p3.target.bulge,nchar(target)),collapse=""))
   }
-  minl <- min(nchar(target),nchar(mirseq2)-8-m$p3.mir.bulge+10+m$p3.target.bulge)
+  minl <- min(nchar(target),
+              nchar(mirseq2)-8-m$p3.mir.bulge+10+m$p3.target.bulge)
   mirseq2 <- substr(mirseq2,9+m$p3.mir.bulge,nchar(mirseq2))
   target2 <- substr(target2,11+m$p3.target.bulge,nchar(target2))
   minl <- min(nchar(mirseq2),nchar(target2))
   mirseq2 <- substr(mirseq2,1,minl)
   target2 <- substr(target2,1,minl)
   mm2 <- .matchStrings(mirseq2, target2, UGsub)
-  if(min3pMatch>1L && 
-     !grepl(paste(rep("|",min3pMatch),collapse=""), 
+  if(min3pMatch>1L &&
+     !grepl(paste(rep("|",min3pMatch),collapse=""),
             gsub("-","|",paste(mm2,collapse=""),fixed=TRUE), fixed=TRUE)){
     mm2 <- rep(" ",sum(nchar(mm2)))
   }
@@ -168,13 +170,13 @@ viewTargetAlignment <- function(m, miRNA, seqs=NULL, flagBulgeMatches=FALSE,
   if(outputType=="data.frame") return(d)
   d2 <- paste0(paste(c("miRNA ","      ","target"), d$alignment), collapse="\n")
   if(outputType=="ggplot"){
-    p <- ggplot(data.frame(x=1,y=1,label=d2), aes(x,y,label=label)) + 
+    p <- ggplot(data.frame(x=1,y=1,label=d2), aes(x,y,label=label)) +
       theme_void() + geom_text(family="mono", fontface="bold")
     return(p)
   }else if(outputType=="plot"){
     par(xpd = NA, mar=c(0,0,0,0))
-    plot(1,1,ann = F, bty = 'n', type = 'n', xaxt = 'n', yaxt = 'n')
-    text(x = 1, y = 1, d2, family="mono", font=2, ...)
+    plot(1, 1, ann=FALSE, bty='n', type='n', xaxt='n', yaxt='n')
+    text(x=1, y=1, d2, family="mono", font=2, ...)
   }else{
     cat(paste0("\n",d2,"\n"))
   }
