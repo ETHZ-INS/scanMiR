@@ -16,7 +16,7 @@ getKmers <- function(n=4, from=c("A", "C", "G", "T")){
 }
 
 #' getRandomSeq
-#' 
+#'
 #' Produces a random sequence of the given letters
 #'
 #' @param length Length of the sequence
@@ -38,11 +38,11 @@ getRandomSeq <- function(length=3000, alphabet=c("A","C","G","T"), n=1){
 
 
 #' getSeed8mers
-#' 
-#' Generates all possible 8mers with 4 consecutive and positioned matches to a 
+#'
+#' Generates all possible 8mers with 4 consecutive and positioned matches to a
 #' given seed.
 #'
-#' @param seed The miRNA seed (target DNA sequence), a character vector of 
+#' @param seed The miRNA seed (target DNA sequence), a character vector of
 #' length 8 (if of length 7, a "A" will be added on the right)
 #' @param addNs Logical; whether to include 8mers with one flanking N
 #'
@@ -109,59 +109,6 @@ getSeed8mers <- function(seed, addNs=FALSE){
   warning("Sequences contain neither T or U - assuming they are DNA...")
   return("DNA")
 }
-
-
-#' @import Matrix
-.matches2sparse <- function(x){
-  as(as.matrix(table(as.factor(seqnames(x)), as.factor(x$miRNA))), 
-     "sparseMatrix")
-}
-.sparse2df <- function(x, content="value"){
-  dimn <- dimnames(x)
-  x <- summary(x)
-  w <- which(x$x!=ifelse(is.logical(x$x),FALSE,0))
-  xout <- data.frame( feature=factor(x$i[w], levels=seq_len(length(dimn[[1]])), labels=dimn[[1]]),
-                      set=factor(x$j[w], levels=seq_len(length(dimn[[2]])), labels=dimn[[2]]) )
-  if(!is.logical(x$x)) xout[[content]] <- x$x[w]
-  xout
-}
-
-#' enrichedMirTxPairs
-#'
-#' Identifies pairs of miRNA and target transcripts that have an unexpectedly
-#' high number of sites.
-#'
-#' @param m A GRanges of matches, as produced by \link{\code{findSeedMatches}}.
-#' It is recommended to filter this to have only canonical sites.
-#' @param minSites The minimum number of sites for a given miRNA-target pair to
-#' be considered.
-#' @param max.binom.p The maximum binomial p-value of miRNA-target pairs.
-#'
-#' @return A data.frame of top combinations, including number of sites and 
-#' the log-transformed binomial p-value.
-#' @export
-#'
-#' @import Matrix
-#' @importFrom stats pbinom
-enrichedMirTxPairs <- function(m, minSites=5, max.binom.p=0.001){
-  m <- m[as.integer(m$type) %in% grep("8mer|7mer",.matchLevels())]
-  b <- .matches2sparse(m)
-  b <- b[rowSums(b>=minSites)>0,]
-  rs <- rowSums(b)
-  cs <- colSums(b)
-  p <- as.matrix(rs/sum(rs)) %*% t(cs/sum(cs))
-  S <- pbinom(as.matrix(b)-1, prob=p, size=rs, lower.tail=FALSE, log.p=TRUE)
-  mode(S) <- "integer"
-  S <- as(round(S), "sparseMatrix")
-  S <- .sparse2df(S, "logp.binom")
-  b <- .sparse2df(b, "sites")
-  S$sites <- b$sites
-  rm(b)
-  S <- S[S$logp.binom < as.integer(log(max.binom.p)) & 
-           S$sites>=as.integer(minSites),]
-  S[order(S$logp.binom),]
-}
-
 
 #' Create dummy log_kd per 12-mer data
 #'

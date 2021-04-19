@@ -10,7 +10,9 @@
 #'
 #' @return a data.frame
 #' @export
-aggregateSites <- function(m, ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403, 
+#' @importFrom stats quantile
+#' @importFrom data.table .N :=
+aggregateSites <- function(m, ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403,
                            coef_utr = -0.28019, coef_orf = -0.08622,
                            p3.range=c(3L,8L), keepSiteInfo = FALSE, toInt=FALSE,
                            BP=NULL){
@@ -26,15 +28,15 @@ aggregateSites <- function(m, ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403,
     m <- m[,c("miRNA","transcript","ORF","log_kd","p3.score","type")]
     m <- split(m, m$miRNA)
     m <- bplapply(m, BPPARAM=BP, FUN=function(x){
-      .aggregate_miRNA(x, ag=ag, b=b, c=c, p3=p3,coef_utr = coef_utr, 
-                       coef_orf = coef_orf, keepSiteInfo = keepSiteInfo, 
+      .aggregate_miRNA(x, ag=ag, b=b, c=c, p3=p3,coef_utr = coef_utr,
+                       coef_orf = coef_orf, keepSiteInfo = keepSiteInfo,
                        toInt=toInt, p3.range=p3.range)
     })
     m <- dplyr::bind_rows(m, .id="miRNA")
     m <- dplyr::mutate_if(m, is.numeric, tidyr::replace_na, 0L)
   }else{
     m <- m[,c("transcript","ORF","log_kd","p3.score","type")]
-    m <- .aggregate_miRNA(m, ag=ag, b=b, c=c, p3=p3,coef_utr = coef_utr, 
+    m <- .aggregate_miRNA(m, ag=ag, b=b, c=c, p3=p3,coef_utr = coef_utr,
                           coef_orf = coef_orf, keepSiteInfo = keepSiteInfo,
                           toInt=toInt, p3.range=p3.range)
     m
@@ -82,10 +84,10 @@ aggregateSites <- function(m, ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403,
   m <- as.data.frame(rowsum(as.matrix(m[,c("N","N_bg")]), group=m$transcript))
   m <- data.frame( transcript=row.names(m),
                    repression=log(1+exp(b)*m$N_bg) - log(1 + exp(b)*m$N) )
-  
+
   if(!is.null(ll) && nrow(m) > 1){
     m <- merge(m,ll,by = "transcript", all.x = TRUE)
-    
+
     # get the utr score
     m$utr_len <- log10(m$utr_len)
     m$utr_len[is.infinite(m$utr_len) || is.na(m$utr_len)] <- 0
@@ -93,7 +95,7 @@ aggregateSites <- function(m, ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403,
     qu <- quantile(qu_un, probs = c(0.05,0.95), na.rm = TRUE)
     m$utr_score <- (m$utr_len - qu[1]) / (qu[2] - qu[1])
     m$utr_score[is.na(m$utr_score)] <- 0
-    
+
     # get the orf score
     if(sum(m$orf_len, na.rm = TRUE) > 0){
       m$orf_len <- log10(m$orf_len)
@@ -105,7 +107,7 @@ aggregateSites <- function(m, ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403,
     }else{
       m$orf_score <- 0
     }
-  m$repression <- m$repression + coef_utr*m$utr_score*m$repression + 
+  m$repression <- m$repression + coef_utr*m$utr_score*m$repression +
     coef_orf*m$orf_score*m$repression
   m <- subset(m, select = - c(orf_len,utr_len,utr_score,orf_score))
   }
@@ -146,7 +148,7 @@ aggregateMatches <- function(e, fn=agg.repr){
   ag1a <- d2[,.( log_kd.canonical=log10(1/sum(1/10^log_kd)),
                  repr.canonical=fn(log_kd)), by=c("transcript","seed")]
   ag2 <- d[,.( log_kd=log10(1/sum(1/10^log_kd)), repr=fn(log_kd)),
-           by=c("transcript","seed")]  
+           by=c("transcript","seed")]
   ag1b <- dcast( d2[,.(N=.N), by=c("transcript","seed","type")],
                  formula=transcript+seed~type, value.var="N", fill=0)
   rm(d,d2)
@@ -187,7 +189,7 @@ agg.repr <- function(x, b=1.8, ag=10^-2){
 #' @importFrom data.table data.table as.data.table dcast
 #' @importFrom GenomicRanges mcols
 #' @export
-aggregateMatches_Biochem <- function(e, kd_cut_off = 0, ag = -6.5, 
+aggregateMatches_Biochem <- function(e, kd_cut_off = 0, ag = -6.5,
                                      keepSiteInfo=FALSE){
   b <- 0.8655766248703003
   c <- -1.848806619644165
@@ -201,7 +203,7 @@ aggregateMatches_Biochem <- function(e, kd_cut_off = 0, ag = -6.5,
     m_agg2 <- dcast( m[,.(N=.N), by=c("transcript","miRNA","type")],
                      formula=transcript+miRNA~type, value.var="N", fill=0)
   m$type <- NULL
-                       
+
   if("ORF" %in% colnames(m)){
     m$ORF <- as.integer(m$ORF)
   }else{
@@ -214,13 +216,13 @@ aggregateMatches_Biochem <- function(e, kd_cut_off = 0, ag = -6.5,
   m$N <- 1 / (1 + exp(-1 * (ag + m$log_kd + c*m$ORF)))
   m$log_kd <- NULL
   m$N_bg <- 1 / (1 + exp(-1 * (ag  + c*m$ORF)))
-  
+
   m <- m[,.(N=sum(N), N_bg=sum(N_bg)), by=c("transcript","miRNA")]
-  
+
   if(keepSiteInfo)
     m <- merge(m, m_agg2, by=c("transcript","miRNA"), all=TRUE)
-  
+
   m$repression <- log(1 + exp(b)*m$N_bg) - log(1 + exp(b)*m$N)
   m$N <- m$N_bg <- NULL
   m
-} 
+}

@@ -16,16 +16,16 @@ removeOverlappingRanges(
 
 \item{minDist}{Minimum distance between ranges}
 
-\item{retIndices}{Logical; whether to return the indices of entries to 
+\item{retIndices}{Logical; whether to return the indices of entries to
 remove, rather than the filtered GRanges.}
 }
 \value{
-A filtered GRanges, or an integer vector of indices to be removed if 
+A filtered GRanges, or an integer vector of indices to be removed if
 `retIndices==TRUE`.
 }
 \description{
 Removes elements from a GRanges that overlap (or are within a given distance
-of) other elements higher up in the list (i.e. assumes that the ranges are 
+of) other elements higher up in the list (i.e. assumes that the ranges are
 sorted in order of priority). The function handles overlaps between more than
 two ranges by successively removing those that overlap higher-priority ones.
 }

@@ -11,7 +11,7 @@ assignKdType(x, mod, mer8 = NULL)
 
 \item{mod}{An object of class `KdModel`}
 
-\item{mer8}{The optional set of 8mers included in the model (for internal 
+\item{mer8}{The optional set of 8mers included in the model (for internal
 use; can be reconstructed from the model).}
 }
 \value{

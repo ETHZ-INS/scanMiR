@@ -7,7 +7,7 @@
 getSeed8mers(seed, addNs = FALSE)
 }
 \arguments{
-\item{seed}{The miRNA seed (target DNA sequence), a character vector of 
+\item{seed}{The miRNA seed (target DNA sequence), a character vector of
 length 8 (if of length 7, a "A" will be added on the right)}
 
 \item{addNs}{Logical; whether to include 8mers with one flanking N}
@@ -16,7 +16,7 @@ length 8 (if of length 7, a "A" will be added on the right)}
 A vector of 1024 8mers.
 }
 \description{
-Generates all possible 8mers with 4 consecutive and positioned matches to a 
+Generates all possible 8mers with 4 consecutive and positioned matches to a
 given seed.
 }
 \examples{

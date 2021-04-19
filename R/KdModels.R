@@ -8,11 +8,11 @@ setClass(
         stop("The model should have a `",f,
              "` slot (character vector of length 1).")
     }
-    if(is.null(object$mer8) || !(length(object$mer8) %in% c(1024,1440)) || 
+    if(is.null(object$mer8) || !(length(object$mer8) %in% c(1024,1440)) ||
        !is.integer(object$mer8)){
       stop("The `mer8` slot should be an integer vector of length 1024.")
     }
-    if(is.null(object$fl) || !(length(object$fl) %in% c(1024,1440)) || 
+    if(is.null(object$fl) || !(length(object$fl) %in% c(1024,1440)) ||
        !is.integer(object$fl)){
       stop("The `fl` slot should be an integer vector of length 1024.")
     }
@@ -23,32 +23,34 @@ setClass(
 setMethod("show", "KdModel", function(object){
   con <- conservation(object)
   con <- ifelse(is.na(con),"",paste0(" (",as.character(con),")"))
-  cat(paste0("A `KdModel` for ", object$name, con, "\n  Sequence: ", 
-             gsub("T","U",object$mirseq), "\n  Canonical target seed: ", 
+  cat(paste0("A `KdModel` for ", object$name, con, "\n  Sequence: ",
+             gsub("T","U",object$mirseq), "\n  Canonical target seed: ",
              gsub("A$","(A)",object$canonical.seed)))
 })
 
 #' @export
 setMethod("summary", "KdModel", function(object){
   c( name=object$name, sequence=gsub("T","U",object$mirseq),
-     canonical.seed=object$canonical.seed, 
+     canonical.seed=object$canonical.seed,
      conservation=as.character(conservation(object)) )
 })
 
 #' getKdModel
 #'
 #' @param kd A data.frame containing the log_kd per 12-mer sequence, or the path
-#' to a text/csv file containing such a table. Should contain the columns 
+#' to a text/csv file containing such a table. Should contain the columns
 #' 'log_kd', '12mer' (or 'X12mer'), and eventually 'mirseq' (if the `mirseq`
 #' argument is NULL) and 'mir' (if the `name` argument is NULL).
 #' @param mirseq The miRNA (cDNA) sequence.
 #' @param name The name of the miRNA.
-#' @param conservation The conservation level of the miRNA. See 
+#' @param conservation The conservation level of the miRNA. See
 #' `scanMiR:::.conservation_levels()` for possible values.
 #' @param ... Any additional information to be saved with the model.
 #'
 #' @return An object of class `KdModel`.
 #' @export
+#' @importFrom stats .lm.fit median
+#' @importFrom utils read.delim
 #' @examples
 #' kd <- dummyKdData()
 #' mod <- getKdModel(kd=kd, mirseq="TTAATGCTAATCGTGATAGGGGTT", name="my-miRNA")
@@ -93,8 +95,8 @@ getKdModel <- function(kd, mirseq=NULL, name=NULL, conservation=NA_integer_, ...
         warning("Unknown conservation level.")
     }
   }
-  new("KdModel", list(mer8=as.integer(round(co[,1]*1000)), 
-                      fl=as.integer(round(co[,2]*1000)), 
+  new("KdModel", list(mer8=as.integer(round(co[,1]*1000)),
+                      fl=as.integer(round(co[,2]*1000)),
                       name=name, mirseq=mirseq, canonical.seed=seed,
                       pwm=pwm, conservation=conservation,
                       cor=cor(fitted, kd$log_kd),
@@ -112,13 +114,13 @@ getKdModel <- function(kd, mirseq=NULL, name=NULL, conservation=NA_integer_, ...
   }
   x <- gsub("X","N",as.character(x))
   y <- .getFlankingScore(x)
-  data.frame(mer8=as.integer(factor(substr(x, 3,10), levels=getSeed8mers(seed))), 
+  data.frame(mer8=as.integer(factor(substr(x, 3,10), levels=getSeed8mers(seed))),
              fl.score=y$score, fl.ratio=y$ratio)
 }
 
 .flankingValues <- function(){
-  matrix(c(-0.24, -0.14, 0, 0.1, 0.28, -0.24, -0.3, 0, 0.13, 0.42, -0.075, 
-           -0.18, 0, 0, 0.25, -0.1, -0.1, 0, 0, 0.26), 
+  matrix(c(-0.24, -0.14, 0, 0.1, 0.28, -0.24, -0.3, 0, 0.13, 0.42, -0.075,
+           -0.18, 0, 0, 0.25, -0.1, -0.1, 0, 0, 0.26),
          nrow=5, dimnames=list(c("A","T","N","C","G")))
 }
 
@@ -126,7 +128,7 @@ getKdModel <- function(kd, mirseq=NULL, name=NULL, conservation=NA_integer_, ...
   fl.s <- .flankingValues()
   fl.m <- cbind(substr(x,1,1), substr(x,2,2), substr(x,11,11),substr(x,12,12))
   fl.m <- matrix(as.integer(factor(fl.m, row.names(fl.s))), ncol=4)
-  fl.score <- vapply(1:4, FUN.VALUE=numeric(length(x)), 
+  fl.score <- vapply(1:4, FUN.VALUE=numeric(length(x)),
                      FUN=function(i) fl.s[fl.m[,i,drop=FALSE],i,drop=FALSE])
   if(is.null(dim(fl.score))) fl.score <- matrix(fl.score, ncol=4)
   fl.score <- rowSums(fl.score)
@@ -156,14 +158,14 @@ getKdModel <- function(kd, mirseq=NULL, name=NULL, conservation=NA_integer_, ...
 #'
 #' @param x A vector of matched sequences, each of 12 nucleotides
 #' @param mod An object of class `KdModel`
-#' @param mer8 The optional set of 8mers included in the model (for internal 
+#' @param mer8 The optional set of 8mers included in the model (for internal
 #' use; can be reconstructed from the model).
 #'
 #' @return A data.frame with one row for each element of `x`, and the columns `type` and
 #' `log_kd`. To save space, the reported log_kd is multiplied by 1000, rounded and saved
 #' as an integer.
 #' @export
-#' @examples 
+#' @examples
 #' data(SampleKdModel)
 #' assignKdType(c("CTAGCATTAAGT","ACGTACGTACGT"), SampleKdModel)
 assignKdType <- function(x, mod, mer8=NULL){

@@ -9,7 +9,7 @@ getMatchTypes(x, seed)
 \arguments{
 \item{x}{A character vector of short sequences.}
 
-\item{seed}{A 7 or 8 nucleotides string indicating the seed (5' to 3' 
+\item{seed}{A 7 or 8 nucleotides string indicating the seed (5' to 3'
 sequence of the target RNA). If of length 7, an "A" will be appended.}
 }
 \value{
