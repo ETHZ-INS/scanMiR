@@ -1,37 +1,41 @@
 #' findSeedMatches
 #'
-#' @param seqs A character vector or `DNAStringSet` of sequences in which to
+#' @param seqs A character vector or `DNAStringSet` of DNA sequences in which to
 #' look.
 #' @param seeds A character vector of 7-nt seeds to look for. If RNA, will be
 #' reversed and complemented before matching. If DNA, they are assumed to be
 #' the target sequence to look for. Alternatively, a list of objects of class
 #' `KdModel` or an object of class `KdModelList` can be given.
 #' @param shadow Integer giving the shadow, i.e. the number of nucleotides
-#'  hidden at the beginning of the sequence (default 0)
-#' @param maxLogKd Maximum log_kd value to keep (default 0). Set to Inf to
-#' disable.
-#' @param keepMatchSeq Logical; whether to keep the sequence (including flanking
-#' dinucleotides) for each seed match (default FALSE).
+#'  hidden at the beginning of the sequence (default 0).
 #' @param onlyCanonical Logical; whether to restrict the search only to
 #' canonical binding sites.
+#' @param maxLogKd Maximum log_kd value to keep (default 0). Set to Inf to
+#' disable. Use vector of length two separately specify maximum for UTR and ORF.
+#' @param keepMatchSeq Logical; whether to keep the sequence (including flanking
+#' dinucleotides) for each seed match (default FALSE).
 #' @param minDist Integer specifying the minimum distance between matches of the
 #' same miRNA (default 1). Closer matches will be reduced to the
 #' highest-affinity. To disable the removal of overlapping features, use
 #' `minDist=-Inf`.
-#' @param p3.maxLoop The maximum loop size for the 3' alignment
-#' @param p3.mismatch Logical; whether to allow mismatches in 3' alignment
-#' @param p3.params Named list of parameters for the 3' alignment.
-#' @param agg.params a named list with slots `ag`, `b` and `c` indicating the
-#' parameters for the aggregation. Ignored if `ret!="aggregated"`.
+#' @param p3.extra 
+#' @param p3.params Named list of parameters for 3' alignment with slots 
+#' `maxMirLoop` (integer, default = 5), `maxTargetLoop` (integer, default = 9),
+#' `maxLoopDiff` (integer, default = 4), and `mismatch` 
+#' (logical, default = TRUE).
+#' @param agg.params A named list with slots `ag`, `b`, `c`, `p3`, `coef_utr`,
+#' `coef_orf` and `keepSiteInfo` indicating the parameters for the aggregation. 
+#' Ignored if `ret!="aggregated"`. For further details see documentation of 
+#' `aggregateMatches`.
 #' @param ret The type of data to return, either "GRanges" (default),
-#' "data.frame" (lighter weight than GRanges), or "aggregated" (aggregated per
-#' transcript).
+#' "data.frame" (lighter weight than GRanges), or "aggregated" (aggregates
+#' affinities/sites for each seed-transcript pair).
 #' @param BP Pass `BiocParallel::MulticoreParam(ncores, progressbar=TRUE)` to
 #' enable multithreading.
 #' @param verbose Logical; whether to print additional progress messages
 #' (default on if not multithreading)
-#' @param n_seeds The number of seeds that are processed in parallel to avoid
-#' memory issues.
+#' @param n_seeds Integer; the number of seeds that are processed in parallel to
+#' avoid memory issues.
 #' @return A GRanges of all matches. If `seeds` is a `KdModel` or `KdModelList`,
 #' the `log_kd` column will report the ln(Kd) multiplied by 1000, rounded and
 #' saved as an integer.
@@ -54,7 +58,7 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
                              minDist=7L, p3.extra=FALSE,
                              p3.params=list(maxMirLoop=5L, maxTargetLoop=9L,
                                             maxLoopDiff=4L, mismatch=TRUE),
-                             agg.params=.defaultAggParams(), writeToDir=NULL,
+                             agg.params=.defaultAggParams(),
                              ret=c("GRanges","data.frame","aggregated"),
                              BP=NULL, verbose=NULL, n_seeds=NULL){
   p3.params <- .check3pParams(p3.params)
@@ -81,8 +85,6 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
 
   ret <- match.arg(ret)
   if(ret=="aggregated"){
-    if(is.character(seeds)) stop("Aggregation is possible only if seeds are ",
-    "given as KdModels.")
     if(!is.list(agg.params)) agg.params <- as.list(agg.params)
     if(!all(names(agg.params) %in% names(.defaultAggParams())))
       stop("`agg.params` should be a named list with slots among ",
@@ -148,10 +150,11 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
     split_seeds <- split(seeds, ceiling(seq_along(seeds)/n_seeds))
     m <- lapply(split_seeds, function(seeds) {
       m <- bplapply(seeds, BPPARAM=BP, FUN=function(oneseed){
-        m <- .find1SeedMatches(seqs=seqs, seed=oneseed, keepMatchSeq=keepMatchSeq,
-                   minDist=minDist, maxLogKd=maxLogKd, p3.extra=p3.extra,
-                   onlyCanonical=onlyCanonical, p3.params=p3.params, ret=ret,
-                   offset=offset, verbose=verbose)
+        m <- .find1SeedMatches(seqs=seqs, seed=oneseed, 
+                               keepMatchSeq=keepMatchSeq, minDist=minDist,
+                               maxLogKd=maxLogKd, p3.extra=p3.extra,
+                               onlyCanonical=onlyCanonical, p3.params=p3.params,
+                               ret=ret, offset=offset, verbose=verbose)
         if(ret=="aggregated"){
           if(verbose) message("Aggregating...")
           if(length(m)==0) return(data.frame())
@@ -361,8 +364,8 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
     if(!(f %in% names(p3.params))) p3.params[[f]] <- def[[f]]
   }
   stopifnot(is.logical(p3.params$mismatch))
-  stopifnot(is.numeric(unlist(p3.params[names(def)[1:3]])))
-  for(f in names(def)[1:3]) p3.params[[f]] <- as.integer(p3.params[[f]])
+  stopifnot(is.numeric(unlist(p3.params[names(def)[seq_len(3)]])))
+  for(f in names(def)[seq_len(3)]) p3.params[[f]] <- as.integer(p3.params[[f]])
   p3.params
 }
 
