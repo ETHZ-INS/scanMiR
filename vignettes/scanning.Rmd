@@ -20,6 +20,7 @@ vignette: |
 
 ```{r, include=FALSE}
 library(BiocStyle)
+library(Biostrings)
 # only for testing
 devtools::load_all("/mnt/schratt/miRNA_KD/fg_test/scanMiR")
 # library(scanMiR)
@@ -71,7 +72,7 @@ If the seeds are given in the form of a `KdModelList`, `findSeedMatches` also re
 # load KdModel
 data(SampleKdModel)
 kd_seeds <- KdModelList(list(SampleKdModel))
-kd_matches <- findSeedMatches(seqs, kd_seeds, verbose = F)
+kd_matches <- findSeedMatches(seqs, kd_seeds, verbose = FALSE)
 ```
 
 
@@ -96,9 +97,9 @@ The resulting repression value corresponds to the expected (log) fold-change in 
 While `b` and `c` are considered global (i.e. the same for different miRNAs and transcripts and also across experimental contexts), `ag` is expected to be different for each miRNA-transcript pair in a given experimental condition. However, as shown by [McGeary, Lin et al. (2019)](https://dx.doi.org/10.1126/science.aav1741), the model performance is robust to changes in `ag` over several orders of magnitude. Aggregation for all miRNA-transcript pairs for a given data set is therefore usually based on a single `ag` value. `r Biocpkg("scanMiR")` provides reasonable default parameter values that have been determined by fitting and validating the model using several experimental data sets.
 
 ## Basic Aggregation
-Given a `GRanges` or data.frame of matches as returned by `findSeedMatches`, aggregation can be performed by the function `aggregateSites`:
+Given a `GRanges` or data.frame of matches as returned by `findSeedMatches`, aggregation can be performed by the function `aggregateMatches`:
 ```{r}
-agg_matches <- aggregateSites(kd_matches)
+agg_matches <- aggregateMatches(kd_matches)
 ```
 This returns a data.frame with predicted repression values for each miRNA-transcript pair. By using `keepSiteInfo = TRUE`, one additionally obtains information on the number and type of sites. As discussed in 
 
@@ -108,7 +109,7 @@ This returns a data.frame with predicted repression values for each miRNA-transc
 ### coef_utr and coef_orf
 
 ### Parallel Processing
-Like `findSeedMatches` also `aggregateSites` supports multithreading by passing `BP = MulticoreParam(ncores)`.
+Like `findSeedMatches` also `aggregateMatches` supports multithreading by passing `BP = MulticoreParam(ncores)`.
 
 # Session info {.unnumbered}
 

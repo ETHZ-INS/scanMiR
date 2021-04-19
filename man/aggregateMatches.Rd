@@ -4,14 +4,64 @@
 \alias{aggregateMatches}
 \title{aggregateMatches}
 \usage{
-aggregateMatches(e, fn = agg.repr)
+aggregateMatches(
+  m,
+  ag = -4.863126,
+  b = 0.5735,
+  c = -1.7091,
+  p3 = 0.04403,
+  coef_utr = -0.28019,
+  coef_orf = -0.08622,
+  p3.range = c(3L, 8L),
+  keepSiteInfo = FALSE,
+  toInt = FALSE,
+  BP = NULL
+)
 }
 \arguments{
-\item{e}{A GRanges object as produced by `findSeedMatches`.}
+\item{m}{A GRanges or data.frame of matches as returned by `findSeedMatches`.}
+
+\item{ag}{The relative concentration of unbound AGO-miRNA complexes.}
+
+\item{b}{Factor specifying the additional repression by a single bound AGO.}
+
+\item{c}{Penalty for sites that are found within the ORF region.}
+
+\item{p3}{Factor specifying additional repression due to 3p alignment.}
+
+\item{coef_utr}{Factor specifying additional repression due to UTR length.}
+
+\item{coef_orf}{Factor specifying additional repression due to ORF length.}
+
+\item{p3.range}{Range used for 3p alignment.}
+
+\item{keepSiteInfo}{Logical; whether to return information about site types.}
+
+\item{toInt}{Logical; whether to convert repression scores to integers.}
+
+\item{BP}{Pass `BiocParallel::MulticoreParam(ncores, progressbar=TRUE)` to
+enable multithreading.}
 }
 \value{
-An aggregated data.frame
+a data.frame containing aggregated repression values and/or 
+information about the numbers and types of matches
 }
 \description{
 aggregateMatches
+}
+\examples{
+# we create mock RNA sequences and seeds:
+seqs <- vapply(1:10, FUN=function(x) paste(sample(strsplit("ACGT", "")[[1]],
+                                     1000, replace=TRUE), collapse=""),
+                                     character(1))
+names(seqs) <- paste0("seq",1:length(seqs))
+
+# load sample KdModel
+data(SampleKdModel)
+
+# find matches
+matches <- findSeedMatches(seqs, SampleKdModel)
+
+# aggregate matches
+aggregateMatches(matches)
 }
