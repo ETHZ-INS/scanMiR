@@ -1,20 +1,44 @@
-#' aggregateSites
+#' aggregateMatches
 #'
-#' @param m A GRanges or data.frame of matches.
-#' @param ag
-#' @param b
-#' @param c
-#' @param p3
+#' @param m A GRanges or data.frame of matches as returned by `findSeedMatches`.
+#' @param ag The relative concentration of unbound AGO-miRNA complexes.
+#' @param b Factor specifying the additional repression by a single bound AGO.
+#' @param c Penalty for sites that are found within the ORF region.
+#' @param p3 Factor specifying additional repression due to 3p alignment.
+#' @param coef_utr Factor specifying additional repression due to UTR length.
+#' @param coef_orf Factor specifying additional repression due to ORF length.
+#' @param p3.range Range used for 3p alignment.
+#' @param keepSiteInfo Logical; whether to return information about site types
+#' (default = TRUE).
 #' @param toInt Logical; whether to convert repression scores to integers
-#' @param BP BPPARAM argument for multithreading
+#' (default = FALSE).
+#' @param BP Pass `BiocParallel::MulticoreParam(ncores, progressbar=TRUE)` to
+#' enable multithreading.
 #'
-#' @return a data.frame
+#' @return a data.frame containing aggregated repression values and/or 
+#' information about the numbers and types of matches
 #' @export
 #' @importFrom stats quantile
-#' @importFrom data.table .N :=
-aggregateSites <- function(m, ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403,
+#' @importFrom data.table as.data.table .N := dcast
+#' 
+#' @examples 
+#' # we create mock RNA sequences and seeds:
+#' seqs <- vapply(1:10, FUN=function(x) paste(sample(strsplit("ACGT", "")[[1]],
+#'                                      1000, replace=TRUE), collapse=""),
+#'                                      character(1))
+#' names(seqs) <- paste0("seq",1:length(seqs))
+#' 
+#' # load sample KdModel
+#' data(SampleKdModel)
+#' 
+#' # find matches
+#' matches <- findSeedMatches(seqs, SampleKdModel)
+#' 
+#' # aggregate matches
+#' aggregateMatches(matches)
+aggregateMatches <- function(m, ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403,
                            coef_utr = -0.28019, coef_orf = -0.08622,
-                           p3.range=c(3L,8L), keepSiteInfo = FALSE, toInt=FALSE,
+                           p3.range=c(3L,8L), keepSiteInfo = TRUE, toInt=FALSE,
                            BP=NULL){
   if(is.null(BP)) BP <- BiocParallel::SerialParam()
   if(is(m,"GRanges")){
@@ -23,9 +47,9 @@ aggregateSites <- function(m, ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403,
     if(!is.null(m$miRNA)) m$miRNA <- as.factor(m$miRNA)
     m <- as.data.frame(m)
   }
-  if(is.null(m$ORF)) m$ORF <- 0L
+  # if(is.null(m$ORF)) m$ORF <- 0L
   if(!is.null(m$miRNA)){
-    m <- m[,c("miRNA","transcript","ORF","log_kd","p3.score","type")]
+    # m <- m[,c("miRNA","transcript","ORF","log_kd","p3.score","type")]
     m <- split(m, m$miRNA)
     m <- bplapply(m, BPPARAM=BP, FUN=function(x){
       .aggregate_miRNA(x, ag=ag, b=b, c=c, p3=p3,coef_utr = coef_utr,
@@ -35,12 +59,12 @@ aggregateSites <- function(m, ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403,
     m <- dplyr::bind_rows(m, .id="miRNA")
     m <- dplyr::mutate_if(m, is.numeric, tidyr::replace_na, 0L)
   }else{
-    m <- m[,c("transcript","ORF","log_kd","p3.score","type")]
+    # m <- m[,c("transcript","ORF","log_kd","p3.score","type")]
     m <- .aggregate_miRNA(m, ag=ag, b=b, c=c, p3=p3,coef_utr = coef_utr,
                           coef_orf = coef_orf, keepSiteInfo = keepSiteInfo,
                           toInt=toInt, p3.range=p3.range)
-    m
   }
+  return(m)
 }
 
 
@@ -54,6 +78,11 @@ aggregateSites <- function(m, ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403,
     if(!is.null(m$miRNA)) m$miRNA <- as.factor(m$miRNA)
     m <- as.data.frame(m)
   }
+  if(is.null(m$log_kd)) {
+    m <- as.data.table(m)
+    m <- .aggregateSiteInfo(m)
+    return(as.data.frame(m))
+  }  
   if(is.null(m$ORF)) m$ORF <- 0L
   if(!is.null(m$miRNA)){
     m <- m[,c("miRNA","transcript","ORF","log_kd","p3.score","type")]
@@ -65,14 +94,7 @@ aggregateSites <- function(m, ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403,
   m[, log_kd:=-log_kd/1000]
   m <- m[log_kd>0]
   if(keepSiteInfo){
-    if(!is.null(m$miRNA)){
-      m_type_table <- dcast( m[,.(N=.N), by=c("transcript","miRNA","type")],
-                           formula=transcript+miRNA~type, value.var="N",
-                           fill=0L)
-    }else{
-      m_type_table <- dcast( m[,.(N=.N), by=c("transcript","type")],
-                             formula=transcript~type, value.var="N", fill=0L)
-    }
+    m_type_table <- .aggregateSiteInfo(m)
   }
   if(is.null(m$p3.score)) m$p3.score <- 0L
   m$p3.score <- ifelse(m$type == "non-canonical" , 0L, m$p3.score)
@@ -123,106 +145,17 @@ aggregateSites <- function(m, ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403,
   m
 }
 
+.aggregateSiteInfo <- function(m) {
+  if(!is.null(m$miRNA)){
+    m_type_table <- dcast( m[,.(N=.N), by=c("transcript","miRNA","type")],
+                           formula=transcript+miRNA~type, value.var="N",
+                           fill=0L)
+  }else{
+    m_type_table <- dcast( m[,.(N=.N), by=c("transcript","type")],
+                           formula=transcript~type, value.var="N", fill=0L)
+  }
+  return(m_type_table)
+}
 
 
 .datatable.aware = TRUE
-
-
-
-
-# deprecated, to be removed
-
-#' aggregateMatches
-#'
-#' @param e A GRanges object as produced by `findSeedMatches`.
-#'
-#' @return An aggregated data.frame
-#' @importFrom data.table data.table as.data.table dcast
-#' @importFrom GenomicRanges mcols
-#' @export
-aggregateMatches <- function(e, fn=agg.repr){
-  d <- as.data.frame(mcols(e))
-  d$transcript <- as.factor(seqnames(e))
-  d <- as.data.table(d)
-  d2 <- subset(d, type!="non-canonical")
-  ag1a <- d2[,.( log_kd.canonical=log10(1/sum(1/10^log_kd)),
-                 repr.canonical=fn(log_kd)), by=c("transcript","seed")]
-  ag2 <- d[,.( log_kd=log10(1/sum(1/10^log_kd)), repr=fn(log_kd)),
-           by=c("transcript","seed")]
-  ag1b <- dcast( d2[,.(N=.N), by=c("transcript","seed","type")],
-                 formula=transcript+seed~type, value.var="N", fill=0)
-  rm(d,d2)
-  m <- merge(ag1b, ag1a, by=c("transcript","seed"), all=TRUE)
-  m <- merge(m, ag2, by=c("transcript","seed"), all=TRUE)
-  m <- as.data.frame(m)
-  for(f in c("log_kd.canonical", "log_kd", "repr.canonical", "repr")){
-    m[[f]][is.na(m[[f]])] <- 0
-  }
-  m$`offset 6mer` <- NULL
-  for( f in c("8mer","7mer-m8","7mer-A1","6mer") ) m[[f]][is.na(m[[f]])] <- 0
-  colnames(m)[3:6] <- gsub("-","",paste0("n.",colnames(m)[3:6]))
-  m
-}
-
-agg.repr <- function(x, b=1.8, ag=10^-2){
-  log(1+b*sum(ag/(ag+rep(1,length(x)))))-log(1+b*sum(ag/(ag+10^x)))
-}
-
-
-
-#' aggregateMatches_Biochem
-#'
-#' Aggregates Matches of the findSeedMatches function according to the
-#' "Biochemical Model" of McGeary et al., 2020, Science
-#'
-#' @param e A GRanges object as produced by `findSeedMatches`.
-#' @param kd_cut_off A cutoff value for log_kd values
-#' @param ag The 'ag' value for the aggregation, corresponding to the free
-#' concentration of AGO
-#' @param keepSiteInfo An option on whether to also keep info concerning the
-#' number of Binding Sites
-#' @param ORF Option indicating whether sites in the open reading frame are
-#' included in the scan. If they are included, a column named 'ORF' with
-#' 'TRUE' / 'FALSE' entries should characterize each site.
-#'
-#' @return An aggregated data.frame
-#' @importFrom data.table data.table as.data.table dcast
-#' @importFrom GenomicRanges mcols
-#' @export
-aggregateMatches_Biochem <- function(e, kd_cut_off = 0, ag = -6.5,
-                                     keepSiteInfo=FALSE){
-  b <- 0.8655766248703003
-  c <- -1.848806619644165
-  m <- as.data.frame(mcols(e))
-  m$transcript <- as.factor(seqnames(e))
-  m <- as.data.table(
-    m[,intersect(colnames(m), c("transcript","miRNA","type","log_kd","ORF"))]
-    )
-
-  if(keepSiteInfo)
-    m_agg2 <- dcast( m[,.(N=.N), by=c("transcript","miRNA","type")],
-                     formula=transcript+miRNA~type, value.var="N", fill=0)
-  m$type <- NULL
-
-  if("ORF" %in% colnames(m)){
-    m$ORF <- as.integer(m$ORF)
-  }else{
-    m$ORF <- 0L
-  }
-
-  m$log_kd <- m$log_kd / 1000
-  m <- m[m$log_kd < kd_cut_off,]
-  m$log_kd <- -m$log_kd
-  m$N <- 1 / (1 + exp(-1 * (ag + m$log_kd + c*m$ORF)))
-  m$log_kd <- NULL
-  m$N_bg <- 1 / (1 + exp(-1 * (ag  + c*m$ORF)))
-
-  m <- m[,.(N=sum(N), N_bg=sum(N_bg)), by=c("transcript","miRNA")]
-
-  if(keepSiteInfo)
-    m <- merge(m, m_agg2, by=c("transcript","miRNA"), all=TRUE)
-
-  m$repression <- log(1 + exp(b)*m$N_bg) - log(1 + exp(b)*m$N)
-  m$N <- m$N_bg <- NULL
-  m
-}
