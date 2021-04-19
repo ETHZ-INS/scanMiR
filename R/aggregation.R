@@ -9,31 +9,31 @@
 #' @param coef_orf Factor specifying additional repression due to ORF length.
 #' @param p3.range Range used for 3p alignment.
 #' @param keepSiteInfo Logical; whether to return information about site types
-#' (default = TRUE).
+#' (default = TRUE). Ignored if `m` does not contain `log_kd` values
 #' @param toInt Logical; whether to convert repression scores to integers
 #' (default = FALSE).
 #' @param BP Pass `BiocParallel::MulticoreParam(ncores, progressbar=TRUE)` to
 #' enable multithreading.
 #'
-#' @return a data.frame containing aggregated repression values and/or 
+#' @return a data.frame containing aggregated repression values and/or
 #' information about the numbers and types of matches
 #' @export
 #' @importFrom stats quantile
-#' @importFrom data.table as.data.table .N := dcast
-#' 
-#' @examples 
+#' @importFrom data.table as.data.table .N := dcast rbindlist
+#'
+#' @examples
 #' # we create mock RNA sequences and seeds:
 #' seqs <- vapply(1:10, FUN=function(x) paste(sample(strsplit("ACGT", "")[[1]],
 #'                                      1000, replace=TRUE), collapse=""),
 #'                                      character(1))
 #' names(seqs) <- paste0("seq",1:length(seqs))
-#' 
+#'
 #' # load sample KdModel
 #' data(SampleKdModel)
-#' 
+#'
 #' # find matches
 #' matches <- findSeedMatches(seqs, SampleKdModel)
-#' 
+#'
 #' # aggregate matches
 #' aggregateMatches(matches)
 aggregateMatches <- function(m, ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403,
@@ -56,8 +56,10 @@ aggregateMatches <- function(m, ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403,
                        coef_orf = coef_orf, keepSiteInfo = keepSiteInfo,
                        toInt=toInt, p3.range=p3.range)
     })
-    m <- dplyr::bind_rows(m, .id="miRNA")
-    m <- dplyr::mutate_if(m, is.numeric, tidyr::replace_na, 0L)
+    m <- as.data.frame(data.table::rbindlist(m, use.names=TRUE, fill=TRUE))
+    for(f in colnames(m)){
+      if(is.numeric(m[[f]])) m[[f]][is.na(m[[f]])] <- 0L
+    }
   }else{
     # m <- m[,c("transcript","ORF","log_kd","p3.score","type")]
     m <- .aggregate_miRNA(m, ag=ag, b=b, c=c, p3=p3,coef_utr = coef_utr,
@@ -76,13 +78,12 @@ aggregateMatches <- function(m, ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403,
     m$transcript <- as.factor(seqnames(m))
     m <- mcols(m)
     if(!is.null(m$miRNA)) m$miRNA <- as.factor(m$miRNA)
-    m <- as.data.frame(m)
+    m <- as.data.frame(m, stringsAsFactor=TRUE)
   }
-  if(is.null(m$log_kd)) {
-    m <- as.data.table(m)
-    m <- .aggregateSiteInfo(m)
-    return(as.data.frame(m))
-  }  
+  if(is.null(m$log_kd)){
+    m <- .aggregateSiteInfo(as.data.table(m))
+    return(as.data.frame(m, stringsAsFactor=TRUE))
+  }
   if(is.null(m$ORF)) m$ORF <- 0L
   if(!is.null(m$miRNA)){
     m <- m[,c("miRNA","transcript","ORF","log_kd","p3.score","type")]

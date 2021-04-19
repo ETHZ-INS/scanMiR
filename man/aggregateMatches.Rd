@@ -36,7 +36,7 @@ aggregateMatches(
 \item{p3.range}{Range used for 3p alignment.}
 
 \item{keepSiteInfo}{Logical; whether to return information about site types
-(default = TRUE).}
+(default = TRUE). Ignored if `m` does not contain `log_kd` values}
 
 \item{toInt}{Logical; whether to convert repression scores to integers
 (default = FALSE).}
@@ -45,7 +45,7 @@ aggregateMatches(
 enable multithreading.}
 }
 \value{
-a data.frame containing aggregated repression values and/or 
+a data.frame containing aggregated repression values and/or
 information about the numbers and types of matches
 }
 \description{
