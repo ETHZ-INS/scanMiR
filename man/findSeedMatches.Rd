@@ -48,6 +48,8 @@ same miRNA (default 1). Closer matches will be reduced to the
 highest-affinity. To disable the removal of overlapping features, use
 `minDist=-Inf`.}
 
+\item{p3.extra}{Logical; whether to keep extra information about 3' alignment}
+
 \item{p3.params}{Named list of parameters for 3' alignment with slots
 `maxMirLoop` (integer, default = 5), `maxTargetLoop` (integer, default = 9),
 `maxLoopDiff` (integer, default = 4), and `mismatch`
