@@ -16,7 +16,6 @@ findSeedMatches(
   p3.params = list(maxMirLoop = 5L, maxTargetLoop = 9L, maxLoopDiff = 4L, mismatch =
     TRUE),
   agg.params = .defaultAggParams(),
-  writeToDir = NULL,
   ret = c("GRanges", "data.frame", "aggregated"),
   BP = NULL,
   verbose = NULL,
@@ -24,7 +23,7 @@ findSeedMatches(
 )
 }
 \arguments{
-\item{seqs}{A character vector or `DNAStringSet` of sequences in which to
+\item{seqs}{A character vector or `DNAStringSet` of DNA sequences in which to
 look.}
 
 \item{seeds}{A character vector of 7-nt seeds to look for. If RNA, will be
@@ -33,13 +32,13 @@ the target sequence to look for. Alternatively, a list of objects of class
 `KdModel` or an object of class `KdModelList` can be given.}
 
 \item{shadow}{Integer giving the shadow, i.e. the number of nucleotides
-hidden at the beginning of the sequence (default 0)}
+hidden at the beginning of the sequence (default 0).}
 
 \item{onlyCanonical}{Logical; whether to restrict the search only to
 canonical binding sites.}
 
 \item{maxLogKd}{Maximum log_kd value to keep (default 0). Set to Inf to
-disable.}
+disable. Use vector of length two separately specify maximum for UTR and ORF.}
 
 \item{keepMatchSeq}{Logical; whether to keep the sequence (including flanking
 dinucleotides) for each seed match (default FALSE).}
@@ -49,14 +48,21 @@ same miRNA (default 1). Closer matches will be reduced to the
 highest-affinity. To disable the removal of overlapping features, use
 `minDist=-Inf`.}
 
-\item{p3.params}{Named list of parameters for the 3' alignment.}
+\item{p3.extra}{}
 
-\item{agg.params}{a named list with slots `ag`, `b` and `c` indicating the
-parameters for the aggregation. Ignored if `ret!="aggregated"`.}
+\item{p3.params}{Named list of parameters for 3' alignment with slots 
+`maxMirLoop` (integer, default = 5), `maxTargetLoop` (integer, default = 9),
+`maxLoopDiff` (integer, default = 4), and `mismatch` 
+(logical, default = TRUE).}
+
+\item{agg.params}{A named list with slots `ag`, `b`, `c`, `p3`, `coef_utr`,
+`coef_orf` and `keepSiteInfo` indicating the parameters for the aggregation. 
+Ignored if `ret!="aggregated"`. For further details see documentation of 
+`aggregateMatches`.}
 
 \item{ret}{The type of data to return, either "GRanges" (default),
-"data.frame" (lighter weight than GRanges), or "aggregated" (aggregated per
-transcript).}
+"data.frame" (lighter weight than GRanges), or "aggregated" (aggregates
+affinities/sites for each seed-transcript pair).}
 
 \item{BP}{Pass `BiocParallel::MulticoreParam(ncores, progressbar=TRUE)` to
 enable multithreading.}
@@ -64,12 +70,8 @@ enable multithreading.}
 \item{verbose}{Logical; whether to print additional progress messages
 (default on if not multithreading)}
 
-\item{n_seeds}{The number of seeds that are processed in parallel to avoid
-memory issues.}
-
-\item{p3.maxLoop}{The maximum loop size for the 3' alignment}
-
-\item{p3.mismatch}{Logical; whether to allow mismatches in 3' alignment}
+\item{n_seeds}{Integer; the number of seeds that are processed in parallel to
+avoid memory issues.}
 }
 \value{
 A GRanges of all matches. If `seeds` is a `KdModel` or `KdModelList`,
