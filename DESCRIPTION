@@ -5,10 +5,10 @@ Version: 0.99.8
 Date: 2020-11-21
 Authors@R: c(
     person("Pierre-Luc", "Germain", email="pierre-luc.germain@hest.ethz.ch", role=c("cre","aut"), comment=c(ORCID="0000-0003-3418-4218")),
-    person("Michael", "Soutschek", email="michael.soutschek@hest.ethz.ch", role="ctb"),
-    person("Fridolin", "Gross", email="fridolin.gross@hest.ethz.ch", role="ctb"))
-Imports: Biostrings, data.table, fst, GenomicRanges, IRanges, BiocParallel, methods, GenomeInfoDb, S4Vectors, ggplot2, stats
-Suggests: knitr, rmarkdown, ensembldb, AnnotationHub, BSgenome, GenomeInfoDb
+    person("Michael", "Soutschek", email="michael.soutschek@hest.ethz.ch", role="aut"),
+    person("Fridolin", "Gross", email="fridolin.gross@hest.ethz.ch", role="aut"))
+Imports: Biostrings, GenomicRanges, IRanges, data.table, BiocParallel, methods, GenomeInfoDb, S4Vectors, ggplot2, stats
+Suggests: knitr, rmarkdown
 Description: A set of tools for scanning for miRNA binding sites and working with dissociation rate models.
 License: GPL
 VignetteBuilder: knitr

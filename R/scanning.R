@@ -140,9 +140,9 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
     if(verbose) {
       if(is.numeric(BP$workers)) {
         message("Scanning with ", n_seeds, "seeds at a time on ", BP$workers,
-                " cores..."))
+                " cores...")
       } else {
-        message("Scanning with ", n_seeds, " seeds at a time..."))
+        message("Scanning with ", n_seeds, " seeds at a time...")
       }
     }
     split_seeds <- split(seeds, ceiling(seq_along(seeds)/n_seeds))
