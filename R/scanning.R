@@ -189,8 +189,10 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
       names(m) <- row.names(m) <- NULL
       mcols(m)$miRNA <- Rle(as.factor(mcols(m)$miRNA))
     }else{
-      m <- dplyr::bind_rows(m, .id="miRNA")
-      m <- dplyr::mutate_if(m, is.numeric, tidyr::replace_na, 0L)
+      m <- as.data.frame(data.table::rbindlist(m, fill=TRUE, idcol="miRNA"))
+      for(f in colnames(m)){
+        if(is.numeric(m[[f]])) m[[f]][is.na(m[[f]])] <- 0L
+      }
       m$miRNA <- as.factor(m$miRNA)
       attr(m, "call.params") <- params
       row.names(m) <- NULL
