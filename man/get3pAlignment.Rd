@@ -16,7 +16,7 @@ get3pAlignment(
 )
 }
 \arguments{
-\item{seqs}{A set of sequences in which to look for matches}
+\item{seqs}{A set of sequences in which to look for 3' matches}
 
 \item{mirseq}{The sequence of the miRNA}
 

@@ -7,8 +7,8 @@
 getKdModel(kd, mirseq = NULL, name = NULL, conservation = NA_integer_, ...)
 }
 \arguments{
-\item{kd}{A data.frame containing the log_kd per 12-mer sequence, or the path
-to a text/csv file containing such a table. Should contain the columns
+\item{kd}{A data.frame containing the log_kd per 12-mer sequence, or the
+path to a text/csv file containing such a table. Should contain the columns
 'log_kd', '12mer' (or 'X12mer'), and eventually 'mirseq' (if the `mirseq`
 argument is NULL) and 'mir' (if the `name` argument is NULL).}
 
