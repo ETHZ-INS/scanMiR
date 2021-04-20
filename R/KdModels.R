@@ -35,6 +35,12 @@ setMethod("summary", "KdModel", function(object){
      conservation=as.character(conservation(object)) )
 })
 
+#' @export
+setMethod("c", signature(x = "KdModel"), function (x, ...){
+  KdModelList(c(list(x), list(...)))
+})
+
+
 #' getKdModel
 #'
 #' @param kd A data.frame containing the log_kd per 12-mer sequence, or the

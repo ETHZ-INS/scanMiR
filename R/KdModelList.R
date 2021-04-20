@@ -3,24 +3,58 @@ setClass(
   "KdModelList",
   contains="list",
   validity=function(object){
-    if(!all(unlist(lapply(object,FUN=function(x) is(x,"KdModel")))))
+    if(!all(vapply(object, is, logical(1), class2="KdModel")))
       stop("A KdModelList should be a list of objects of class 'KdModel'")
+    if(any(duplicated(names(object))))
+      stop("There are multiple KdModels with the same name!")
+    mn <- as.character(unlist(lapply(object, FUN=function(x) x$name)))
+    if(!identical(names(object),mn)) stop("Mismatched names!")
     return(TRUE)
   }
 )
 
 #' KdModelList
 #'
-#' @param x A list of KdModels
+#' @param ... Any number of \code{\link{KdModel}} objects or lists thereof
 #' @param description A description for the collection.
+#' @param makeUnique Logical; whether to rename models if names are duplicated
 #'
 #' @return A KdModelList
 #' @export
 #' @examples
 #' data(SampleKdModel)
-#' KdModelList(list(SampleKdModel,SampleKdModel))
-KdModelList <- function(x, description=NULL){
-  names(x) <- vapply(x, FUN.VALUE=character(1), FUN=function(x) x$name)
+#' mods <- KdModelList(SampleKdModel, SampleKdModel)
+#' mods
+KdModelList <- function(..., description=NULL, makeUnique=FALSE){
+  x <- list(...)
+  isKdm <- vapply(x, is, logical(1), class2="KdModel")
+  if(any(!isKdm)){
+    warn <- FALSE
+    for(f in which(!isKdm)){
+      y <- x[[f]]
+      x <- x[-f]
+      if(is(y,"KdModelList") ||
+         (is.list(y) && vapply(y, is, logical(1), class2="KdModel"))){
+        x <- c(x,as.list(y))
+      }else{
+        warn <- TRUE
+      }
+    }
+    if(warn) warning("Some objects were not KdModels and were discarded.")
+  }
+  nn <- vapply(x, FUN.VALUE=character(1), FUN=function(x) x$name)
+  if(length(wdup <- which(duplicated(nn)))>0){
+    if(makeUnique){
+      wdup <- which(nn %in% unique(nn[wdup]))
+      nn <- make.unique(nn)
+      for(i in wdup) x[[i]]$name <- nn[i]
+    }else{
+      stop("There are multiple KdModels with the same name. ",
+           "Use `KdModelList(..., makeUnique=TRUE)` to automatically rename ",
+           "them.")
+    }
+  }
+  names(x) <- nn
   x <- new("KdModelList", x)
   if(!is.null(attr(x, "created"))) attr(x, "created") <- Sys.Date()
   if(!is.null(description)) attr(x, "description") <- description
@@ -30,9 +64,10 @@ KdModelList <- function(x, description=NULL){
 #' @export
 setMethod("summary", "KdModelList", function(object){
   d <- attr(object, "created")
-  cat(paste0("A `KdModelList` object", 
+  cat(paste0("A `KdModelList` object",
             ifelse(is.null(d), "", paste0(" created on ",d,",\n")),
-            " containing binding affinity models from ", length(object), " miRNAs.\n"))
+            " containing binding affinity models from ", length(object),
+            " miRNAs.\n"))
   if(!is.null(desc <- attr(object, "description"))) cat(paste0(desc,"\n"))
   cons <- conservation(object)
   if(!all(is.na(cons))){
@@ -56,7 +91,7 @@ setMethod("[", "KdModelList", function(x, i, j=NULL, ..., drop = TRUE){
 #'
 #' @return A vector of the conservation status for each miRNA
 #' @export
-#' @examples 
+#' @examples
 #' data(SampleKdModel)
 #' conservation(SampleKdModel)
 conservation <- function(x){

@@ -4,12 +4,14 @@
 \alias{KdModelList}
 \title{KdModelList}
 \usage{
-KdModelList(x, description = NULL)
+KdModelList(..., description = NULL, makeUnique = FALSE)
 }
 \arguments{
-\item{x}{A list of KdModels}
+\item{...}{Any number of \code{\link{KdModel}} objects or lists thereof}
 
 \item{description}{A description for the collection.}
+
+\item{makeUnique}{Logical; whether to rename models if names are duplicated}
 }
 \value{
 A KdModelList
@@ -19,5 +21,6 @@ KdModelList
 }
 \examples{
 data(SampleKdModel)
-KdModelList(list(SampleKdModel,SampleKdModel))
+mods <- KdModelList(SampleKdModel, SampleKdModel)
+mods
 }
