@@ -27,7 +27,11 @@ library(BiocStyle)
 
 # KdModels
 
-The `KdModel` class contains the information concerning the sequence (12-mer) affinity of a given miRNA, and is meant to compress and make easily manipulable the dissociation constants (Kd) predictions from [McGeary, Lin et al. (2019)](https://dx.doi.org/10.1126/science.aav1741). We can take a look at the example `KdModel`:
+The `KdModel` class contains the information concerning the sequence (12-mer) 
+affinity of a given miRNA, and is meant to compress and make easily manipulable 
+the dissociation constants (Kd) predictions from 
+[McGeary, Lin et al. (2019)](https://dx.doi.org/10.1126/science.aav1741). We 
+can take a look at the example `KdModel`:
 
 ```{r}
 library(scanMiR)

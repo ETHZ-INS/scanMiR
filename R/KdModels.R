@@ -3,7 +3,7 @@ setClass(
   "KdModel",
   contains="list",
   validity=function(object){
-    for(f in c("name","canonical.seed","mirseq")){
+    for(f in c("name","canonical.seed","mirseq","mer8","fl")){
       if(!is.character(object[[f]]) || length(object[[f]])!=1)
         stop("The model should have a `",f,
              "` slot (character vector of length 1).")
@@ -187,8 +187,10 @@ assignKdType <- function(x, mod, mer8=NULL){
   fl.score <- as.numeric(.getFlankingScore(x)$score)
   mer9 <- factor(as.character(subseq(x, 2, 10)))
   mer8 <- factor(as.character(subseq(x, 3,10)), levels=mer8)
-  d <- data.frame(type=getMatchTypes(levels(mer9), mod$canonical.seed)[as.integer(mer9)],
-             log_kd=as.integer(round(mod$mer8[mer8] + fl.score*mod$fl[mer8])))
+  d <- data.frame(
+    type=getMatchTypes(levels(mer9), mod$canonical.seed)[as.integer(mer9)],
+    log_kd=as.integer(round(mod$mer8[mer8] + fl.score*mod$fl[mer8]))
+  )
   d$log_kd[is.na(d$log_kd)] <- 0L
   d
 }
