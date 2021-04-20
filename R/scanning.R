@@ -380,7 +380,11 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
 #' @param maxTargetLoop Maximum target loop size
 #' @param maxLoopDiff Maximum size difference between miRNA and target loops
 #'
-#' @return A data.frame with one row for each element of `seqs`.
+#' @return A data.frame with one row for each element of `seqs`, indicating the
+#' size of the miRNA bulge, the size of the target mRNA bulge, the number of
+#' mismatches at the 3' end, and the partial 3' alignment score (i.e. roughly
+#' the number of consecutive matching nucleotides)
+#'
 #' @export
 #'
 #' @examples
@@ -391,7 +395,8 @@ get3pAlignment <- function(seqs, mirseq, mir3p.start=9L, allow.mismatch=TRUE,
   mir.3p <- as.character(DNAString(substr(x=mirseq,
                                           start=mir3p.start,
                                           stop=nchar(mirseq))))
-  seqs <- reverseComplement(DNAString(seqs))
+  if(!is(seqs, "XStringSet") && !is(seqs, "XString")) seqs <- DNAString(seqs)
+  seqs <- reverseComplement(seqs)
   subm <- .default3pSubMatrix(ifelse(allow.mismatch,-3,-Inf), TG=TGsub)
   al <- pairwiseAlignment(seqs, mir.3p, type="local", substitutionMatrix=subm)
   df <- data.frame( p3.mir.bulge=start(subject(al))-1L,

@@ -30,7 +30,8 @@ library(BiocStyle)
 The `KdModel` class contains the information concerning the sequence (12-mer) affinity of a given miRNA, and is meant to compress and make easily manipulable the dissociation constants (Kd) predictions from [McGeary, Lin et al. (2019)](https://dx.doi.org/10.1126/science.aav1741). We can take a look at the example `KdModel`:
 
 ```{r}
-data("SampleKdModel")
+library(scanMiR)
+data(SampleKdModel)
 SampleKdModel
 ```
 
@@ -40,13 +41,13 @@ In addition to the information necessary to predict the binding affinity to any 
 SampleKdModel$myVariable <- "test"
 ```
 
-An overview of the binding affinities can be obtained using:
+An overview of the binding affinities can be obtained with the following plot:
 
 ```{r}
-plotKdModel(SampleKdModel)
+plotKdModel(SampleKdModel, what="seeds")
 ```
 
-The first part of the plot gives the -log(Kd) values of the top 7-mers (including both canonical and non-canonical sites), with or without the final "A" vis-à-vis the first miRNA nucleotide, while the bottom plot gives us the nucleotide-wise information content and preferences for all 12-mers (centered around the seed).
+The plot gives the -log(Kd) values of the top 7-mers (including both canonical and non-canonical sites), with or without the final "A" vis-à-vis the first miRNA nucleotide.
 
 To predict the dissociation constant (and binding type, if any) of a given 12-mer sequence, you can use the `assignKdType` function:
 
@@ -56,7 +57,7 @@ assignKdType("ACGTACGTACGT", SampleKdModel)
 assignKdType(c("CTAGCATTAAGT","ACGTACGTACGT"), SampleKdModel)
 ```
 
-The log_kd column contains log(Kd) values multiplied by 1000 and stored as an integer (which is more economical when dealing with millions of sites). In the example above, `r (lkd <- assignKdType("CTAGCATTAAGT", mod)$log_kd)` means `r lkd/1000`, or a dissociation constant of `r exp(lkd/1000)`. The smaller the values, the stronger the relative affinity.
+The log_kd column contains log(Kd) values multiplied by 1000 and stored as an integer (which is more economical when dealing with millions of sites). In the example above, `r (lkd <- assignKdType("CTAGCATTAAGT", SampleKdModel)$log_kd)` means `r lkd/1000`, or a dissociation constant of `r exp(lkd/1000)`. The smaller the values, the stronger the relative affinity.
 
 ## KdModelLists
 

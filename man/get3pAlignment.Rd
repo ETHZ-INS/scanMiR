@@ -33,7 +33,10 @@ get3pAlignment(
 \item{TGsub}{Logical; whether to allow T/G substitutions}
 }
 \value{
-A data.frame with one row for each element of `seqs`.
+A data.frame with one row for each element of `seqs`, indicating the
+size of the miRNA bulge, the size of the target mRNA bulge, the number of
+mismatches at the 3' end, and the partial 3' alignment score (i.e. roughly
+the number of consecutive matching nucleotides)
 }
 \description{
 get3pAlignment
