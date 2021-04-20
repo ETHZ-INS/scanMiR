@@ -97,7 +97,7 @@ setMethod("[", "KdModelList", function(x, i, j=NULL, ..., drop = TRUE){
 conservation <- function(x){
   lvls <- .conservation_levels()
   if(is(x,"KdModelList")){
-    y <- factor(sapply(x, FUN=function(x){
+    y <- factor(vapply(x, FUN.VALUE=integer(1), FUN=function(x){
       if(is.null(x$conservation)) return(NA_integer_)
       x$conservation
     }), levels=names(lvls))

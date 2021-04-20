@@ -75,7 +75,8 @@ getKdModel <- function( kd, mirseq=NULL, name=NULL, conservation=NA_integer_,
   if(!("X12mer" %in% colnames(kd)) && "12mer" %in% colnames(kd))
     colnames(kd) <- gsub("^12mer$","X12mer",colnames(kd))
   kd <- kd[,c("X12mer","log_kd")]
-  seed <- paste0(as.character(reverseComplement(DNAString(substr(mirseq, 2,8)))),"A")
+  see <- reverseComplement(DNAString(substr(mirseq, 2,8)))
+  seed <- paste0(as.character(seed),"A")
   w <- grep("X|N",kd$X12mer,invert=TRUE)
   pwm <- Biostrings::consensusMatrix(
     as.character(rep(kd$X12mer[w], floor( (exp(-kd$log_kd[w]))/3 ))),
@@ -123,7 +124,8 @@ getKdModel <- function( kd, mirseq=NULL, name=NULL, conservation=NA_integer_,
   }
   x <- gsub("X","N",as.character(x))
   y <- .getFlankingScore(x)
-  data.frame(mer8=as.integer(factor(substr(x, 3,10), levels=getSeed8mers(seed))),
+  data.frame(mer8=as.integer(factor(substr(x, 3,10),
+                                    levels=getSeed8mers(seed))),
              fl.score=y$score, fl.ratio=y$ratio)
 }
 
@@ -149,13 +151,15 @@ getKdModel <- function( kd, mirseq=NULL, name=NULL, conservation=NA_integer_,
   if(is.null(mer8)) mer8 <- getSeed8mers(mod$canonical.seed, addNs=TRUE)
   i1 <- split(1:1024, substr(mer8[1:1024],2,8))
   i2 <- split(1:1024, substr(mer8[1:1024],1,7))
-  fl <- co <- rep(0,416)
+  fl <- co <- rep(0L,416)
   m1 <- grep("^N",mer8)
   m2 <- grep("N$",mer8)
-  co[m1-1024] <- sapply(i1[gsub("N","",mer8[m1])], FUN=function(i) median(mod$mer8[i]))
-  fl[m1-1024] <- sapply(i1[gsub("N","",mer8[m1])], FUN=function(i) median(mod$fl[i]))
-  co[m2-1024] <- sapply(i2[gsub("N","",mer8[m2])], FUN=function(i) median(mod$mer8[i]))
-  fl[m2-1024] <- sapply(i2[gsub("N","",mer8[m2])], FUN=function(i) median(mod$fl[i]))
+  tmpf <- function(x,i) as.integer(vapply(x, FUN.VALUE=numeric(1),
+                                          FUN=function(j) median(mod[[i]][j])))
+  co[m1-1024] <- tmpf(i1[gsub("N","",mer8[m1])], "mer8")
+  fl[m1-1024] <- tmpf(i1[gsub("N","",mer8[m1])], "fl")
+  co[m2-1024] <- tmpf(i2[gsub("N","",mer8[m2])], "mer8")
+  fl[m2-1024] <- tmpf(i2[gsub("N","",mer8[m2])], "fl")
   mod$mer8 <- c(mod$mer8, co)
   mod$fl <- c(mod$fl, fl)
   mod
@@ -170,9 +174,9 @@ getKdModel <- function( kd, mirseq=NULL, name=NULL, conservation=NA_integer_,
 #' @param mer8 The optional set of 8mers included in the model (for internal
 #' use; can be reconstructed from the model).
 #'
-#' @return A data.frame with one row for each element of `x`, and the columns `type` and
-#' `log_kd`. To save space, the reported log_kd is multiplied by 1000, rounded and saved
-#' as an integer.
+#' @return A data.frame with one row for each element of `x`, and the columns
+#' `type` and `log_kd`. To save space, the reported log_kd is multiplied by
+#' 1000, rounded and saved as an integer.
 #' @export
 #' @examples
 #' data(SampleKdModel)

@@ -20,7 +20,9 @@ Imports:
     ggplot2,
     stats,
     stringi,
-    utils
+    utils,
+    grid,
+    gridExtra
 Suggests: knitr, rmarkdown
 Description:
     A set of tools for working with miRNA dissociate rate models (KdModels),

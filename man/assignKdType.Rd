@@ -15,9 +15,9 @@ assignKdType(x, mod, mer8 = NULL)
 use; can be reconstructed from the model).}
 }
 \value{
-A data.frame with one row for each element of `x`, and the columns `type` and
-`log_kd`. To save space, the reported log_kd is multiplied by 1000, rounded and saved
-as an integer.
+A data.frame with one row for each element of `x`, and the columns
+`type` and `log_kd`. To save space, the reported log_kd is multiplied by
+1000, rounded and saved as an integer.
 }
 \description{
 Assigns a log_kd and match type to a set of matched sequences.
