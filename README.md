@@ -39,7 +39,7 @@ GRanges object with 43 ranges and 4 metadata columns:
    ...      ...       ...    ... .       ...           ...       ...      ...
 ```
 
-The 3' binding of each match can also be visualized:
+The putative 3' binding of each match can also be visualized:
 
 ```{r}
 viewTargetAlignment(matches[1], miRNA=model, seqs=seqs)
@@ -57,5 +57,5 @@ predict repression based on the biochemical model from
 [McGeary, Lin et al. (2019)](https://dx.doi.org/10.1126/science.aav1741).
 
 To learn more about the functionalities, see the package's vignettes. To obtain
-predicted KdModels for all mouse, human and rat miRbase miRNAs, see the 
+predicted `KdModels` for all mouse, human and rat miRbase miRNAs, see the 
 [scanMiRData](https://github.com/ETHZ-INS/scanMiRData) pacakge.
