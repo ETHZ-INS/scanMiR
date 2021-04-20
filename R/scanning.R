@@ -48,10 +48,7 @@
 #'
 #' @examples
 #' # we create mock RNA sequences and seeds:
-#' seqs <- vapply(1:10, FUN=function(x) paste(sample(strsplit("ACGT", "")[[1]],
-#'                                      1000, replace=TRUE), collapse=""),
-#'                                      character(1))
-#' names(seqs) <- paste0("seq",1:length(seqs))
+#' seqs <- getRandomSeq(n=10)
 #' seeds <- c("AAACCAC", "AAACCUU")
 #' findSeedMatches(seqs, seeds)
 findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
@@ -374,7 +371,7 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
 
 #' get3pAlignment
 #'
-#' @param seqs A set of sequences in which to look for matches
+#' @param seqs A set of sequences in which to look for 3' matches
 #' @param mirseq The sequence of the miRNA
 #' @param mir3p.start The position in `mirseq` in which to start looking
 #' @param allow.mismatch Logical; whether to allow mismatches
@@ -394,7 +391,7 @@ get3pAlignment <- function(seqs, mirseq, mir3p.start=9L, allow.mismatch=TRUE,
   mir.3p <- as.character(DNAString(substr(x=mirseq,
                                           start=mir3p.start,
                                           stop=nchar(mirseq))))
-  seqs <- reverseComplement(seqs)
+  seqs <- reverseComplement(DNAString(seqs))
   subm <- .default3pSubMatrix(ifelse(allow.mismatch,-3,-Inf), TG=TGsub)
   al <- pairwiseAlignment(seqs, mir.3p, type="local", substitutionMatrix=subm)
   df <- data.frame( p3.mir.bulge=start(subject(al))-1L,
@@ -598,8 +595,7 @@ getMatchTypes <- function(x, seed){
   sq <- unique(unlist(lapply(m,FUN=seqlevels)))
   sq <- unlist(lapply(m,FUN=function(x) factor(as.factor(seqnames(x)), sq)))
   gr <- GRanges(sq, IRanges(unlist(lapply(m, start)), unlist(lapply(m,end))))
-  mcols(gr) <- dplyr::bind_rows(lapply(m, FUN=function(x){
-    as.data.frame(mcols(x))
-  }), .id=.id)
+  m <- lapply(m, FUN=function(x) as.data.frame(mcols(x)))
+  mcols(gr) <- as.data.frame(data.table::rbindlist(m, fill=TRUE, idcol=.id))
   gr
 }

@@ -1,5 +1,5 @@
 ---
-title: "Scanning sequences and exploring matches"
+title: "Scanning sequences for miRNA binding sites and exploring matches with scanMiR"
 author: 
 - name: Pierre-Luc Germain
   affiliation: D-HEST Institute for Neuroscience, ETH & Lab of Statistical Bioinformatics, UZH
@@ -13,7 +13,7 @@ output:
 abstract: |
   This vignettes explores scanMiR's scanning functions.
 vignette: |
-  %\VignetteIndexEntry{3_scanning}
+  %\VignetteIndexEntry{1_scanning}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -35,13 +35,7 @@ The main function used for determining matches of miRNA seeds in a given set of 
 
 ```{r}
 # generate a set of mock sequences and seeds
-seqs <- vapply(1:10,
-               FUN=function(x) {
-                 paste(sample(c("A", "C", "G", "T"), 1000, replace=TRUE),
-                       collapse="")},
-               character(1))
-names(seqs) <- paste0("seq",1:length(seqs))
-
+seqs <- getRandomSeq(n=5)
 seeds <- c("AAACCAC", "AAACCUU")
 
 # run the scan

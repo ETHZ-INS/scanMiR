@@ -23,10 +23,7 @@
 #'
 #' @examples
 #' # we create mock RNA sequences and seeds:
-#' seqs <- vapply(1:10, FUN=function(x) paste(sample(strsplit("ACGT", "")[[1]],
-#'                                      1000, replace=TRUE), collapse=""),
-#'                                      character(1))
-#' names(seqs) <- paste0("seq",1:length(seqs))
+#' seqs <- getRandomSeq(n=10)
 #'
 #' # load sample KdModel
 #' data(SampleKdModel)

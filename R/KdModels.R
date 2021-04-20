@@ -37,8 +37,8 @@ setMethod("summary", "KdModel", function(object){
 
 #' getKdModel
 #'
-#' @param kd A data.frame containing the log_kd per 12-mer sequence, or the path
-#' to a text/csv file containing such a table. Should contain the columns
+#' @param kd A data.frame containing the log_kd per 12-mer sequence, or the
+#' path to a text/csv file containing such a table. Should contain the columns
 #' 'log_kd', '12mer' (or 'X12mer'), and eventually 'mirseq' (if the `mirseq`
 #' argument is NULL) and 'mir' (if the `name` argument is NULL).
 #' @param mirseq The miRNA (cDNA) sequence.
@@ -55,7 +55,8 @@ setMethod("summary", "KdModel", function(object){
 #' @examples
 #' kd <- dummyKdData()
 #' mod <- getKdModel(kd=kd, mirseq="TTAATGCTAATCGTGATAGGGGTT", name="my-miRNA")
-getKdModel <- function(kd, mirseq=NULL, name=NULL, conservation=NA_integer_, ...){
+getKdModel <- function( kd, mirseq=NULL, name=NULL, conservation=NA_integer_,
+                        ...){
   if(is.character(kd) && length(kd)==1){
     if(is.null(name)) name <- gsub("\\.txt$|\\.csv$","",
                                    gsub("_kds","",basename(kd)))
