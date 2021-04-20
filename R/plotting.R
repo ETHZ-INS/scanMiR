@@ -187,7 +187,8 @@ viewTargetAlignment <- function(m, miRNA, seqs=NULL, flagBulgeMatches=FALSE,
     "alignment"=c(paste0(sp(3),"3'-",stringi::stri_reverse(mirseq),"-5'",sp(5)),
                   paste0(sp(8),stringi::stri_reverse(mm),sp(8)),
                   paste0("5'-...",stringi::stri_reverse(target),"...-3'")))
-  d$alignment <- paste0(sapply(max(nchar(d$alignment))-nchar(d$alignment),
+  d$alignment <- paste0(vapply(max(nchar(d$alignment))-nchar(d$alignment),
+                               FUN.VALUE=character(1),
                                FUN=function(x) paste0(rep(" ",x),collapse="")),
                         d$alignment)
   if(outputType=="data.frame") return(d)

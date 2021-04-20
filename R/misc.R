@@ -12,7 +12,7 @@
 #' getKmers(3)
 getKmers <- function(n=4, from=c("A", "C", "G", "T")){
   apply(expand.grid(lapply(seq_len(n), FUN=function(x) from)),
-        1,collapse="",FUN=paste)
+        1, collapse="",FUN=paste)
 }
 
 #' getRandomSeq
@@ -90,7 +90,7 @@ getSeed8mers <- function(seed, addNs=FALSE){
     a <- strsplit(as.character(seed),"")[[1]]
   }
   if(length(a)==7) a <- c(a, "A")
-  pats <- sapply(0:4, FUN=function(x){
+  pats <- vapply(0:4, FUN.VALUE=character(1), FUN=function(x){
     paste0(paste(rep("[^N]",x), collapse=""),
            paste(a[x+1:4],collapse=""),
            paste(rep(".",4-x), collapse=""))
