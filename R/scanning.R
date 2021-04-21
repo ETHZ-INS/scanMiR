@@ -23,7 +23,7 @@
 #' `maxMirLoop` (integer, default = 5), `maxTargetLoop` (integer, default = 9),
 #' `maxLoopDiff` (integer, default = 4), and `mismatch`
 #' (logical, default = TRUE).
-#' @param agg.params A named list with slots `ag`, `b`, `c`, `p3`, `coef_utr`,
+#' @param agg.params A named list with slots `a`, `b`, `c`, `p3`, `coef_utr`,
 #' `coef_orf` and `keepSiteInfo` indicating the parameters for the aggregation.
 #' Ignored if `ret!="aggregated"`. For further details see documentation of
 #' `aggregateMatches`.
@@ -86,7 +86,7 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
     if(!is.list(agg.params)) agg.params <- as.list(agg.params)
     if(!all(names(agg.params) %in% names(.defaultAggParams())))
       stop("`agg.params` should be a named list with slots among ",
-           "`ag`, `b`, `c`, `p3`, `coef_utr`, `coef_orf` and `keepSiteInfo.")
+           "`a`, `b`, `c`, `p3`, `coef_utr`, `coef_orf` and `keepSiteInfo.")
     for(name in names(.defaultAggParams())){
       if(!name %in% names(agg.params)){
         agg.params[[name]] <- .defaultAggParams()[[name]]
@@ -127,7 +127,7 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
       if(verbose) message("Aggregating...")
       ll <- as.data.frame(length.info)
       ll$transcript <- row.names(ll)
-      m <- .aggregate_miRNA(m, ll, ag=agg.params$ag, b=agg.params$b,
+      m <- .aggregate_miRNA(m, ll, a=agg.params$a, b=agg.params$b,
                             c=agg.params$c, p3 = agg.params$p3,
                             coef_utr = agg.params$coef_utr,
                             coef_orf = agg.params$coef_orf,
@@ -158,7 +158,7 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
           if(length(m)==0) return(data.frame())
           ll <- as.data.frame(length.info)
           ll$transcript <- row.names(ll)
-          m <- .aggregate_miRNA(m, ll, ag=agg.params$ag, b=agg.params$b,
+          m <- .aggregate_miRNA(m, ll, a=agg.params$a, b=agg.params$b,
                                 c=agg.params$c,p3 = agg.params$p3,
                                 coef_utr = agg.params$coef_utr,
                                 coef_orf = agg.params$coef_orf,
@@ -579,7 +579,7 @@ getMatchTypes <- function(x, seed){
 }
 
 .defaultAggParams <- function(){
-  list(ag=-4.863126,
+  list(a=-4.863126,
     b=0.5735,
     c=-1.7091,
     p3=0.04403,

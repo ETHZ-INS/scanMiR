@@ -1,7 +1,7 @@
 #' aggregateMatches
 #'
 #' @param m A GRanges or data.frame of matches as returned by `findSeedMatches`.
-#' @param ag The relative concentration of unbound AGO-miRNA complexes.
+#' @param a The relative concentration of unbound AGO-miRNA complexes.
 #' @param b Factor specifying the additional repression by a single bound AGO.
 #' @param c Penalty for sites that are found within the ORF region.
 #' @param p3 Factor specifying additional repression due to 3p alignment.
@@ -33,7 +33,7 @@
 #'
 #' # aggregate matches
 #' aggregateMatches(matches)
-aggregateMatches <- function(m, ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403,
+aggregateMatches <- function(m, a=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403,
                            coef_utr = -0.28019, coef_orf = -0.08622,
                            p3.range=c(3L,8L), keepSiteInfo = TRUE, toInt=FALSE,
                            BP=NULL){
@@ -49,7 +49,7 @@ aggregateMatches <- function(m, ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403,
     # m <- m[,c("miRNA","transcript","ORF","log_kd","p3.score","type")]
     m <- split(m, m$miRNA)
     m <- bplapply(m, BPPARAM=BP, FUN=function(x){
-      .aggregate_miRNA(x, ag=ag, b=b, c=c, p3=p3,coef_utr = coef_utr,
+      .aggregate_miRNA(x, a=a, b=b, c=c, p3=p3,coef_utr = coef_utr,
                        coef_orf = coef_orf, keepSiteInfo = keepSiteInfo,
                        toInt=toInt, p3.range=p3.range)
     })
@@ -59,7 +59,7 @@ aggregateMatches <- function(m, ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403,
     }
   }else{
     # m <- m[,c("transcript","ORF","log_kd","p3.score","type")]
-    m <- .aggregate_miRNA(m, ag=ag, b=b, c=c, p3=p3,coef_utr = coef_utr,
+    m <- .aggregate_miRNA(m, a=a, b=b, c=c, p3=p3,coef_utr = coef_utr,
                           coef_orf = coef_orf, keepSiteInfo = keepSiteInfo,
                           toInt=toInt, p3.range=p3.range)
   }
@@ -67,7 +67,7 @@ aggregateMatches <- function(m, ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403,
 }
 
 
-.aggregate_miRNA <- function(m, ll = NULL, ag=-4.863126 , b=0.5735, c=-1.7091,
+.aggregate_miRNA <- function(m, ll = NULL, a=-4.863126 , b=0.5735, c=-1.7091,
                              p3=0.04403, coef_utr = -0.28019,
                              coef_orf = -0.08622, p3.range=c(3L,8L),
                              keepSiteInfo = FALSE, toInt=FALSE){
@@ -98,13 +98,12 @@ aggregateMatches <- function(m, ag=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403,
   m$p3.score <- ifelse(m$type == "non-canonical" , 0L, m$p3.score)
   m$p3.score[m$p3.score>max(p3.range)] <- as.integer(max(p3.range))
   m$p3.score[m$p3.score<min(p3.range)] <- 0L
-  m$N <- 1 / (1 + exp(-1 * (ag + m$log_kd + c*m$ORF + p3*m$p3.score) ))
+  m$N <- 1 / (1 + exp(-1 * (a + m$log_kd + c*m$ORF + p3*m$p3.score) ))
   m$log_kd <- NULL
-  m$N_bg <- 1 / (1 + exp(-1 * (ag  + c*m$ORF) ))
+  m$N_bg <- 1 / (1 + exp(-1 * (a  + c*m$ORF) ))
   m <- as.data.frame(rowsum(as.matrix(m[,c("N","N_bg")]), group=m$transcript))
   m <- data.frame( transcript=row.names(m),
                    repression=log2(1+exp(b)*m$N_bg) - log2(1 + exp(b)*m$N))
-
   if(!is.null(ll) && nrow(m) > 1){
     m <- merge(m,ll,by = "transcript", all.x = TRUE)
 
