@@ -137,7 +137,7 @@ $$
 \text{repression} = \log(1+bN_{m,g,\text{background}}) - \log(1+bN_{m,g})
 $$
 
-While `b` and `c` are considered global parameters (i.e. the same for different miRNAs and transcripts and also across experimental contexts), `a` is expected to be different for each miRNA-transcript pair in a given experimental condition. However, as shown by [McGeary, Lin et al. (2019)](https://dx.doi.org/10.1126/science.aav1741), the model performance is robust to changes in `ag` over several orders of magnitude. Aggregation for all miRNA-transcript pairs for a given data set is therefore usually based on a single `ag` value. `r Biocpkg("scanMiR")` provides reasonable default parameter values that have been determined by fitting and validating the model using several experimental data sets.
+While `b` and `c` are considered global parameters (i.e. the same for different miRNAs and transcripts and also across experimental contexts), `a` is expected to be different for each miRNA-transcript pair in a given experimental condition. However, as shown by [McGeary, Lin et al. (2019)](https://dx.doi.org/10.1126/science.aav1741), the model performance is robust to changes in `a` over several orders of magnitude. Aggregation for all miRNA-transcript pairs for a given data set is therefore usually based on a single `a` value. `r Biocpkg("scanMiR")` provides reasonable default parameter values that have been determined by fitting and validating the model using several experimental data sets.
 
 ## Basic Aggregation
 Given a `GRanges` or data.frame of matches as returned by `findSeedMatches`, aggregation can be performed by the function `aggregateMatches`:
