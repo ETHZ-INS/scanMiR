@@ -20,6 +20,10 @@ vignette: |
 
 ```{r, include=FALSE}
 library(BiocStyle)
+# library(scanMiR)
+devtools::load_all("/mnt/schratt/miRNA_KD/fg_test/scanMiR")
+library(Biostrings)
+library(S4Vectors)
 ```
 
 # Scanning
@@ -27,52 +31,80 @@ library(BiocStyle)
 `r Biocpkg("scanMiR")` can be used to identify potential binding sites given a set of miRNAs and a set of transcripts. Furthermore, it determines the type of binding site and, given a `KdModel` object, the predicted affinity of the site.
 
 ## Basic Scan
-The main function used for determining matches of miRNA seeds in a given set of sequences is `findSeedMatches`. It accepts a set of DNA sequences either as a character vector or as a [DNAStringSet](https://bioconductor.org/packages/release/bioc/html/Biostrings.html). Seeds can be given either as a character vector or as a `KdModelList`. The following example illustrates the basic usage:
+The main function used for determining matches of miRNAs in a given set of sequences is `findSeedMatches`. It accepts a set of DNA sequences either as a character vector or as a [DNAStringSet](https://bioconductor.org/packages/release/bioc/html/Biostrings.html). The miRNAs can be provided either as a character vector of seeds/miRNA sequences or as a `KdModelList`.
 
+### Using a miRNA Seed
+The seed must be given in the form of a (RNA or DNA) sequence of length 7 or 8. Note that the seed should be given as it would appear in a match in the target sequence (i.e. the reverse complement of how it appears in the miRNA transcript).
 ```{r}
-library(scanMiR)
-# generate a set of mock sequences and seeds
-seqs <- getRandomSeq(n=5)
-seeds <- c("AAACCAC", "AAACCUU")
+# seed sequence of hsa-miR-155-5p
+seed <- "AGCAUUAA"
 
-# run the scan
-matches <- findSeedMatches(seqs, seeds, verbose = FALSE)
+# load a sample transcript
+data("SampleTranscript")
+
+# run scan
+matches <- findSeedMatches(SampleTranscript, seed, verbose = FALSE)
+matches
 ```
 
-By default, a [GRanges](https://bioconductor.org/packages/release/bioc/html/GenomicRanges.html) object is returned. Apart from the position of the matches, it provides information on the match type. Setting `ret = "data.frame"` returns the same information as a data.frame. The scan can be restricted to canonical sites using `onlyCanonical = TRUE`.
+By default, a [GRanges](https://bioconductor.org/packages/release/bioc/html/GenomicRanges.html) object is returned. Apart from the position of the matches, it provides information on the type of the putative binding site corresponding to the match. Setting `ret = "data.frame"` returns the same information as a data.frame.
+
+### Using a miRNA sequence
+Alternatively, we can provide the full miRNA sequence, which results in additional information on supplementary 3' pairing in the form of an aggregated score.
+```{r}
+# full sequence of the mature miR-155-5p transcript
+miRNA <- "UUAAUGCUAAUCGUGAUAGGGGUU"
+
+# run scan
+matches <- findSeedMatches(SampleTranscript, miRNA, verbose = FALSE)
+matches
+```
+
+We can take a closer look at the alignment of the first match:
+```{r}
+viewTargetAlignment(matches[1], miRNA, SampleTranscript)
+```
+### Using a KdModel
+Finally, we can provide the miRNA in the form of a `KdModel` (see the [vignette on KdModels]("Kdmodels.html") for further information). In this case `findSeedMatches` also returns the predicted affinity value for each match. The `log_kd` column contains log(Kd) values multiplied by 1000, where KD is the predicted dissociation constant of miRNA:mRNA binding for the putative binding site.
+```{r}
+# load sample KdModel
+data("SampleKdModel")
+
+# run scan
+matches <- findSeedMatches(SampleTranscript, SampleKdModel, verbose = FALSE)
+matches
+```
+Running `findSeedMatches` using a `Kdmodel` also returns matches that correspond to non-canonical binding sites. These are typically of low affinity, but may affect repression if several of them are found on the same transcript. The scan can be restricted to canonical sites using the option `onlyCanonical = TRUE`.
 
 ## Further Options
 
 ### ORF length
-If the transcript sequences are provided as a `DNAStringSet`, one may specify the length of the open reading frame region of the transcripts in order to distinguish between matches in the ORF and 3'UTR regions.
+If the transcript sequences are provided as a `DNAStringSet`, one may specify the length of the open reading frame region of the transcripts as a metadata column in order to distinguish between matches in the ORF and 3'UTR regions.
 ```{r}
-library(Biostrings)
-seqs <- DNAStringSet(seqs)
+# generate set of random sequences
+seqs <- DNAStringSet(getRandomSeq(length = 1000, n = 10))
+
+# add vector of ORF lengths
 mcols(seqs)$ORF.length <- sample(500:800, length(seqs))
+
+# run scan
+matches <- findSeedMatches(seqs, SampleKdModel, verbose = FALSE, 
+                           ret = "data.frame")
+head(matches)
 ```
 
+### Supplementary 3' pairing
+Pierre-Luc?
+
 ### Shadow and Overlapping Matches
-The `shadow` argument can be used to take into account the observation that sites within the first ~15 nucleotides of the 3'UTR show poor efficiency ([Grimson et al. 2007](https://www.sciencedirect.com/science/article/pii/S1097276507004078)). `findSeedMatches` will treat matches within the first `shadow` positions of the UTR in the same way as matches in the ORF region. If no information on ORF lengths is provided, it will simply ignore the first `shadow` positions. The default setting is `shadow = 0L`.
+The `shadow` argument can be used to take into account the observation that sites within the first ~15 nucleotides of the 3'UTR show poor efficiency ([Grimson et al. 2007](https://www.sciencedirect.com/science/article/pii/S1097276507004078)). `findSeedMatches` will treat matches within the first `shadow` positions of the UTR in the same way as matches in the ORF region. If no information on ORF lengths is provided, it will simply ignore the first `shadow` positions. The default setting is `shadow = 0`.
 
 The parameter `minDist` can be used to specify the minimum distance between matches of the
 same miRNA (default 1). If there are multiple matches within `minDist`, only the highest affinity match will be considered.
 
-### Site Affinities
-If the seeds are given in the form of a `KdModelList`, `findSeedMatches` also returns the predicted affinity value for each match. The `log_kd` column contains log(Kd) values multiplied by 1000, where KD is the predicted dissociation constant of miRNA:mRNA binding at the respective site. In addition, a column `p3.score` is returned, which carries information on 3p alignment (see Section @ref(sec:aggregating).
-
-```{r}
-# load KdModel
-data(SampleKdModel)
-kd_seeds <- KdModelList(list(SampleKdModel))
-kd_matches <- findSeedMatches(seqs, kd_seeds, verbose = FALSE)
-```
-
 
 ### Aggregation on the fly
 With `ret = "aggregated"` one obtains a data.frame that contains the predicted repression for each sequence-seed-pair aggregated over all matches along with information about the types and number of matches. Parameters for aggregation can be specified using `agg.params`. For further details, see Section \@ref(sec:aggregating).
-
-### Parallel Processing
-To deal with large amounts of sequences and/or seeds, `findSeedMatches` supports multithreading using the `r Biocpkg("BiocParallel")` package. This can be activated by passing `BP = MulticoreParam(ncores)`. In addition, the number of seeds that is processed simultaneously can be restricted using the parameter `n_seeds` in order to avoid memory issues.
 
 # Aggregating Sites {#sec:aggregating}
 ## Background
@@ -80,30 +112,47 @@ To deal with large amounts of sequences and/or seeds, `findSeedMatches` supports
 
 The key parameters of this model are:
 
-* `ag`: the relative concentration of unbound AGO-miRNA complexes
+* `a`: the relative concentration of unbound AGO-miRNA complexes
 * `b`: the factor that multiplies with the occupancy and is added to the basal decay rate (can be interpreted as the additional repression caused by a single bound AGO)
 * `c`: the penalty factor for sites that are found within the ORF region
 
-The resulting repression value corresponds to the expected (log) fold-change in the expression of the transcript when compared to a background of non-specific binding.
+More specifically, the occupancy of a mRNA $m$ by miRNA $g$, with $p$ matches in the ORF region and $q$ matches in the 3'UTR region, is given by the following equation:
+$$
+\begin{equation}
+N_{m,g} = 
+  \sum_{i=1}^{p}\left(\frac{a_g}{a_g + c_{\text{ORF}} K_{d,i}^{\text{ORF}}}\right) +
+  \sum_{j=1}^{q}\left(\frac{a_g}{a_g + K_{d,j}^{\text{3'UTR}}}\right)
+\end{equation}
+$$
+The corresponding background occupancy is estimated by substituting the average affinity of nonspecifically bound sites (i.e. $K_d = 1.0$):
+$$
+\begin{equation}
+N_{m,g,\text{background}} = 
+  \sum_{i=1}^{p}\left(\frac{a_g}{a_g + c_{\text{ORF}}}\right) +
+  \sum_{j=1}^{q}\left(\frac{a_g}{a_g + 1}\right)
+\end{equation}
+$$
+The repression is then obtained as the log fold change of the two occupancies:
+$$
+\text{repression} = \log(1+bN_{m,g,\text{background}}) - \log(1+bN_{m,g})
+$$
 
-While `b` and `c` are considered global (i.e. the same for different miRNAs and transcripts and also across experimental contexts), `ag` is expected to be different for each miRNA-transcript pair in a given experimental condition. However, as shown by [McGeary, Lin et al. (2019)](https://dx.doi.org/10.1126/science.aav1741), the model performance is robust to changes in `ag` over several orders of magnitude. Aggregation for all miRNA-transcript pairs for a given data set is therefore usually based on a single `ag` value. `r Biocpkg("scanMiR")` provides reasonable default parameter values that have been determined by fitting and validating the model using several experimental data sets.
+While `b` and `c` are considered global parameters (i.e. the same for different miRNAs and transcripts and also across experimental contexts), `a` is expected to be different for each miRNA-transcript pair in a given experimental condition. However, as shown by [McGeary, Lin et al. (2019)](https://dx.doi.org/10.1126/science.aav1741), the model performance is robust to changes in `ag` over several orders of magnitude. Aggregation for all miRNA-transcript pairs for a given data set is therefore usually based on a single `ag` value. `r Biocpkg("scanMiR")` provides reasonable default parameter values that have been determined by fitting and validating the model using several experimental data sets.
 
 ## Basic Aggregation
 Given a `GRanges` or data.frame of matches as returned by `findSeedMatches`, aggregation can be performed by the function `aggregateMatches`:
 ```{r}
-agg_matches <- aggregateMatches(kd_matches)
+agg_matches <- aggregateMatches(matches)
+head(agg_matches)
 ```
-This returns a data.frame with predicted repression values for each miRNA-transcript pair. By using `keepSiteInfo = TRUE`, one additionally obtains information on the number and type of sites. As discussed in 
+This returns a data.frame with predicted repression values for each miRNA-transcript pair along with a count table of the different site types. If `matches` does not contain a `log_kd` column, only the count table will be returned.
 
 ## Further Options
-### 3p alignment
-
 ### coef_utr and coef_orf
 
+# Parallel Processing
+To deal with large amounts of sequences and/or seeds, both `findSeedMatches` and `aggregateMatches` support multithreading using the `r Biocpkg("BiocParallel")` package. This can be activated by passing `BP = MulticoreParam(ncores)`. In addition, the number of seeds that is processed simultaneously by `findSeedMatches` can be restricted using the parameter `n_seeds` in order to avoid memory issues.
 
-
-### Parallel Processing
-Like `findSeedMatches` also `aggregateMatches` supports multithreading by passing `BP = MulticoreParam(ncores)`.
 
 # Session info {.unnumbered}
 
