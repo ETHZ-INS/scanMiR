@@ -2,7 +2,7 @@
 
 # scanMiR
 
-`scanMiR` is a bioconductor set of tools for working with miRNA dissociate rate 
+`scanMiR` is a bioconductor set of tools for working with miRNA affinity
 models (KdModels), enabling efficient and flexible scanning for miRNA binding 
 sites and prediction of target repression.
 
