@@ -16,15 +16,15 @@ setClass(
 
 #' KdModelList
 #'
-#' @param ... Any number of \code{\link{KdModel}} objects or lists thereof
+#' @param ... Any number of \code{\link{KdModel}} objects or lists thereof.
 #' @param description A description for the collection.
-#' @param makeUnique Logical; whether to rename models if names are duplicated
+#' @param makeUnique Logical; whether to rename models if names are duplicated.
 #'
 #' @return A KdModelList
 #' @export
 #' @examples
 #' data(SampleKdModel)
-#' mods <- KdModelList(SampleKdModel, SampleKdModel)
+#' mods <- KdModelList(SampleKdModel, SampleKdModel, makeUnique = TRUE)
 #' mods
 KdModelList <- function(..., description=NULL, makeUnique=FALSE){
   x <- list(...)
