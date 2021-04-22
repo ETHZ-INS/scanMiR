@@ -64,7 +64,7 @@ Setting `ret = "data.frame"` returns the same information as a data.frame.
 ### Using a miRNA sequence
 Alternatively, we can provide the full miRNA sequence, which results in 
 additional information on supplementary 3' pairing in the form of an aggregated 
-score.
+score (see Section \@ref(sec:3pAlignment) for further details).
 ```{r}
 # full sequence of the mature miR-155-5p transcript
 miRNA <- "UUAAUGCUAAUCGUGAUAGGGGUU"
@@ -79,14 +79,13 @@ We can take a closer look at the alignment of the first match:
 viewTargetAlignment(matches[1], miRNA, SampleTranscript)
 ```
 
-This also reveals a supplementary 3' binding (see Section 
-\@ref(sec:3pAlignment)).
+Apart from the direct seed match (right), this representation also reveals the extensive supplementary 3' pairing (left).
 
 ### Using a KdModel
 Finally, we can provide the miRNA in the form of a `KdModel` (see the 
 [vignette on KdModels]("Kdmodels.html") for further information). In this case 
 `findSeedMatches` also returns the predicted affinity value for each match. The 
-`log_kd` column contains log(Kd) values multiplied by 1000, where KD is the 
+`log_kd` column contains log(Kd) values multiplied by 1000, where Kd is the 
 predicted dissociation constant of miRNA:mRNA binding for the putative binding 
 site.
 ```{r}
@@ -130,14 +129,14 @@ head(matches2)
 
 ### Supplementary 3' pairing  {#sec:3pAlignment}
 
-Upon binding the seed regions, further complementary of the target to the 3' 
+Upon binding the seed regions, further complementary pairing of the target to the 3' 
 region of the miRNA can increase affinity and further stabilize the binding 
 ([Schirle, Sheu-Gruttadauria and MacRae, 2014](https://dx.doi.org/10.1126/science.1258040)).
 Upon finding a seed match, `scanMiR` performs a local alignment on the upstream
 region to identify such complementary 3' binding. This is internally done by the
 `get3pAlignment()` function, the arguments to which (e.g. the maximum size of
 the gap between the seed binding and the complementary binding) can be passed 
-via the `findSeedMatches` argument `p3.params`. By default when running 
+via the `findSeedMatches` argument `p3.params`. By default, when running 
 `findSeedMatches` a 3' score is reported in the matches, which roughly 
 corresponds to the number of consecutive matching nucleotides (adjusting for 
 small gaps and T/G substitutions) within the constraints (see 
@@ -240,7 +239,7 @@ the model using several experimental data sets.
 Given a `GRanges` or data.frame of matches as returned by `findSeedMatches`, 
 aggregation can be performed by the function `aggregateMatches`:
 ```{r}
-agg_matches <- aggregateMatches(matches)
+agg_matches <- aggregateMatches(matches2)
 head(agg_matches)
 ```
 This returns a data.frame with predicted repression values for each 
