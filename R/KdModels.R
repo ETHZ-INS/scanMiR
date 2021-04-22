@@ -7,7 +7,7 @@ setClass(
   "KdModel",
   contains="list",
   validity=function(object){
-    for(f in c("name","canonical.seed","mirseq","mer8","fl")){
+    for(f in c("name","canonical.seed","mirseq")){
       if(!is.character(object[[f]]) || length(object[[f]])!=1)
         stop("The model should have a `",f,
              "` slot (character vector of length 1).")
