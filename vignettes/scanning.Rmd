@@ -40,7 +40,8 @@ The miRNAs can be provided either as a character vector of seeds/miRNA
 sequences or as a `KdModelList`.
 
 ### Using a miRNA Seed
-The seed must be given in the form of a (RNA or DNA) sequence of length 7 or 8. 
+The seed must be given in the form of a (RNA or DNA) sequence of length 7 or 8
+(the 8th nucleotide being the final 'A' - it is added if only 7 are given). 
 Note that the seed should be given as it would appear in a match in the target 
 sequence (i.e. the reverse complement of how it appears in the miRNA).
 ```{r}
@@ -78,6 +79,9 @@ We can take a closer look at the alignment of the first match:
 viewTargetAlignment(matches[1], miRNA, SampleTranscript)
 ```
 
+This also reveals a supplementary 3' binding (see Section 
+\@ref(sec:3pAlignment)).
+
 ### Using a KdModel
 Finally, we can provide the miRNA in the form of a `KdModel` (see the 
 [vignette on KdModels]("Kdmodels.html") for further information). In this case 
@@ -112,14 +116,44 @@ seqs <- DNAStringSet(getRandomSeq(length = 1000, n = 10))
 mcols(seqs)$ORF.length <- sample(500:800, length(seqs))
 
 # run scan
-matches <- findSeedMatches(seqs, SampleKdModel, verbose = FALSE, 
+matches2 <- findSeedMatches(seqs, SampleKdModel, verbose = FALSE, 
                            ret = "data.frame")
-head(matches)
+head(matches2)
 ```
 
-### Supplementary 3' pairing
+### Supplementary 3' pairing  {#sec:3pAlignment}
 
-Pierre-Luc?
+Upon binding the seed regions, further complementary of the target to the 3' 
+region of the miRNA can increase affinity and further stabilize the binding 
+([Schirle, Sheu-Gruttadauria and MacRae, 2014](https://dx.doi.org/10.1126/science.1258040)).
+Upon finding a seed match, `scanMiR` performs a local alignment on the upstream
+region to identify such complementary 3' binding. This is internally done by the
+`get3pAlignment()` function, the arguments to which (e.g. the maximum size of
+the gap between the seed binding and the complementary binding) can be passed 
+via the `findSeedMatches` argument `p3.params`. By default when running 
+`findSeedMatches` a 3' score is reported in the matches, which roughly 
+corresponds to the number of consecutive matching nucleotides (adjusting for 
+small gaps and T/G substitutions) within the constraints (see 
+`?get3pAlignment` for more detail). More information (such as the size of the 
+miRNA and target loops between the two complementary regions) can be reported by
+setting `findSeedMatches(..., p3.extra=TRUE)`. In addition, the pairing can be
+visualized with `viewTargetAlignment`:
+
+```{r}
+viewTargetAlignment(matches[1], SampleKdModel, SampleTranscript)
+```
+
+
+Some forms of 3' bindings can however lead to drastic functional consequences. 
+For example, sufficient final complementary at the 3' end of the miRNA can lead 
+to Target-Directed miRNA Degradation (TDMD, 
+[Sheu-Gruttadauria, Pawlica et al., 2019](https://dx.doi.org/10.1016/j.molcel.2019.06.019)).
+`findSeedMatches` will also flag such putative sites in the `notes` column of 
+the matches. Finally, while circular RNAs can act as miRNA sponges, some miRNA 
+bindings can slice their circular structure 
+[Hansen et al., 2011](https://doi.org/10.1038/emboj.2011.359) and free their 
+cargo. `findSeedMatches` will also flag such sites in the `notes` column.
+
 
 ### Shadow and Overlapping Matches
 The `shadow` argument can be used to take into account the observation that 
