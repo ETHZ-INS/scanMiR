@@ -111,9 +111,8 @@ can be obtained through the
 If the transcript sequences are provided as a `DNAStringSet`, one may specify 
 the length of the open reading frame region of the transcripts as a metadata 
 column in order to distinguish between matches in the ORF and 3'UTR regions.
-```{r}
+```{r message = FALSE}
 library(Biostrings)
-library(S4Vectors)
 
 # generate set of random sequences
 seqs <- DNAStringSet(getRandomSeq(length = 1000, n = 10))
