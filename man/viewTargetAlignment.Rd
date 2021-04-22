@@ -19,10 +19,10 @@ viewTargetAlignment(
 }
 \arguments{
 \item{m}{A GRanges of length 1 giving the information for a given match, as
-produced by \link{\code{findSeedMatches}}.}
+produced by \code{\link{findSeedMatches}}.}
 
-\item{miRNA}{A miRNA sequence, or a \link{\code{KdModel}} object of the miRNA
-corresponding to the match in `m`; alternatively, a \link{\code{KdModelList}}
+\item{miRNA}{A miRNA sequence, or a \code{\link{KdModel}} object of the miRNA
+corresponding to the match in `m`; alternatively, a \code{\link{KdModelList}}
 including the model.}
 
 \item{seqs}{The sequences corresponding to the seqnames of `m`. Not needed if

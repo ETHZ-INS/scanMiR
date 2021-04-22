@@ -64,7 +64,7 @@ Setting `ret = "data.frame"` returns the same information as a data.frame.
 ### Using a miRNA sequence
 Alternatively, we can provide the full miRNA sequence, which results in 
 additional information on supplementary 3' pairing in the form of an aggregated 
-score.
+score (see Section \@ref(sec:3pAlignment) for further details).
 ```{r}
 # full sequence of the mature miR-155-5p transcript
 miRNA <- "UUAAUGCUAAUCGUGAUAGGGGUU"
@@ -79,14 +79,13 @@ We can take a closer look at the alignment of the first match:
 viewTargetAlignment(matches[1], miRNA, SampleTranscript)
 ```
 
-This also reveals a supplementary 3' binding (see Section 
-\@ref(sec:3pAlignment)).
+Apart from the direct seed match (right), this representation also reveals the extensive supplementary 3' pairing (left).
 
 ### Using a KdModel
 Finally, we can provide the miRNA in the form of a `KdModel` (see the 
 [vignette on KdModels]("Kdmodels.html") for further information). In this case 
 `findSeedMatches` also returns the predicted affinity value for each match. The 
-`log_kd` column contains log(Kd) values multiplied by 1000, where KD is the 
+`log_kd` column contains log(Kd) values multiplied by 1000, where Kd is the 
 predicted dissociation constant of miRNA:mRNA binding for the putative binding 
 site.
 ```{r}
@@ -112,9 +111,8 @@ can be obtained through the
 If the transcript sequences are provided as a `DNAStringSet`, one may specify 
 the length of the open reading frame region of the transcripts as a metadata 
 column in order to distinguish between matches in the ORF and 3'UTR regions.
-```{r}
+```{r message = FALSE}
 library(Biostrings)
-library(S4Vectors)
 
 # generate set of random sequences
 seqs <- DNAStringSet(getRandomSeq(length = 1000, n = 10))
@@ -130,14 +128,14 @@ head(matches2)
 
 ### Supplementary 3' pairing  {#sec:3pAlignment}
 
-Upon binding the seed regions, further complementary of the target to the 3' 
+Upon binding the seed regions, further complementary pairing of the target to the 3' 
 region of the miRNA can increase affinity and further stabilize the binding 
 ([Schirle, Sheu-Gruttadauria and MacRae, 2014](https://dx.doi.org/10.1126/science.1258040)).
 Upon finding a seed match, `scanMiR` performs a local alignment on the upstream
 region to identify such complementary 3' binding. This is internally done by the
 `get3pAlignment()` function, the arguments to which (e.g. the maximum size of
 the gap between the seed binding and the complementary binding) can be passed 
-via the `findSeedMatches` argument `p3.params`. By default when running 
+via the `findSeedMatches` argument `p3.params`. By default, when running 
 `findSeedMatches` a 3' score is reported in the matches, which roughly 
 corresponds to the number of consecutive matching nucleotides (adjusting for 
 small gaps and T/G substitutions) within the constraints (see 
@@ -232,21 +230,27 @@ condition. However, as shown by
 [McGeary, Lin et al. (2019)](https://dx.doi.org/10.1126/science.aav1741), the 
 model performance is robust to changes in `a` over several orders of magnitude. 
 Aggregation for all miRNA-transcript pairs for a given data set is therefore 
-usually based on a single `a` value. `r Biocpkg("scanMiR")` provides reasonable 
-default parameter values that have been determined by fitting and validating 
-the model using several experimental data sets.
+usually based on a single `a` value.
 
 ## Basic Aggregation
 Given a `GRanges` or data.frame of matches as returned by `findSeedMatches`, 
 aggregation can be performed by the function `aggregateMatches`:
 ```{r}
-agg_matches <- aggregateMatches(matches)
+agg_matches <- aggregateMatches(matches2)
 head(agg_matches)
 ```
 This returns a data.frame with predicted repression values for each 
 miRNA-transcript pair along with a count table of the different site types. If 
 `matches` does not contain a `log_kd` column, only the count table will be 
 returned.
+
+ `r Biocpkg("scanMiR")` uses the following 
+default parameter values for aggregation that have been determined by fitting and validating 
+the model using several experimental data sets:
+```{r}
+scanMiR:::.defaultAggParams()
+```
+The parameters `p3`, `coef_utr`, and `coef_orf` are additionally used to account for the influence of 3' pairing, and the lengths of the UTR and ORF regions, respectively. To disable these features, they can simply be set to zero. `keepSiteInfo` lets you choose whether the site count table should be returned. 
 
 # Parallel Processing
 To deal with large amounts of sequences and/or seeds, both `findSeedMatches` 

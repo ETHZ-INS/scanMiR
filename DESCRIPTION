@@ -27,7 +27,7 @@ Imports:
     seqLogo
 Suggests: knitr, rmarkdown
 Description:
-    A set of tools for working with miRNA dissociate rate models (KdModels),
+    A set of tools for working with miRNA affinity models (KdModels),
     efficiently scanning for miRNA binding sites, and predicting target 
     repression. It supports scanning using miRNA seeds, full miRNA sequences 
     (enabling 3' alignment) and KdModels, and includes the prediction of slicing

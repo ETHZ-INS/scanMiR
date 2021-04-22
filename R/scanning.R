@@ -18,7 +18,7 @@
 #' @param keepMatchSeq Logical; whether to keep the sequence (including flanking
 #' dinucleotides) for each seed match (default FALSE).
 #' @param minDist Integer specifying the minimum distance between matches of the
-#' same miRNA (default 1). Closer matches will be reduced to the
+#' same miRNA (default 7). Closer matches will be reduced to the
 #' highest-affinity. To disable the removal of overlapping features, use
 #' `minDist=-Inf`.
 #' @param p3.extra Logical; whether to keep extra information about 3' alignment
@@ -587,7 +587,7 @@ getMatchTypes <- function(x, seed){
 }
 
 .defaultAggParams <- function(){
-  list(a=-4.863126,
+  list(a=-4.8631,
     b=0.5735,
     c=-1.7091,
     p3=0.04403,
