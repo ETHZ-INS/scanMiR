@@ -13,7 +13,9 @@ package: scanMiR
 output:
   BiocStyle::html_document
 abstract: |
-  This vignettes introduces the scanMiR framework
+  This vignettes introduces the KdModel and KdModelList classes used for storing
+  miRNA 12-mer affinities and predicting the dissociation constant of specific
+  sites.
 vignette: |
   %\VignetteIndexEntry{2_Kdmodels}
   %\VignetteEngine{knitr::rmarkdown}
