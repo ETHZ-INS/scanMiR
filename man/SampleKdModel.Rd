@@ -10,3 +10,7 @@ a `KdModel` object
 `KdModel` for hsa-miR-155-5p, based on Kd predictions from the CNN of
 [McGeary, Lin et al. (2019)](https://dx.doi.org/10.1126/science.aav1741).
 }
+\examples{
+data(SampleKdModel)
+SampleKdModel
+}

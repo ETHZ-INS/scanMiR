@@ -21,4 +21,7 @@ NULL
 #' [McGeary, Lin et al. (2019)](https://dx.doi.org/10.1126/science.aav1741).
 #'
 #' @return a `KdModel` object
+#' @examples
+#' data(SampleKdModel)
+#' SampleKdModel
 NULL
