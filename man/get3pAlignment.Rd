@@ -2,7 +2,7 @@
 % Please edit documentation in R/scanning.R
 \name{get3pAlignment}
 \alias{get3pAlignment}
-\title{get3pAlignment}
+\title{Finds 3' complementary binding of a miRNA}
 \usage{
 get3pAlignment(
   seqs,
@@ -16,9 +16,10 @@ get3pAlignment(
 )
 }
 \arguments{
-\item{seqs}{A set of sequences in which to look for 3' matches}
+\item{seqs}{A set of sequences in which to look for 3' matches (i.e. upstream
+of the seed match)}
 
-\item{mirseq}{The sequence of the miRNA}
+\item{mirseq}{The sequence of the mature miRNA}
 
 \item{mir3p.start}{The position in `mirseq` in which to start looking}
 
@@ -30,7 +31,7 @@ get3pAlignment(
 
 \item{maxLoopDiff}{Maximum size difference between miRNA and target loops}
 
-\item{TGsub}{Logical; whether to allow T/G substitutions}
+\item{TGsub}{Logical; whether to allow T/G substitutions.}
 }
 \value{
 A data.frame with one row for each element of `seqs`, indicating the
@@ -39,7 +40,8 @@ mismatches at the 3' end, and the partial 3' alignment score (i.e. roughly
 the number of consecutive matching nucleotides)
 }
 \description{
-get3pAlignment
+Performs a local alignment of the miRNA 3' sequence (determined by
+`mir3p.start`) on given the given sequences.
 }
 \examples{
 get3pAlignment(seqs="NNAGTGTGCCATNN", mirseq="TGGAGTGTGACAATGGTGTTTG")

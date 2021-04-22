@@ -2,7 +2,9 @@
 title: "Scanning sequences for miRNA binding sites and exploring matches with scanMiR"
 author: 
 - name: Pierre-Luc Germain
-  affiliation: D-HEST Institute for Neuroscience, ETH & Lab of Statistical Bioinformatics, UZH
+  affiliation:
+    - D-HEST Institute for Neuroscience, ETH
+    - Lab of Statistical Bioinformatics, UZH
 - name: Michael Soutschek
   affiliation: Lab of Systems Neuroscience, D-HEST Institute for Neuroscience, ETH
 - name: Fridolin Gross
@@ -240,9 +242,6 @@ This returns a data.frame with predicted repression values for each
 miRNA-transcript pair along with a count table of the different site types. If 
 `matches` does not contain a `log_kd` column, only the count table will be 
 returned.
-
-## Further Options
-### coef_utr and coef_orf
 
 # Parallel Processing
 To deal with large amounts of sequences and/or seeds, both `findSeedMatches` 

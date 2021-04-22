@@ -1,4 +1,8 @@
+#' miRNA affinity models (KdModel)
 #' @exportClass KdModel
+#' @aliases KdModel-class KdModel
+#' @rdname KdModel-class
+#' @name KdModel-class
 setClass(
   "KdModel",
   contains="list",

@@ -1,4 +1,5 @@
 #' @exportClass KdModelList
+#' @rdname KdModelList
 setClass(
   "KdModelList",
   contains="list",

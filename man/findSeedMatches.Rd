@@ -2,7 +2,7 @@
 % Please edit documentation in R/scanning.R
 \name{findSeedMatches}
 \alias{findSeedMatches}
-\title{findSeedMatches}
+\title{Predicting and characterizing miRNA binding sites}
 \usage{
 findSeedMatches(
   seqs,
@@ -55,14 +55,14 @@ highest-affinity. To disable the removal of overlapping features, use
 `maxLoopDiff` (integer, default = 4), and `mismatch`
 (logical, default = TRUE).}
 
-\item{agg.params}{A named list with slots `ag`, `b`, `c`, `p3`, `coef_utr`,
+\item{agg.params}{A named list with slots `a`, `b`, `c`, `p3`, `coef_utr`,
 `coef_orf` and `keepSiteInfo` indicating the parameters for the aggregation.
 Ignored if `ret!="aggregated"`. For further details see documentation of
 `aggregateMatches`.}
 
 \item{ret}{The type of data to return, either "GRanges" (default),
-"data.frame" (lighter weight than GRanges), or "aggregated" (aggregates
-affinities/sites for each seed-transcript pair).}
+"data.frame", or "aggregated" (aggregates affinities/sites for each
+seed-transcript pair).}
 
 \item{BP}{Pass `BiocParallel::MulticoreParam(ncores, progressbar=TRUE)` to
 enable multithreading.}
@@ -76,10 +76,11 @@ avoid memory issues.}
 \value{
 A GRanges of all matches. If `seeds` is a `KdModel` or `KdModelList`,
 the `log_kd` column will report the ln(Kd) multiplied by 1000, rounded and
-saved as an integer.
+saved as an integer. If `ret!="GRanges`, returns a data.frame.
 }
 \description{
-findSeedMatches
+`findSeedMatches` takes a set of sequences and a set of miRNAs (given either
+as target seeds, mature miRNA sequences, or a \code{\link{KdModelList}}).
 }
 \examples{
 # we create mock RNA sequences and seeds:

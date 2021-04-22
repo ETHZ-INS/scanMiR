@@ -1,4 +1,7 @@
-#' findSeedMatches
+#' Predicting and characterizing miRNA binding sites
+#'
+#' `findSeedMatches` takes a set of sequences and a set of miRNAs (given either
+#' as target seeds, mature miRNA sequences, or a \code{\link{KdModelList}}).
 #'
 #' @param seqs A character vector or `DNAStringSet` of DNA sequences in which to
 #' look.
@@ -28,17 +31,18 @@
 #' Ignored if `ret!="aggregated"`. For further details see documentation of
 #' `aggregateMatches`.
 #' @param ret The type of data to return, either "GRanges" (default),
-#' "data.frame" (lighter weight than GRanges), or "aggregated" (aggregates
-#' affinities/sites for each seed-transcript pair).
+#' "data.frame", or "aggregated" (aggregates affinities/sites for each
+#' seed-transcript pair).
 #' @param BP Pass `BiocParallel::MulticoreParam(ncores, progressbar=TRUE)` to
 #' enable multithreading.
 #' @param verbose Logical; whether to print additional progress messages
 #' (default on if not multithreading)
 #' @param n_seeds Integer; the number of seeds that are processed in parallel to
 #' avoid memory issues.
+#'
 #' @return A GRanges of all matches. If `seeds` is a `KdModel` or `KdModelList`,
 #' the `log_kd` column will report the ln(Kd) multiplied by 1000, rounded and
-#' saved as an integer.
+#' saved as an integer. If `ret!="GRanges`, returns a data.frame.
 #'
 #' @importFrom BiocParallel bplapply SerialParam bpnworkers
 #' @importFrom GenomeInfoDb seqlevels
@@ -369,13 +373,17 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
   p3.params
 }
 
-#' get3pAlignment
+#' Finds 3' complementary binding of a miRNA
 #'
-#' @param seqs A set of sequences in which to look for 3' matches
-#' @param mirseq The sequence of the miRNA
+#' Performs a local alignment of the miRNA 3' sequence (determined by
+#' `mir3p.start`) on given the given sequences.
+#'
+#' @param seqs A set of sequences in which to look for 3' matches (i.e. upstream
+#' of the seed match)
+#' @param mirseq The sequence of the mature miRNA
 #' @param mir3p.start The position in `mirseq` in which to start looking
 #' @param allow.mismatch Logical; whether to allow mismatches
-#' @param TGsub Logical; whether to allow T/G substitutions
+#' @param TGsub Logical; whether to allow T/G substitutions.
 #' @param maxMirLoop Maximum miRNA loop size
 #' @param maxTargetLoop Maximum target loop size
 #' @param maxLoopDiff Maximum size difference between miRNA and target loops

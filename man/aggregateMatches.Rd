@@ -6,7 +6,7 @@
 \usage{
 aggregateMatches(
   m,
-  ag = -4.863126,
+  a = -4.863126,
   b = 0.5735,
   c = -1.7091,
   p3 = 0.04403,
@@ -21,7 +21,7 @@ aggregateMatches(
 \arguments{
 \item{m}{A GRanges or data.frame of matches as returned by `findSeedMatches`.}
 
-\item{ag}{The relative concentration of unbound AGO-miRNA complexes.}
+\item{a}{The relative concentration of unbound AGO-miRNA complexes.}
 
 \item{b}{Factor specifying the additional repression by a single bound AGO.}
 
