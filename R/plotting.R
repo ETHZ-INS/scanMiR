@@ -21,18 +21,13 @@
 #' @import ggplot2
 #' @importFrom gridExtra grid.arrange
 #' @importFrom grid grid.grabExpr
+#' @importFrom seqLogo seqLogo
 #' @export
 #' @examples
 #' data(SampleKdModel)
 #' plotKdModel(SampleKdModel, what="seeds")
 plotKdModel <- function(mod, what=c("both","seeds","logo"), n=10){
   what <- match.arg(what)
-  if(what !="seeds" &&
-     require("seqLogo", quietly=TRUE, character.only=TRUE)){
-    warning("The 'seqLogo' package is required for plotting logos.\n",
-            "Reverting to `what='seeds'`.")
-    what <- "seeds"
-  }
   if(what=="seeds"){
     mer8 <- getSeed8mers(mod$canonical.seed)
     wA <- which(substr(mer8,8,8)=="A")
@@ -57,7 +52,7 @@ plotKdModel <- function(mod, what=c("both","seeds","logo"), n=10){
   }
 
   if(what=="logo")
-    return(seqLogo:::seqLogo(mod$pwm, xfontsize=12, yfontsize=12, xaxis=FALSE))
+    return(seqLogo::seqLogo(mod$pwm, xfontsize=12, yfontsize=12, xaxis=FALSE))
   gridExtra::grid.arrange(plotKdModel(mod, "seeds"),
                           grid::grid.grabExpr(plotKdModel(mod, "logo")),
                           nrow=2, heights=c(6,4))
