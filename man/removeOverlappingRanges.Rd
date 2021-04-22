@@ -19,7 +19,7 @@ removeOverlappingRanges(
 \item{retIndices}{Logical; whether to return the indices of entries to
 remove, rather than the filtered GRanges.}
 
-\item{ignore.strand}{Logical. Whether the strand of the input ranges should 
+\item{ignore.strand}{Logical. Whether the strand of the input ranges should
 be ignored or not.}
 }
 \value{
@@ -33,6 +33,7 @@ sorted in order of priority). The function handles overlaps between more than
 two ranges by successively removing those that overlap higher-priority ones.
 }
 \examples{
+library(GenomicRanges)
 gr <- GRanges(seqnames=rep("A",4), IRanges(start=c(10,25,45,35), width=6))
 removeOverlappingRanges(gr, minDist=7)
 }
