@@ -12,12 +12,15 @@ removeOverlappingRanges(
 )
 }
 \arguments{
-\item{x}{A GRanges, sorted by (decreasing) importance}
+\item{x}{A GRanges, sorted by (decreasing) importance.}
 
-\item{minDist}{Minimum distance between ranges}
+\item{minDist}{Minimum distance between ranges.}
 
 \item{retIndices}{Logical; whether to return the indices of entries to
 remove, rather than the filtered GRanges.}
+
+\item{ignore.strand}{Logical. Whether the strand of the input ranges should 
+be ignored or not.}
 }
 \value{
 A filtered GRanges, or an integer vector of indices to be removed if
