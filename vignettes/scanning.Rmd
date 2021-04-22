@@ -230,9 +230,7 @@ condition. However, as shown by
 [McGeary, Lin et al. (2019)](https://dx.doi.org/10.1126/science.aav1741), the 
 model performance is robust to changes in `a` over several orders of magnitude. 
 Aggregation for all miRNA-transcript pairs for a given data set is therefore 
-usually based on a single `a` value. `r Biocpkg("scanMiR")` provides reasonable 
-default parameter values that have been determined by fitting and validating 
-the model using several experimental data sets.
+usually based on a single `a` value.
 
 ## Basic Aggregation
 Given a `GRanges` or data.frame of matches as returned by `findSeedMatches`, 
@@ -245,6 +243,14 @@ This returns a data.frame with predicted repression values for each
 miRNA-transcript pair along with a count table of the different site types. If 
 `matches` does not contain a `log_kd` column, only the count table will be 
 returned.
+
+ `r Biocpkg("scanMiR")` uses the following 
+default parameter values for aggregation that have been determined by fitting and validating 
+the model using several experimental data sets:
+```{r}
+scanMiR:::.defaultAggParams()
+```
+The parameters `p3`, `coef_utr`, and `coef_orf` are additionally used to account for the influence of 3' pairing, and the lengths of the UTR and ORF regions, respectively. To disable these features, they can simply be set to zero. `keepSiteInfo` lets you choose whether the site count table should be returned. 
 
 # Parallel Processing
 To deal with large amounts of sequences and/or seeds, both `findSeedMatches` 

@@ -587,7 +587,7 @@ getMatchTypes <- function(x, seed){
 }
 
 .defaultAggParams <- function(){
-  list(a=-4.863126,
+  list(a=-4.8631,
     b=0.5735,
     c=-1.7091,
     p3=0.04403,
