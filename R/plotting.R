@@ -67,9 +67,9 @@ plotKdModel <- function(mod, what=c("both","seeds","logo"), n=10){
 #' viewTargetAlignment
 #'
 #' @param m A GRanges of length 1 giving the information for a given match, as
-#' produced by \link{\code{findSeedMatches}}.
-#' @param miRNA A miRNA sequence, or a \link{\code{KdModel}} object of the miRNA
-#' corresponding to the match in `m`; alternatively, a \link{\code{KdModelList}}
+#' produced by \code{\link{findSeedMatches}}.
+#' @param miRNA A miRNA sequence, or a \code{\link{KdModel}} object of the miRNA
+#' corresponding to the match in `m`; alternatively, a \code{\link{KdModelList}}
 #' including the model.
 #' @param seqs The sequences corresponding to the seqnames of `m`. Not needed if
 #' `m` contains the target sequences.

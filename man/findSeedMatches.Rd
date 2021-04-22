@@ -44,7 +44,7 @@ disable. Use vector of length two separately specify maximum for UTR and ORF.}
 dinucleotides) for each seed match (default FALSE).}
 
 \item{minDist}{Integer specifying the minimum distance between matches of the
-same miRNA (default 1). Closer matches will be reduced to the
+same miRNA (default 7). Closer matches will be reduced to the
 highest-affinity. To disable the removal of overlapping features, use
 `minDist=-Inf`.}
 
