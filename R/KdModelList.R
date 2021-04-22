@@ -64,7 +64,6 @@ KdModelList <- function(..., description=NULL, makeUnique=FALSE){
 
 #' Methods for the \code{\link{KdModelList}} classes
 #' @name KdModelList-methods
-#' @rdname KdModelList-methods
 #' @aliases KdModelList-methods
 #' @seealso \code{\link{KdModel}}, \code{\link{KdModelList}}
 #' @param object,x An object of class \code{\link{KdModelList}}
@@ -78,6 +77,7 @@ KdModelList <- function(..., description=NULL, makeUnique=FALSE){
 #' kml[1] # returns a KdModelList
 #' kml[[2]] # returns a KdModel
 #' conservation(kml)
+#' @rdname KdModelList-methods
 #' @export
 setMethod("summary", "KdModelList", function(object){
   d <- attr(object, "created")
@@ -95,7 +95,7 @@ setMethod("summary", "KdModelList", function(object){
 #' @rdname KdModelList-methods
 #' @export
 #' @param i the index of item(s) to select
-#' @param j,... ignored
+#' @param j,drop,... ignored
 setMethod("[", "KdModelList", function(x, i, j=NULL, ..., drop = TRUE){
   xo <- new("KdModelList", unclass(x)[i])
   if(!is.null(attr(x, "created"))) attr(xo, "created") <- attr(x, "created")

@@ -14,7 +14,7 @@
 
 \item{i}{the index of item(s) to select}
 
-\item{j, ...}{ignored}
+\item{j, drop, ...}{ignored}
 }
 \value{
 Depends on the method.

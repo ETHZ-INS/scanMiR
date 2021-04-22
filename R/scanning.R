@@ -467,13 +467,15 @@ get3pAlignment <- function(seqs, mirseq, mir3p.start=9L, allow.mismatch=TRUE,
 #' @param minDist Minimum distance between ranges.
 #' @param retIndices Logical; whether to return the indices of entries to
 #' remove, rather than the filtered GRanges.
-#' @param ignore.strand Logical. Whether the strand of the input ranges should 
+#' @param ignore.strand Logical. Whether the strand of the input ranges should
 #' be ignored or not.
 #'
 #' @return A filtered GRanges, or an integer vector of indices to be removed if
 #' `retIndices==TRUE`.
 #' @export
+#' @import GenomicRanges
 #' @examples
+#' library(GenomicRanges)
 #' gr <- GRanges(seqnames=rep("A",4), IRanges(start=c(10,25,45,35), width=6))
 #' removeOverlappingRanges(gr, minDist=7)
 removeOverlappingRanges <- function(x, minDist=7L, retIndices=FALSE,
