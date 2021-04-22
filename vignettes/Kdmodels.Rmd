@@ -114,6 +114,10 @@ mod3 <- getKdModel(kd=kd, mirseq="TTAATGCTAATCGTGATAGGGGTT", name = "my-miRNA")
 Alternatively, the `kd` argument can also be the path to the output file of the 
 CNN (and if `mirseq` and `name` are in the table, they can be omitted).
 
+# Common KdModel collections
+
+The [scanMiRData](https://github.com/ETHZ-INS/scanMiRData) package contains 
+`KdModel` collections corresponding to all human, mouse and rat mirbase miRNAs.
 
 # Under the hood
 

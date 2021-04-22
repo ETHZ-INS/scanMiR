@@ -104,6 +104,10 @@ to non-canonical binding sites. These are typically of low affinity, but may
 affect repression if several of them are found on the same transcript. The scan 
 can be restricted to canonical sites using the option `onlyCanonical = TRUE`.
 
+`KdModel` collections corresponding to all human, mouse and rat mirbase miRNAs 
+can be obtained through the 
+[scanMiRData](https://github.com/ETHZ-INS/scanMiRData) package.
+
 ## Further Options
 
 ### ORF length
