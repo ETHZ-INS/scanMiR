@@ -24,6 +24,10 @@ vignette: |
 library(BiocStyle)
 ```
 
+```{r echo = FALSE, out.width="35%", fig.align = 'right'}
+knitr::include_graphics(system.file('docs', 'sticker.svg', package = 'scanMiR'))
+```
+
 # Scanning
 ## Background
 `r Biocpkg("scanMiR")` can be used to identify potential binding sites given a 
