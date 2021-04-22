@@ -79,7 +79,7 @@ getKdModel <- function( kd, mirseq=NULL, name=NULL, conservation=NA_integer_,
   if(!("X12mer" %in% colnames(kd)) && "12mer" %in% colnames(kd))
     colnames(kd) <- gsub("^12mer$","X12mer",colnames(kd))
   kd <- kd[,c("X12mer","log_kd")]
-  see <- reverseComplement(DNAString(substr(mirseq, 2,8)))
+  seed <- reverseComplement(DNAString(substr(mirseq, 2,8)))
   seed <- paste0(as.character(seed),"A")
   w <- grep("X|N",kd$X12mer,invert=TRUE)
   pwm <- Biostrings::consensusMatrix(
