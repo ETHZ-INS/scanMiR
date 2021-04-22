@@ -1,8 +1,23 @@
-#' miRNA affinity models (KdModel)
+#' miRNA affinity models
+#'
+#' Methods for the \code{\link{KdModel}} class
+#'
+#' @name KdModel
+#' @rdname KdModel
+#' @aliases KdModel-methods KdModel-class
+#' @seealso \code{\link{KdModel}}, \code{\link{KdModelList}}
+#' @param object,x,... An object of class \code{\link{KdModel}}
+#' @return Depends on the method.
 #' @exportClass KdModel
-#' @aliases KdModel-class KdModel
-#' @rdname KdModel-class
-#' @name KdModel-class
+#' @examples
+#' data(SampleKdModel)
+#' SampleKdModel
+#' summary(SampleKdModel)
+#'
+#' # can also be appended to create a KdModelList:
+#' mod2 <- SampleKdModel
+#' mod2$name <- "newModel"
+#' c( SampleKdModel, mod2 )
 setClass(
   "KdModel",
   contains="list",
@@ -23,6 +38,8 @@ setClass(
   }
 )
 
+
+#' @rdname KdModel
 #' @export
 setMethod("show", "KdModel", function(object){
   con <- conservation(object)
@@ -32,6 +49,8 @@ setMethod("show", "KdModel", function(object){
              gsub("A$","(A)",object$canonical.seed)))
 })
 
+
+#' @rdname KdModel
 #' @export
 setMethod("summary", "KdModel", function(object){
   c( name=object$name, sequence=gsub("T","U",object$mirseq),
@@ -39,6 +58,7 @@ setMethod("summary", "KdModel", function(object){
      conservation=as.character(conservation(object)) )
 })
 
+#' @rdname KdModel
 #' @export
 setMethod("c", signature(x = "KdModel"), function (x, ...){
   KdModelList(c(list(x), list(...)))
