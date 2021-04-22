@@ -25,7 +25,7 @@ Imports:
     grid,
     gridExtra,
     seqLogo
-Suggests: knitr, rmarkdown
+Suggests: knitr, rmarkdown, BiocStyle
 Description:
     A set of tools for working with miRNA affinity models (KdModels),
     efficiently scanning for miRNA binding sites, and predicting target 
