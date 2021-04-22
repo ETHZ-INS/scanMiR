@@ -463,10 +463,12 @@ get3pAlignment <- function(seqs, mirseq, mir3p.start=9L, allow.mismatch=TRUE,
 #' sorted in order of priority). The function handles overlaps between more than
 #' two ranges by successively removing those that overlap higher-priority ones.
 #'
-#' @param x A GRanges, sorted by (decreasing) importance
-#' @param minDist Minimum distance between ranges
+#' @param x A GRanges, sorted by (decreasing) importance.
+#' @param minDist Minimum distance between ranges.
 #' @param retIndices Logical; whether to return the indices of entries to
 #' remove, rather than the filtered GRanges.
+#' @param ignore.strand Logical. Whether the strand of the input ranges should 
+#' be ignored or not.
 #'
 #' @return A filtered GRanges, or an integer vector of indices to be removed if
 #' `retIndices==TRUE`.

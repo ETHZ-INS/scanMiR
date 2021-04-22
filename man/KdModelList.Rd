@@ -9,11 +9,11 @@
 KdModelList(..., description = NULL, makeUnique = FALSE)
 }
 \arguments{
-\item{...}{Any number of \code{\link{KdModel}} objects or lists thereof}
+\item{...}{Any number of \code{\link{KdModel}} objects or lists thereof.}
 
 \item{description}{A description for the collection.}
 
-\item{makeUnique}{Logical; whether to rename models if names are duplicated}
+\item{makeUnique}{Logical; whether to rename models if names are duplicated.}
 }
 \value{
 A KdModelList
@@ -23,6 +23,6 @@ KdModelList
 }
 \examples{
 data(SampleKdModel)
-mods <- KdModelList(SampleKdModel, SampleKdModel)
+mods <- KdModelList(SampleKdModel, SampleKdModel, makeUnique = TRUE)
 mods
 }
