@@ -22,10 +22,6 @@ vignette: |
 
 ```{r, include=FALSE}
 library(BiocStyle)
-# library(scanMiR)
-devtools::load_all("/mnt/schratt/miRNA_KD/fg_test/scanMiR")
-library(Biostrings)
-library(S4Vectors)
 ```
 
 # Scanning
@@ -47,6 +43,8 @@ The seed must be given in the form of a (RNA or DNA) sequence of length 7 or 8
 Note that the seed should be given as it would appear in a match in the target 
 sequence (i.e. the reverse complement of how it appears in the miRNA).
 ```{r}
+library(scanMiR)
+
 # seed sequence of hsa-miR-155-5p
 seed <- "AGCAUUAA"
 
@@ -115,6 +113,9 @@ If the transcript sequences are provided as a `DNAStringSet`, one may specify
 the length of the open reading frame region of the transcripts as a metadata 
 column in order to distinguish between matches in the ORF and 3'UTR regions.
 ```{r}
+library(Biostrings)
+library(S4Vectors)
+
 # generate set of random sequences
 seqs <- DNAStringSet(getRandomSeq(length = 1000, n = 10))
 
