@@ -22,6 +22,7 @@ Imports:
     stats,
     stringi,
     utils,
+    graphics,
     grid,
     gridExtra,
     seqLogo

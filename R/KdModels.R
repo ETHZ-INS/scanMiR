@@ -13,11 +13,6 @@
 #' data(SampleKdModel)
 #' SampleKdModel
 #' summary(SampleKdModel)
-#'
-#' # can also be appended to create a KdModelList:
-#' mod2 <- SampleKdModel
-#' mod2$name <- "newModel"
-#' c( SampleKdModel, mod2 )
 setClass(
   "KdModel",
   contains="list",

@@ -82,6 +82,7 @@ plotKdModel <- function(mod, what=c("both","seeds","logo"), n=10){
 #' returns a data.frame containing the alignment strings; if
 #' `outputType="plot"` returns a `ggplot` object.
 #' @importFrom stringi stri_reverse
+#' @importFrom graphics par text
 #' @export
 #' @examples
 #' data(SampleKdModel)
