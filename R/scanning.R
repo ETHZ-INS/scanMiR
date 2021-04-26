@@ -39,6 +39,14 @@
 #' (default on if not multithreading)
 #' @param n_seeds Integer; the number of seeds that are processed in parallel to
 #' avoid memory issues.
+#' @param useTmpFiles Logical; whether to write results for single miRNAs in
+#' temporary files (ignored when scanning for a single seed). Alternatively,
+#' `useTmpFiles` can be a character vector of length 1 indicating the path to
+#' the directory in which to write temporary files.
+#' @param keepTmpFiles Logical; whether to keep the temporary files at the end
+#' of the process; ignored if `useTmpFiles=FALSE`. Temporary files are removed
+#' only upon successful completion of the function, meaning that they will not
+#' be deleted in case of errors.
 #'
 #' @return A GRanges of all matches. If `seeds` is a `KdModel` or `KdModelList`,
 #' the `log_kd` column will report the ln(Kd) multiplied by 1000, rounded and
@@ -62,7 +70,8 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
                                             maxLoopDiff=4L, mismatch=TRUE),
                              agg.params=.defaultAggParams(),
                              ret=c("GRanges","data.frame","aggregated"),
-                             BP=NULL, verbose=NULL, n_seeds=NULL){
+                             BP=NULL, verbose=NULL, n_seeds=NULL,
+                             useTmpFiles=FALSE, keepTmpFiles=FALSE){
   p3.params <- .check3pParams(p3.params)
   if(length(maxLogKd)==1) maxLogKd <- rep(maxLogKd,2)
   length.seqs <- width(seqs)
@@ -118,6 +127,7 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
   if(ret=="aggregated") params$agg.params <- agg.params
 
   if(is(seeds,"KdModel") || length(seeds)==1){
+    useTmpFiles <- FALSE
     if(is.list(seeds[[1]])) seeds <- seeds[[1]]
     params$miRNA <- ifelse(is(seeds, "KdModel"), seeds$name, seeds)
     if(is.null(verbose)) verbose <- TRUE
@@ -141,10 +151,21 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
     if(is.null(BP)) BP <- SerialParam()
     if(is.null(verbose)) verbose <- !(bpnworkers(BP)>1 | length(seeds)>5)
     if(is.null(n_seeds)) n_seeds <- length(seeds)
+    if(isTRUE(useTmpFiles) ||
+       (is.character(useTmpFiles) && length(useTmpFiles)==1)){
+      if(is.logical(useTmpFiles)){
+        tmpDir <- tempdir()
+      }else{
+        tmpDir <- useTmpFiles
+        useTmpFiles <- TRUE
+      }
+      stopifnot(!file.access(tmpDir, mode=2))
+    }
     if(verbose) {
       if(is.numeric(BP$workers)) {
         message("Scanning with ", n_seeds, "seeds at a time on ", BP$workers,
                 " cores...")
+        if(useTmpFiles) message("Temporary writing results in:\n", tmpDir)
       } else {
         message("Scanning with ", n_seeds, " seeds at a time...")
       }
@@ -169,8 +190,14 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
                                 keepSiteInfo = agg.params$keepSiteInfo,
                                 toInt=TRUE)
         }
-        return(m)
-        })
+        if(!useTmpFiles) return(m)
+        f <- paste0(ifelse(is.character(oneseed), oneseed, oneseed$name), "_")
+        f <- tempfile(f, tmpdir=tmpDir)
+        saveRDS(m, f, compress=FALSE)
+        rm(m)
+        gc(verbose = FALSE)
+        f
+      })
     })
     m <- do.call(c, m)
     names(m) <- NULL
@@ -182,6 +209,13 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
         }, character(1))
     }
     names(m) <- seeds
+
+    if(useTmpFiles){
+      if(verbose) message("Scan completed, reading and aggregating results ",
+                          "from temporary files...")
+      ff <- unlist(m,use.names=FALSE)
+      m <- lapply(m, FUN=function(x) readRDS(x))
+    }
 
     if(ret=="GRanges"){
       m <- .unlistGRL(m, .id="miRNA")
@@ -201,6 +235,7 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
     }
   }
 
+  if(useTmpFiles && !keepTmpFiles) unlink(ff)
   gc(verbose = FALSE, full = TRUE)
 
   m

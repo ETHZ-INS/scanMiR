@@ -19,7 +19,9 @@ findSeedMatches(
   ret = c("GRanges", "data.frame", "aggregated"),
   BP = NULL,
   verbose = NULL,
-  n_seeds = NULL
+  n_seeds = NULL,
+  useTmpFiles = FALSE,
+  keepTmpFiles = FALSE
 )
 }
 \arguments{
@@ -72,6 +74,16 @@ enable multithreading.}
 
 \item{n_seeds}{Integer; the number of seeds that are processed in parallel to
 avoid memory issues.}
+
+\item{useTmpFiles}{Logical; whether to write results for single miRNAs in
+temporary files (ignored when scanning for a single seed). Alternatively,
+`useTmpFiles` can be a character vector of length 1 indicating the path to
+the directory in which to write temporary files.}
+
+\item{keepTmpFiles}{Logical; whether to keep the temporary files at the end
+of the process; ignored if `useTmpFiles=FALSE`. Temporary files are removed
+only upon successful completion of the function, meaning that they will not
+be deleted in case of errors.}
 }
 \value{
 A GRanges of all matches. If `seeds` is a `KdModel` or `KdModelList`,
