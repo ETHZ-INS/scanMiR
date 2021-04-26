@@ -169,8 +169,8 @@
      inkscape:window-maximized="1"
      inkscape:window-y="0"
      inkscape:window-x="0"
-     inkscape:cy="83.415059"
-     inkscape:cx="82.330426"
+     inkscape:cy="82.32144"
+     inkscape:cx="31.477164"
      inkscape:zoom="3.6575825"
      showgrid="false"
      id="namedview4"
@@ -190,9 +190,9 @@
      inkscape:groupmode="layer"><g
        id="g22-3"
        transform="matrix(1.25,0,0,-1.25,0,182.5)"
-       style="display:inline;fill:#fdfdfd;fill-opacity:0;stroke:#aaccff"><path
+       style="display:inline;fill:#fdfdfd;fill-opacity:1;stroke:#aaccff"><path
          d="m 2.422,38.688 v 68.945 l 59.858,34.478 59.859,-34.478 V 38.688 L 62.28,4.211 Z"
-         style="fill:#fdfdfd;fill-opacity:0;stroke:#aaccff"
+         style="fill:#fdfdfd;fill-opacity:1;stroke:#aaccff"
          id="path30-7"
          inkscape:connector-curvature="0" /></g><g
        id="g22"
@@ -212,7 +212,7 @@
        inkscape:export-filename="/Users/Luke/Downloads/title.png"
        transform="translate(0,109.0332)"
        id="g32"
-       style="stroke:none;stroke-opacity:1;fill:#003c98;fill-opacity:1"><path
+       style="fill:#003c98;fill-opacity:1;stroke:none;stroke-opacity:1"><path
          inkscape:connector-curvature="0"
          id="path34"
          style="fill:#003c98;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-opacity:1"
@@ -232,6 +232,7 @@
      x="-18.01936"
      y="186.41556"
      style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:7.27254963px;font-family:Arial;-inkscape-font-specification:Arial;stroke-width:0.77920175">www.bioconductor.org</tspan></text>
+
 
 
 </g><g
@@ -257,6 +258,7 @@
        id="tspan958">AU</tspan></tspan></text>
 
 
+
 <text
    xml:space="preserve"
    style="font-style:normal;font-weight:normal;font-size:16.84065056px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#808080;fill-opacity:1;stroke:none;stroke-width:1.26304877"
@@ -272,6 +274,7 @@
    id="tspan952">AGUG−AU</tspan>CAGAAGG<tspan
    style="font-size:13.59014893px;stroke-width:1.26304877"
    id="tspan954">U</tspan></tspan></text>
+
 
 
 <text
@@ -290,6 +293,7 @@
    id="tspan960">||||   </tspan>|||||||<tspan
    style="font-size:12.55811214px;stroke-width:1.16517127"
    id="tspan962">- </tspan></tspan></text>
+
 
 
 <path
