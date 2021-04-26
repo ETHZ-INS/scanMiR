@@ -2,6 +2,7 @@
 % Please edit documentation in R/KdModelList.R
 \name{KdModelList-methods}
 \alias{KdModelList-methods}
+\alias{summary,KdModelList-method}
 \alias{[,KdModelList,ANY-method}
 \title{Methods for the \code{\link{KdModelList}} classes}
 \usage{
@@ -26,7 +27,6 @@ Methods for the \code{\link{KdModelList}} classes
 # create a KdModelList :
 data(SampleKdModel)
 kml <- KdModelList( SampleKdModel, SampleKdModel, makeUnique=TRUE )
-
 summary(kml)
 kml[1] # returns a KdModelList
 kml[[2]] # returns a KdModel
