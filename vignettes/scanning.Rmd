@@ -1,13 +1,13 @@
 ---
 title: "Scanning sequences for miRNA binding sites and exploring matches with scanMiR"
 author: 
+- name: Fridolin Gross
+  affiliation: Lab of Systems Neuroscience, D-HEST Institute for Neuroscience, ETH
 - name: Pierre-Luc Germain
   affiliation:
     - D-HEST Institute for Neuroscience, ETH
     - Lab of Statistical Bioinformatics, UZH
 - name: Michael Soutschek
-  affiliation: Lab of Systems Neuroscience, D-HEST Institute for Neuroscience, ETH
-- name: Fridolin Gross
   affiliation: Lab of Systems Neuroscience, D-HEST Institute for Neuroscience, ETH
 package: scanMiR
 output:
@@ -83,7 +83,8 @@ We can take a closer look at the alignment of the first match:
 viewTargetAlignment(matches[1], miRNA, SampleTranscript)
 ```
 
-Apart from the direct seed match (right), this representation also reveals the extensive supplementary 3' pairing (left).
+Apart from the direct seed match (right), this representation also reveals the 
+extensive supplementary 3' pairing (left).
 
 ### Using a KdModel
 Finally, we can provide the miRNA in the form of a `KdModel` (see the 
@@ -249,12 +250,16 @@ miRNA-transcript pair along with a count table of the different site types. If
 returned.
 
  `r Biocpkg("scanMiR")` uses the following 
-default parameter values for aggregation that have been determined by fitting and validating 
-the model using several experimental data sets:
+default parameter values for aggregation that have been determined by fitting 
+and validating the model using several experimental data sets:
 ```{r}
 scanMiR:::.defaultAggParams()
 ```
-The parameters `p3`, `coef_utr`, and `coef_orf` are additionally used to account for the influence of 3' pairing, and the lengths of the UTR and ORF regions, respectively. To disable these features, they can simply be set to zero. `keepSiteInfo` lets you choose whether the site count table should be returned. 
+The parameters `p3`, `coef_utr`, and `coef_orf` are additionally used to 
+account for the influence of 3' pairing, and the lengths of the UTR and ORF 
+regions, respectively. To disable these features, they can simply be set to 
+zero. `keepSiteInfo` lets you choose whether the site count table should be 
+returned. 
 
 # Parallel Processing
 To deal with large amounts of sequences and/or seeds, both `findSeedMatches` 
