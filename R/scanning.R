@@ -354,7 +354,7 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
     rm(ms)
     mcols(m)$note <- Rle(.TDMD(cbind(type=mcols(m)$type, p3), mirseq=mirseq))
   }
-  if(!is.null(mcols(seqs)$C.length) && !all(mcols(seqs)$ORF.length == 0)) {
+  if(!is.null(mcols(seqs)$ORG.length) && !all(mcols(seqs)$ORF.length == 0)) {
     mcols(m)$ORF <-
       start(m) <= mcols(seqs[seqlevels(m)])[as.integer(seqnames(m)),"C.length"]
     mcols(m)$ORF <- Rle(mcols(m)$ORF)
