@@ -453,7 +453,7 @@ get3pAlignment <- function(seqs, mirseq, mir3p.start=9L, allow.mismatch=TRUE,
   df[which(df$p3.mir.bulge>maxMirLoop | df$p3.target.bulge>maxTargetLoop |
              diff>maxLoopDiff),
      c("p3.mir.bulge","p3.target.bulge","p3.score")] <- 0L
-  df$p3.score <- as.integer(df$p3.score)
+  if(!is.integer(df$p3.score)) df$p3.score <- as.integer(round(df$p3.score))
   df
 }
 
