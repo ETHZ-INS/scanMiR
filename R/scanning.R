@@ -298,7 +298,7 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
   if(isPureSeed){
     r <- split(r, seqnames(m))
     names(r) <- NULL
-    ms <- as.factor(unlist(extractAt(seqs[seqlevels(m)], r)))
+    ms <- as.factor(unlist(extractAt(seqs[seqlevels(m)], r))) # 8mers
     mcols(m)$type <- getMatchTypes(ms, substr(seed,1,7))
     if(keepMatchSeq && !p3.extra) mcols(m)$sequence <- ms
     m <- m[order(seqnames(m), m$type)]
@@ -307,7 +307,7 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
     end(r) <- end(r)+2L
     r <- split(r, seqnames(m))
     names(r) <- NULL
-    ms <- unlist(extractAt(seqs[seqlevels(m)], r))
+    ms <- unlist(extractAt(seqs[seqlevels(m)], r))  # 12mers
     mcols(m) <- cbind(mcols(m), assignKdType(ms, mod))
     if(keepMatchSeq && !p3.extra) mcols(m)$sequence <- ms
     if(maxLogKd[[1]]!=Inf){
@@ -333,7 +333,7 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
     end(r) <- start(r)+1L+plen
     r <- split(r, seqnames(m))
     names(r) <- NULL
-    ms <- unlist(extractAt(seqs[seqlevels(m)], r))
+    ms <- unlist(extractAt(seqs[seqlevels(m)], r)) # upstream target seq
     rm(r)
     names(ms) <- NULL
     p3 <- get3pAlignment( ms, mirseq,
@@ -442,17 +442,18 @@ get3pAlignment <- function(seqs, mirseq, mir3p.start=9L, allow.mismatch=TRUE,
                                           stop=nchar(mirseq))))
   if(!is(seqs, "XStringSet") && !is(seqs, "XString")) seqs <- DNAString(seqs)
   seqs <- reverseComplement(seqs)
-  subm <- .default3pSubMatrix(ifelse(allow.mismatch,-3,-Inf), TG=TGsub)
+  subm <- .default3pSubMatrix(ifelse(allow.mismatch,-3L,-Inf), TG=TGsub)
   al <- pairwiseAlignment(seqs, mir.3p, type="local", substitutionMatrix=subm)
   df <- data.frame( p3.mir.bulge=start(subject(al))-1L,
                     p3.target.bulge=start(pattern(al))-1L )
   df$p3.mismatch <- nchar(mir.3p)-width(pattern(al))-df$p3.mir.bulge
   df$p3.score <- as.integer(score(al))
   diff <- abs(df$p3.mir.bulge-df$p3.target.bulge)
-  df$p3.score <- ifelse(diff > 2,df$p3.score - (diff - 2),df$p3.score)
+  df$p3.score <- ifelse(diff > 2L, df$p3.score - (diff - 2L), df$p3.score)
   df[which(df$p3.mir.bulge>maxMirLoop | df$p3.target.bulge>maxTargetLoop |
              diff>maxLoopDiff),
      c("p3.mir.bulge","p3.target.bulge","p3.score")] <- 0L
+  df$p3.score <- as.integer(df$p3.score)
   df
 }
 
