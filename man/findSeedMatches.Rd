@@ -9,7 +9,7 @@ findSeedMatches(
   seeds,
   shadow = 0L,
   onlyCanonical = FALSE,
-  maxLogKd = c(-0.3, -0.3),
+  maxLogKd = c(-1, -1.5),
   keepMatchSeq = FALSE,
   minDist = 7L,
   p3.extra = FALSE,
@@ -39,8 +39,9 @@ hidden at the beginning of the sequence (default 0).}
 \item{onlyCanonical}{Logical; whether to restrict the search only to
 canonical binding sites.}
 
-\item{maxLogKd}{Maximum log_kd value to keep (default 0). Set to Inf to
-disable. Use vector of length two separately specify maximum for UTR and ORF.}
+\item{maxLogKd}{Maximum log_kd value to keep. This has a major impact on the
+number of sites returned, and hence on the memory requirements. Set to Inf
+to disable (_not_ recommended when running large scans!).}
 
 \item{keepMatchSeq}{Logical; whether to keep the sequence (including flanking
 dinucleotides) for each seed match (default FALSE).}
@@ -50,7 +51,9 @@ same miRNA (default 7). Closer matches will be reduced to the
 highest-affinity. To disable the removal of overlapping features, use
 `minDist=-Inf`.}
 
-\item{p3.extra}{Logical; whether to keep extra information about 3' alignment}
+\item{p3.extra}{Logical; whether to keep extra information about 3'
+alignment. Disable (default) this when running large scans, otherwise you
+might hit your system's memory limits.}
 
 \item{p3.params}{Named list of parameters for 3' alignment with slots
 `maxMirLoop` (integer, default = 5), `maxTargetLoop` (integer, default = 9),
