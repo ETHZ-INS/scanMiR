@@ -13,15 +13,18 @@
 #'  hidden at the beginning of the sequence (default 0).
 #' @param onlyCanonical Logical; whether to restrict the search only to
 #' canonical binding sites.
-#' @param maxLogKd Maximum log_kd value to keep (default 0). Set to Inf to
-#' disable. Use vector of length two separately specify maximum for UTR and ORF.
+#' @param maxLogKd Maximum log_kd value to keep. This has a major impact on the
+#' number of sites returned, and hence on the memory requirements. Set to Inf
+#' to disable (_not_ recommended when running large scans!).
 #' @param keepMatchSeq Logical; whether to keep the sequence (including flanking
 #' dinucleotides) for each seed match (default FALSE).
 #' @param minDist Integer specifying the minimum distance between matches of the
 #' same miRNA (default 7). Closer matches will be reduced to the
 #' highest-affinity. To disable the removal of overlapping features, use
 #' `minDist=-Inf`.
-#' @param p3.extra Logical; whether to keep extra information about 3' alignment
+#' @param p3.extra Logical; whether to keep extra information about 3'
+#' alignment. Disable (default) this when running large scans, otherwise you
+#' might hit your system's memory limits.
 #' @param p3.params Named list of parameters for 3' alignment with slots
 #' `maxMirLoop` (integer, default = 5), `maxTargetLoop` (integer, default = 9),
 #' `maxLoopDiff` (integer, default = 4), and `mismatch`
@@ -65,7 +68,7 @@
 #' seeds <- c("AAACCAC", "AAACCUU")
 #' findSeedMatches(seqs, seeds)
 findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
-                             maxLogKd=c(-0.3,-1), keepMatchSeq=FALSE,
+                             maxLogKd=c(-1,-1.5), keepMatchSeq=FALSE,
                              minDist=7L, p3.extra=FALSE,
                              p3.params=list(maxMirLoop=5L, maxTargetLoop=9L,
                                             maxLoopDiff=4L, mismatch=TRUE),
@@ -174,6 +177,7 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
     split_seeds <- split(seeds, ceiling(seq_along(seeds)/n_seeds))
     m <- lapply(split_seeds, function(seeds) {
       m <- bplapply(seeds, BPPARAM=BP, FUN=function(oneseed){
+        if(ret=="aggregated" && is(oneseed, "KdModel")) oneseed$mirseq <- NULL
         m <- .find1SeedMatches(seqs=seqs, seed=oneseed,
                                keepMatchSeq=keepMatchSeq, minDist=minDist,
                                maxLogKd=maxLogKd, p3.extra=p3.extra,
@@ -243,7 +247,7 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
 }
 
 # scan for a single seed
-.find1SeedMatches <- function(seqs, seed, keepMatchSeq=FALSE, maxLogKd=0,
+.find1SeedMatches <- function(seqs, seed, keepMatchSeq=FALSE, maxLogKd=-1,
                               minDist=1L, onlyCanonical=FALSE, p3.extra=FALSE,
                               p3.params=list(), offset=0L,
                               ret=c("GRanges","data.frame","aggregated"),
@@ -324,7 +328,7 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
     if(verbose) message("Removing overlaps...")
     m <- removeOverlappingRanges(m, minDist=minDist, ignore.strand=TRUE)
   }
-  if(!isPureSeed || !is.null(mirseq)){
+  if(!is.null(mirseq)){
     if(verbose) message("Performing 3' alignment...")
     maxLoop <- max(unlist(p3.params[c("maxMirLoop","maxTargetLoop")]))
     plen <- maxLoop+nchar(mirseq)-8L
@@ -348,11 +352,12 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
       mcols(m)$p3.score <- p3$p3.score
     }
     rm(ms)
-    mcols(m)$note <- .TDMD(cbind(type=mcols(m)$type, p3), mirseq=mirseq)
+    mcols(m)$note <- Rle(.TDMD(cbind(type=mcols(m)$type, p3), mirseq=mirseq))
   }
   if(!is.null(mcols(seqs)$C.length) && !all(mcols(seqs)$ORF.length == 0)) {
     mcols(m)$ORF <-
       start(m) <= mcols(seqs[seqlevels(m)])[as.integer(seqnames(m)),"C.length"]
+    mcols(m)$ORF <- Rle(mcols(m)$ORF)
     if(!isPureSeed && maxLogKd[2]!=Inf && maxLogKd[2]!=maxLogKd[1]){
       m <- m[which(!m$ORF | m$log_kd <= as.integer(round(maxLogKd[2])))]
     }
@@ -639,18 +644,31 @@ getMatchTypes <- function(x, seed){
     )
 }
 
-.unlistGRL <- function(m, .id=NULL){
+.unlistGRL <- function(m, .id=NULL, tryStandard=TRUE, verbose=FALSE){
   # to avoid c-stack errors on some systems
-  gr <- try(unlist(GRangesList(m)), silent=TRUE)
-  if(!is(gr,"try-error")){
-    if(!is.null(.id))
-      mcols(gr)[[.id]] <- rep(as.factor(names(m)), lengths(m))
-    return(gr)
+  if(tryStandard){
+    gr <- try(unlist(GRangesList(m)), silent=TRUE)
+    if(!is(gr,"try-error")){
+      if(!is.null(.id))
+        mcols(gr)[[.id]] <- rep(as.factor(names(m)), lengths(m))
+      return(gr)
+    }
   }
-  sq <- unique(unlist(lapply(m,FUN=seqlevels)))
-  sq <- unlist(lapply(m,FUN=function(x) factor(as.factor(seqnames(x)), sq)))
-  gr <- GRanges(sq, IRanges(unlist(lapply(m, start)), unlist(lapply(m,end))))
-  m <- lapply(m, FUN=function(x) as.data.frame(mcols(x)))
-  mcols(gr) <- as.data.frame(data.table::rbindlist(m, fill=TRUE, idcol=.id))
+  if(verbose) message("Ranges...")
+  gr <- GRanges(unlist(FactorList(lapply(m,seqnames)), use.names=FALSE),
+                IRanges(unlist(lapply(m, start)), unlist(lapply(m,end))))
+  for(f in colnames(mcols(m[[1]]))){
+    if(verbose) message(f)
+    x <- lapply(m, FUN=function(x) mcols(x)[[f]])
+    if(is.factor(x[[1]])){
+      x <- unlist(FactorList(x), use.names=FALSE)
+    }else{
+      x <- unlist(x)
+    }
+    mcols(gr)[[f]] <- x
+  }
+  if(verbose) message("Names...")
+  if(!is.null(.id))
+    mcols(gr)[[.id]] <- rep(as.factor(names(m)), lengths(m))
   gr
 }
