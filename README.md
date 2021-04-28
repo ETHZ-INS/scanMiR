@@ -30,7 +30,7 @@ findSeedMatches(seqs, seeds=model)
 ```
 GRanges object with 43 ranges and 4 metadata columns:
        seqnames    ranges strand |  p3.score          type    log_kd     note
-          <Rle> <IRanges>  <Rle> | <numeric>      <factor> <integer> <factor>
+          <Rle> <IRanges>  <Rle> | <integer>      <factor> <integer>    <Rle>
    [1]     seq2 2687-2694      * |         4 7mer-a1           -3607        -
    [2]     seq2 2358-2365      * |         0 6mer              -2341        -
    [3]     seq2 2550-2557      * |         0 6mer-m8            -986        -
