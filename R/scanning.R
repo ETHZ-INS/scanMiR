@@ -65,7 +65,7 @@
 #' seeds <- c("AAACCAC", "AAACCUU")
 #' findSeedMatches(seqs, seeds)
 findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
-                             maxLogKd=c(-0.3,-0.3), keepMatchSeq=FALSE,
+                             maxLogKd=c(-0.3,-1), keepMatchSeq=FALSE,
                              minDist=7L, p3.extra=FALSE,
                              p3.params=list(maxMirLoop=5L, maxTargetLoop=9L,
                                             maxLoopDiff=4L, mismatch=TRUE),
@@ -295,25 +295,48 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
 
   if(verbose) message("Extracting sequences and characterizing matches...")
   r <- ranges(m)
-
-  if(isPureSeed && is.null(mirseq)){
+  if(isPureSeed){
     r <- split(r, seqnames(m))
     names(r) <- NULL
     ms <- as.factor(unlist(extractAt(seqs[seqlevels(m)], r)))
-    rm(r)
-    if(keepMatchSeq) mcols(m)$sequence <- ms
     mcols(m)$type <- getMatchTypes(ms, substr(seed,1,7))
+    if(keepMatchSeq && !p3.extra) mcols(m)$sequence <- ms
     m <- m[order(seqnames(m), m$type)]
   }else{
-    maxLoop <- max(unlist(p3.params[c("maxMirLoop","maxTargetLoop")]))
-    plen <- maxLoop+nchar(mirseq)-8L
-    start(r) <- start(r)-1L-plen
+    start(r) <- start(r)-2L
     end(r) <- end(r)+2L
     r <- split(r, seqnames(m))
     names(r) <- NULL
     ms <- unlist(extractAt(seqs[seqlevels(m)], r))
+    mcols(m) <- cbind(mcols(m), assignKdType(ms, mod))
+    if(keepMatchSeq && !p3.extra) mcols(m)$sequence <- ms
+    if(maxLogKd[[1]]!=Inf){
+      if(all(maxLogKd>=0)) maxLogKd <- -maxLogKd
+      if(all(maxLogKd > -10)) maxLogKd <- maxLogKd*1000L
+      m <- m[which(m$log_kd <= as.integer(round(maxLogKd[1])))]
+    }else{
+      m <- m[!is.na(m$log_kd)]
+    }
+    m <- m[order(seqnames(m), m$log_kd, m$type)]
+  }
+  rm(ms)
+  if(minDist>-Inf){
+    if(verbose) message("Removing overlaps...")
+    m <- removeOverlappingRanges(m, minDist=minDist, ignore.strand=TRUE)
+  }
+  if(!isPureSeed || !is.null(mirseq)){
+    if(verbose) message("Performing 3' alignment...")
+    maxLoop <- max(unlist(p3.params[c("maxMirLoop","maxTargetLoop")]))
+    plen <- maxLoop+nchar(mirseq)-8L
+    r <- ranges(m)
+    start(r) <- start(r)-1L-plen
+    end(r) <- start(r)+1L+plen
+    r <- split(r, seqnames(m))
+    names(r) <- NULL
+    ms <- unlist(extractAt(seqs[seqlevels(m)], r))
+    rm(r)
     names(ms) <- NULL
-    p3 <- get3pAlignment( subseq(ms,1L,1+plen), mirseq,
+    p3 <- get3pAlignment( ms, mirseq,
                           allow.mismatch=p3.params$mismatch,
                           maxMirLoop=p3.params$maxMirLoop,
                           maxLoopDiff=p3.params$maxLoopDiff,
@@ -324,37 +347,15 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
     }else{
       mcols(m)$p3.score <- p3$p3.score
     }
-    ms <- subseq(ms, width(r)[[1]]-11L, width(r)[[1]])
-    rm(r)
-    if(keepMatchSeq && !p3.extra) mcols(m)$sequence <- as.factor(ms)
-    if(isPureSeed){
-      mcols(m)$type <- getMatchTypes(ms, substr(seed,1,7))
-      mcols(m)$note <- .TDMD(cbind(type=mcols(m)$type, p3), mirseq=mirseq)
-      m <- m[order(seqnames(m), m$type)]
-    }else{
-      mcols(m) <- cbind(mcols(m), assignKdType(ms, mod))
-      mcols(m)$note <- .TDMD(cbind(type=mcols(m)$type, p3), mirseq=mirseq)
-      if(maxLogKd[[1]]!=Inf){
-        if(all(maxLogKd>=0)) maxLogKd <- -maxLogKd
-        if(all(maxLogKd > -10)) maxLogKd <- maxLogKd*1000L
-        m <- m[which(m$log_kd <= as.integer(round(maxLogKd[1])))]
-      }else{
-        m <- m[!is.na(m$log_kd)]
-      }
-      m <- m[order(seqnames(m), m$log_kd, m$type)]
-    }
+    rm(ms)
+    mcols(m)$note <- .TDMD(cbind(type=mcols(m)$type, p3), mirseq=mirseq)
   }
-  rm(ms)
   if(!is.null(mcols(seqs)$C.length) && !all(mcols(seqs)$ORF.length == 0)) {
     mcols(m)$ORF <-
       start(m) <= mcols(seqs[seqlevels(m)])[as.integer(seqnames(m)),"C.length"]
-    if(!isPureSeed && maxLogKd[2]!=Inf){
+    if(!isPureSeed && maxLogKd[2]!=Inf && maxLogKd[2]!=maxLogKd[1]){
       m <- m[which(!m$ORF | m$log_kd <= as.integer(round(maxLogKd[2])))]
     }
-  }
-  if(minDist>-Inf){
-    if(verbose) message("Removing overlaps...")
-    m <- removeOverlappingRanges(m, minDist=minDist, ignore.strand=TRUE)
   }
   names(m) <- NULL
   if(offset!=0) m <- IRanges::shift(m, -offset)
