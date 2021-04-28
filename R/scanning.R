@@ -54,7 +54,8 @@
 #'
 #' @importFrom BiocParallel bplapply SerialParam bpnworkers
 #' @importFrom GenomeInfoDb seqlevels
-#' @import GenomeInfoDb Biostrings GenomicRanges S4Vectors
+#' @import Biostrings GenomicRanges
+#' @importFrom S4Vectors mcols mcols<- metadata metadata<- Rle
 #' @importFrom IRanges IRanges
 #' @export
 #'

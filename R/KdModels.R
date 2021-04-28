@@ -74,7 +74,7 @@ setMethod("c", signature(x = "KdModel"), function (x, ...){
 #'
 #' @return An object of class `KdModel`.
 #' @export
-#' @importFrom stats .lm.fit median
+#' @importFrom stats .lm.fit median cor
 #' @importFrom utils read.delim
 #' @importFrom methods is new
 #' @examples
