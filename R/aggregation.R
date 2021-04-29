@@ -146,10 +146,10 @@ aggregateMatches <- function(m, a=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403,
   if(!is.null(m$miRNA)){
     m_type_table <- dcast( m[,.(N=.N), by=c("transcript","miRNA","type")],
                            formula=transcript+miRNA~type, value.var="N",
-                           fill=0L)
+                           fill=0L )
   }else{
     m_type_table <- dcast( m[,.(N=.N), by=c("transcript","type")],
-                           formula=transcript~type, value.var="N", fill=0L)
+                           formula=transcript~type, value.var="N", fill=0L )
   }
   return(m_type_table)
 }

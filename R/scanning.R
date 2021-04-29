@@ -644,6 +644,7 @@ getMatchTypes <- function(x, seed){
     )
 }
 
+#' @importFrom IRanges FactorList
 .unlistGRL <- function(m, .id=NULL, tryStandard=TRUE, verbose=FALSE){
   # to avoid c-stack errors on some systems
   if(tryStandard){
