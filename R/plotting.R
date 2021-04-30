@@ -115,7 +115,7 @@ viewTargetAlignment <- function(m, miRNA, seqs=NULL, flagBulgeMatches=FALSE,
   }
   if(!("p3.mir.bulge" %in% colnames(mcols(m)))){
     # re-scan to get additional data
-    seq2 <- subseq(DNAStringSet(seqs[[as.character(seqnames(m))]]),
+    seq2 <- subseq(DNAStringSet(seqs[as.character(seqnames(m))]),
                    max(1L,start(m)-(nchar(miRNA)+maxBulgeSize-8L)), end(m)+2L)
     m <- findSeedMatches(seq2, mod, keepMatchSeq=TRUE, p3.extra=TRUE,
                          p3.params = list(maxMirLoop=maxBulgeSize,
@@ -130,9 +130,11 @@ viewTargetAlignment <- function(m, miRNA, seqs=NULL, flagBulgeMatches=FALSE,
     r <- IRanges(max(start(m)-bulgeDiff-nchar(miRNA)+8L,1L), end(m)+2L)
     m$sequence <- as.character(unlist(extractAt(seqs, r)))
   }
+  do3p <- TRUE
   if(m$p3.mir.bulge>maxBulgeSize | m$p3.target.bulge>maxBulgeSize |
      abs(m$p3.mir.bulge-m$p3.target.bulge) > maxBulgeDiff ){
     m$p3.mir.bulge <- m$p3.target.bulge <- 3L
+    do3p <- FALSE
   }
   mirseq <- gsub("T","U",miRNA)
   if(bulged <- grepl("g-bulged",m$type))
