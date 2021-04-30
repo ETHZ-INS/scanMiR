@@ -367,10 +367,10 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
   if(!is.null(mcols(seqs)$C.length) && !all(mcols(seqs)$ORF.length == 0)) {
     mcols(m)$ORF <-
       start(m) <= mcols(seqs[seqlevels(m)])[as.integer(seqnames(m)),"C.length"]
-    mcols(m)$ORF <- Rle(mcols(m)$ORF)
     if(!isPureSeed && maxLogKd[2]!=Inf && maxLogKd[2]!=maxLogKd[1]){
       m <- m[which(!m$ORF | m$log_kd <= as.integer(round(maxLogKd[2])))]
     }
+    mcols(m)$ORF <- Rle(mcols(m)$ORF)
   }
   names(m) <- NULL
   if(offset!=0) m <- IRanges::shift(m, -offset)

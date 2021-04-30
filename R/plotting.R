@@ -87,7 +87,7 @@ plotKdModel <- function(mod, what=c("both","seeds","logo"), n=10){
 #' @examples
 #' data(SampleKdModel)
 #' seq <- c(seq1="CGACCCCTATCACGTCCGCAGCATTAAAT")
-#' m <- findSeedMatches(seq, SampleKdModel)
+#' m <- findSeedMatches(seq, SampleKdModel, verbose=FALSE)
 #' viewTargetAlignment(m, miRNA=SampleKdModel, seqs=seq)
 viewTargetAlignment <- function(m, miRNA, seqs=NULL, flagBulgeMatches=FALSE,
                                 maxBulgeSize=9L, maxBulgeDiff=4L,
