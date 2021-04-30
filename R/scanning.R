@@ -313,7 +313,7 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
     names(r) <- NULL
     ms <- unlist(extractAt(seqs[seqlevels(m)], r))  # 12mers
     mcols(m) <- cbind(mcols(m), assignKdType(ms, mod))
-    if(keepMatchSeq && !p3.extra) mcols(m)$sequence <- ms
+    if(keepMatchSeq) mcols(m)$sequence <- ms
     if(maxLogKd[[1]]!=Inf){
       if(all(maxLogKd>=0)) maxLogKd <- -maxLogKd
       if(all(maxLogKd > -10)) maxLogKd <- maxLogKd*1000L
@@ -347,14 +347,15 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
                           maxTargetLoop=p3.params$maxTargetLoop)
     if(p3.extra){
       mcols(m) <- cbind(mcols(m), p3)
-      if(keepMatchSeq) mcols(m)$sequence <- ms
+      if(keepMatchSeq)
+        mcols(m)$sequence <- xscat(ms, subseq(mcols(m)$sequence, 3))
     }else{
       mcols(m)$p3.score <- p3$p3.score
     }
     rm(ms)
     mcols(m)$note <- Rle(.TDMD(cbind(type=mcols(m)$type, p3), mirseq=mirseq))
   }
-  if(!is.null(mcols(seqs)$ORG.length) && !all(mcols(seqs)$ORF.length == 0)) {
+  if(!is.null(mcols(seqs)$C.length) && !all(mcols(seqs)$ORF.length == 0)) {
     mcols(m)$ORF <-
       start(m) <= mcols(seqs[seqlevels(m)])[as.integer(seqnames(m)),"C.length"]
     mcols(m)$ORF <- Rle(mcols(m)$ORF)
