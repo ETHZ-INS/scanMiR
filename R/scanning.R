@@ -264,6 +264,9 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
     stopifnot(nchar(seed)>6)
     if(nchar(seed) %in% 7:8){
       mirseq <- NULL
+      if(verbose && p3.extra)
+        warning("`p3.extra` ignored when input is only a seed")
+      p3.extra <- FALSE
     }else{
       mirseq <- gsub("U","T",seed)
       seed <- as.character(reverseComplement(DNAStringSet(substr(mirseq,2,8))))
@@ -303,7 +306,7 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
     r <- split(r, seqnames(m))
     names(r) <- NULL
     ms <- as.factor(unlist(extractAt(seqs[seqlevels(m)], r))) # 8mers
-    mcols(m)$type <- getMatchTypes(ms, substr(seed,1,7))
+    mcols(m)$type <- getMatchTypes(as.factor(ms), substr(seed,1,7))
     if(keepMatchSeq && !p3.extra) mcols(m)$sequence <- ms
     m <- m[order(seqnames(m), m$type)]
   }else{
@@ -333,22 +336,28 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
     maxLoop <- max(unlist(p3.params[c("maxMirLoop","maxTargetLoop")]))
     plen <- maxLoop+nchar(mirseq)-8L
     r <- ranges(m)
-    start(r) <- start(r)-1L-plen
-    end(r) <- start(r)+1L+plen
+    start(r) <- start(r)-plen-1L
+    end(r) <- start(r)+plen
+    if(isPureSeed && keepMatchSeq && p3.extra) end(r) <- end(r) + 10L
     r <- split(r, seqnames(m))
     names(r) <- NULL
-    ms <- unlist(extractAt(seqs[seqlevels(m)], r)) # upstream target seq
+    ms <- unlist(extractAt(seqs[seqlevels(m)], r))
     rm(r)
     names(ms) <- NULL
-    p3 <- get3pAlignment( ms, mirseq,
+    p3 <- get3pAlignment( subseq(ms,1,plen+1L), mirseq,
                           allow.mismatch=p3.params$mismatch,
                           maxMirLoop=p3.params$maxMirLoop,
                           maxLoopDiff=p3.params$maxLoopDiff,
                           maxTargetLoop=p3.params$maxTargetLoop)
     if(p3.extra){
       mcols(m) <- cbind(mcols(m), p3)
-      if(keepMatchSeq)
-        mcols(m)$sequence <- xscat(ms, subseq(mcols(m)$sequence, 3))
+      if(keepMatchSeq){
+        if(isPureSeed){
+          mcols(m)$sequence <- ms
+        }else{
+          mcols(m)$sequence <- xscat(ms, subseq(mcols(m)$sequence,3L))
+        }
+      }
     }else{
       mcols(m)$p3.score <- p3$p3.score
     }
