@@ -276,6 +276,12 @@ memory. To avoid memory issues, the number of seeds processed simultaneously by
 Alternatively, scan results can be saved to temporary files using the 
 `useTmpFiles` argument (see `?findSeedMatches` for more detail).
 
+Note that in addition to the multithreading specified in its arguments, 
+`aggregateMatches` uses the `r CRANpkg("data.table")` package, which is often 
+set to use multi-threading by default (see `?data.table::setDTthreads` for more
+information). This can leave to CPU usage higher than specified through the 
+`BP` argument of `aggregateMatches`.
+
 ## Dealing with large collections of predictions
 
 Binding sites for all miRNAs on all transcripts, especially when including 
