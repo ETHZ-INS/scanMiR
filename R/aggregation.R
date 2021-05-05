@@ -13,7 +13,10 @@
 #' @param toInt Logical; whether to convert repression scores to integers
 #' (default = FALSE).
 #' @param BP Pass `BiocParallel::MulticoreParam(ncores, progressbar=TRUE)` to
-#' enable multithreading.
+#' enable multithreading. Note that in addition, `aggregateMatches` uses the
+#' \link{data.table} package, which is often set to use multi-threading by
+#' default (which would be multiplied by threads determined by `BP`). See
+#' \code{\link[data.table]{setDTthreads}} for more information.
 #'
 #' @return a data.frame containing aggregated repression values and/or
 #' information about the numbers and types of matches
