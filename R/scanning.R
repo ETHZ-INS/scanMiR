@@ -229,7 +229,9 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
       names(m) <- row.names(m) <- NULL
       mcols(m)$miRNA <- Rle(as.factor(mcols(m)$miRNA))
     }else{
-      m <- as.data.frame(data.table::rbindlist(m, fill=TRUE, idcol="miRNA"))
+      m <- lapply(m, as.data.frame)
+      m <- data.table::rbindlist(m, fill=TRUE, use.names=TRUE,
+                                               idcol="miRNA")
       for(f in colnames(m)){
         if(is.numeric(m[[f]])) m[[f]][is.na(m[[f]])] <- 0L
       }
@@ -239,11 +241,10 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
       m$transcript <- as.factor(m$transcript)
     }
   }
-
+  if(ret=="data.frame") m <- as.data.frame(m)
   if(useTmpFiles && !keepTmpFiles) unlink(ff)
   gc(verbose = FALSE, full = TRUE)
-
-  m
+  return(m)
 }
 
 # scan for a single seed
@@ -374,8 +375,8 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
   }
   names(m) <- NULL
   if(offset!=0) m <- IRanges::shift(m, -offset)
-  if(ret=="GRanges") return(m)
-  .gr2matchTable(m)
+  if(ret=="data.frame") m <- .gr2matchTable(m)
+  return(m)
 }
 
 .checkSeedsInput <- function(seeds){
@@ -396,12 +397,13 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
 
 
 .gr2matchTable <- function(m, include_name=FALSE, include_ORF=TRUE, p3=TRUE){
-  d <- data.frame(transcript=as.factor(seqnames(m)), start=start(m))
+  d <- DataFrame(transcript=as.factor(seqnames(m)), start=start(m))
   if(include_name) d$miRNA <- as.factor(m$miRNA)
-  if(include_ORF && !is.null(m$ORF)) d$ORF <- as.logical(m$ORF)
+  if(include_ORF && !is.null(m$ORF)) d$ORF <- m$ORF
   d$type <- m$type
   d$log_kd <- m$log_kd
   d$TDMD <- m$TDMD
+  d$note <- m$note
   for(f in c("p3.mir.bulge",
              "p3.target.bulge",
              "p3.mismatch",
