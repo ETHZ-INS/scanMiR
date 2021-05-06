@@ -22,7 +22,7 @@
 #' information about the numbers and types of matches
 #' @export
 #' @importFrom stats quantile
-#' @importFrom data.table as.data.table .N := dcast rbindlist
+#' @importFrom data.table as.data.table .N := dcast rbindlist .SD
 #'
 #' @examples
 #' # we create mock RNA sequences and seeds:
@@ -160,9 +160,13 @@ aggregateMatches <- function(m, a=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403,
     sites[, grep("bulged", names(sites)) := NULL]
   }
   ind_6mer <- grep("6mer", names(sites))
-  sites[, "6mer" := rowSums(.SD, na.rm = TRUE), .SDcols = ind_6mer]
+  if(length(ind_6mer)>0) {
+    sites[, "6mer" := rowSums(.SD, na.rm = TRUE), .SDcols = ind_6mer]
+  }
   ind_7mer <- grep("7mer", names(sites))
-  sites[, "7mer" := rowSums(.SD, na.rm = TRUE), .SDcols = ind_7mer]
+  if(length(ind_7mer)>0) {
+    sites[, "7mer" := rowSums(.SD, na.rm = TRUE), .SDcols = ind_7mer]  
+  }
   for(col in setdiff(c("8mer", "7mer", "6mer", "non-canonical"), names(sites))){
     sites[, (col):=0L]
   }
