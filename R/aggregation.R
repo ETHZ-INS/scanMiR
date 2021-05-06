@@ -104,7 +104,7 @@ aggregateMatches <- function(m, a=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403,
   m$log_kd <- NULL
   m$N_bg <- 1 / (1 + exp(-1 * (a  + c*m$ORF) ))
   m <- as.data.frame(rowsum(as.matrix(m[,c("N","N_bg")]), group=m$transcript))
-  m <- data.frame( transcript=row.names(m),
+  m <- data.frame( transcript=as.factor(row.names(m)),
                    repression=log2(1+exp(b)*m$N_bg) - log2(1 + exp(b)*m$N))
   if(!is.null(ll) && nrow(m) > 1){
     m <- merge(m,ll,by = "transcript", all.x = TRUE)
