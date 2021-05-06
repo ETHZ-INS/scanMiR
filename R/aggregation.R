@@ -78,13 +78,13 @@ aggregateMatches <- function(m, a=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403,
     m$transcript <- as.factor(seqnames(m))
     m <- mcols(m)
     if(!is.null(m$miRNA)) m$miRNA <- as.factor(m$miRNA)
-    m <- as.data.frame(m, stringsAsFactor=TRUE)
+    m <- as.data.frame(m)
   }
   if(is.null(m$log_kd)){
     m <- .aggregateSiteInfo(as.data.table(m))
     return(as.data.frame(m, stringsAsFactor=TRUE))
   }
-  if(is.null(m$ORF)) m$ORF <- 0L
+  for(col in c("ORF", "p3.score", "type")) if(is.null(m[[col]])) m[[col]] <- 0L
   if(!is.null(m$miRNA)){
     m <- m[,c("miRNA","transcript","ORF","log_kd","p3.score","type")]
   }else{
@@ -97,7 +97,6 @@ aggregateMatches <- function(m, a=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403,
   if(keepSiteInfo){
     m_type_table <- .aggregateSiteInfo(m)
   }
-  if(is.null(m$p3.score)) m$p3.score <- 0L
   m$p3.score <- ifelse(m$type == "non-canonical" , 0L, m$p3.score)
   m$p3.score[m$p3.score>max(p3.range)] <- as.integer(max(p3.range))
   m$p3.score[m$p3.score<min(p3.range)] <- 0L
@@ -146,15 +145,34 @@ aggregateMatches <- function(m, a=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403,
 }
 
 .aggregateSiteInfo <- function(m) {
-  if(!is.null(m$miRNA)){
-    m_type_table <- dcast( m[,.(N=.N), by=c("transcript","miRNA","type")],
-                           formula=transcript+miRNA~type, value.var="N",
-                           fill=0L )
+  if(is.null(m$miRNA)){
+    sites <- dcast( m[,.(N=.N), by=c("transcript","type")],
+                    formula=transcript~type, value.var="N", fill=0L )    
   }else{
-    m_type_table <- dcast( m[,.(N=.N), by=c("transcript","type")],
-                           formula=transcript~type, value.var="N", fill=0L )
+    sites <- dcast( m[,.(N=.N), by=c("transcript","miRNA","type")],
+                    formula=transcript+miRNA~type, value.var="N",
+                    fill=0L )
   }
-  return(m_type_table)
+  ind_bulged <- grep("bulged", names(sites))
+  if(length(ind_bulged)>0) {
+    ind_nc <- c(ind_bulged, grep("non-canonical", names(sites)))
+    sites[,"non-canonical":= rowSums(.SD, na.rm = TRUE), .SDcols = ind_nc]
+    sites[, grep("bulged", names(sites)) := NULL]
+  }
+  ind_6mer <- grep("6mer", names(sites))
+  sites[, "6mer" := rowSums(.SD, na.rm = TRUE), .SDcols = ind_6mer]
+  ind_7mer <- grep("7mer", names(sites))
+  sites[, "7mer" := rowSums(.SD, na.rm = TRUE), .SDcols = ind_7mer]
+  for(col in setdiff(c("8mer", "7mer", "6mer", "non-canonical"), names(sites))){
+    sites[, (col):=0L]
+  }
+  if(is.null(m$miRNA)) {
+    cols <- c("transcript", "8mer", "7mer", "6mer", "non-canonical")
+    return(sites[,..cols])
+  } else{
+    cols <- c("transcript", "miRNA", "8mer", "7mer", "6mer", "non-canonical")
+    return(sites[,..cols])
+  }
 }
 
 
