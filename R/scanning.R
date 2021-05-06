@@ -58,7 +58,7 @@
 #' @importFrom BiocParallel bplapply SerialParam bpnworkers
 #' @importFrom GenomeInfoDb seqlevels
 #' @import Biostrings GenomicRanges
-#' @importFrom S4Vectors mcols mcols<- metadata metadata<- Rle
+#' @importFrom S4Vectors mcols mcols<- metadata metadata<- Rle DataFrame
 #' @importFrom IRanges IRanges
 #' @export
 #'
@@ -177,7 +177,9 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
     split_seeds <- split(seeds, ceiling(seq_along(seeds)/n_seeds))
     m <- lapply(split_seeds, function(seeds) {
       m <- bplapply(seeds, BPPARAM=BP, FUN=function(oneseed){
-        if(ret=="aggregated" && is(oneseed, "KdModel")) oneseed$mirseq <- NULL
+        if(ret=="aggregated" && is(oneseed, "KdModel") && agg.params$p3 == 0) {
+          oneseed$mirseq <- NULL
+        }
         m <- .find1SeedMatches(seqs=seqs, seed=oneseed,
                                keepMatchSeq=keepMatchSeq, minDist=minDist,
                                maxLogKd=maxLogKd, p3.extra=p3.extra,
