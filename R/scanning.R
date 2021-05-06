@@ -398,7 +398,7 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
 .gr2matchTable <- function(m, include_name=FALSE, include_ORF=TRUE, p3=TRUE){
   d <- data.frame(transcript=as.factor(seqnames(m)), start=start(m))
   if(include_name) d$miRNA <- as.factor(m$miRNA)
-  if(include_ORF && !is.null(m$ORF)) d$ORF <- m$ORF
+  if(include_ORF && !is.null(m$ORF)) d$ORF <- as.logical(m$ORF)
   d$type <- m$type
   d$log_kd <- m$log_kd
   d$TDMD <- m$TDMD
