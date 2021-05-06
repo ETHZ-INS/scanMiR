@@ -55,6 +55,6 @@ viewTargetAlignment
 \examples{
 data(SampleKdModel)
 seq <- c(seq1="CGACCCCTATCACGTCCGCAGCATTAAAT")
-m <- findSeedMatches(seq, SampleKdModel)
+m <- findSeedMatches(seq, SampleKdModel, verbose=FALSE)
 viewTargetAlignment(m, miRNA=SampleKdModel, seqs=seq)
 }

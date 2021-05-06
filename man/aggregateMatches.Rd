@@ -42,7 +42,10 @@ aggregateMatches(
 (default = FALSE).}
 
 \item{BP}{Pass `BiocParallel::MulticoreParam(ncores, progressbar=TRUE)` to
-enable multithreading.}
+enable multithreading. Note that in addition, `aggregateMatches` uses the
+\link{data.table} package, which is often set to use multi-threading by
+default (which would be multiplied by threads determined by `BP`). See
+\code{\link[data.table]{setDTthreads}} for more information.}
 }
 \value{
 a data.frame containing aggregated repression values and/or
