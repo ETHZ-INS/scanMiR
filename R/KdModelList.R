@@ -65,7 +65,7 @@ KdModelList <- function(..., description=NULL, makeUnique=FALSE){
 #' Methods for the \code{\link{KdModelList}} classes
 #' @name KdModelList-methods
 #' @rdname KdModelList-methods
-#' @aliases KdModelList-methods
+#' @aliases KdModelList-methods,KdModelList-method
 #' @seealso \code{\link{KdModel}}, \code{\link{KdModelList}}
 #' @param object,x An object of class \code{\link{KdModelList}}
 #' @return Depends on the method.
@@ -80,7 +80,7 @@ KdModelList <- function(..., description=NULL, makeUnique=FALSE){
 NULL
 
 #' @rdname KdModelList-methods
-#' @aliases KdModelList-methods
+#' @aliases KdModelList-methods,KdModelList-method
 #' @export
 setMethod("summary", "KdModelList", function(object){
   d <- attr(object, "created")
@@ -96,6 +96,7 @@ setMethod("summary", "KdModelList", function(object){
 })
 
 #' @rdname KdModelList-methods
+#' @aliases [,KdModelList-methods,KdModelList-method
 #' @export
 #' @param i the index of item(s) to select
 #' @param j,drop,... ignored
