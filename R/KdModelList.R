@@ -91,7 +91,7 @@ setMethod("summary", "KdModelList", function(object){
   if(!is.null(desc <- attr(object, "description"))) cat(paste0(desc,"\n"))
   cons <- conservation(object)
   if(!all(is.na(cons))){
-    print(table(conservation(object)))
+    print(table(conservation(object), useNA="ifany"))
   }
 })
 
