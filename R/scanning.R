@@ -241,9 +241,10 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
       attr(m, "call.params") <- params
       row.names(m) <- NULL
       m$transcript <- as.factor(m$transcript)
+      m <- as.data.frame(m)
     }
   }
-  if(ret=="data.frame") m <- as.data.frame(m)
+  if(ret=="aggregated" && onlyCanonical) m[["non-canonical"]] <- NULL
   if(useTmpFiles && !keepTmpFiles) unlink(ff)
   gc(verbose = FALSE, full = TRUE)
   return(m)
