@@ -2,13 +2,15 @@
 % Please edit documentation in R/KdModelList.R
 \name{KdModelList-methods}
 \alias{KdModelList-methods}
+\alias{KdModelList-methods,KdModelList-method}
 \alias{summary,KdModelList-method}
-\alias{[,KdModelList,ANY,ANY,ANY-method}
+\alias{[,KdModelList,ANY-method}
+\alias{[,KdModelList-methods,KdModelList-method}
 \title{Methods for the \code{\link{KdModelList}} classes}
 \usage{
 \S4method{summary}{KdModelList}(object)
 
-\S4method{[}{KdModelList,ANY,ANY,ANY}(x, i, j = NULL, ..., drop = TRUE)
+\S4method{[}{KdModelList,ANY}(x, i, j = NULL, ..., drop = TRUE)
 }
 \arguments{
 \item{object, x}{An object of class \code{\link{KdModelList}}}
