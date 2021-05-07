@@ -84,18 +84,20 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
     stop("Target sequences should be in DNA format.")
   if(is.character(seqs)) seqs <- DNAStringSet(seqs)
   if(is.null(mcols(seqs)$ORF.length)){
-    utr_len <- length.seqs
-    orf_len <- 0L
-    mcols(seqs)$ORF.length <- orf_len
-    mcols(seqs)$C.length <- orf_len
+    hasORF <- FALSE
+    utr.length <- length.seqs
+    orf.length <- 0L
+    mcols(seqs)$ORF.length <- orf.length
+    mcols(seqs)$C.length <- orf.length
   }else{
-    orf_len <- mcols(seqs)[,"ORF.length"]
-    utr_len <- ifelse(length.seqs > orf_len, length.seqs - orf_len, 0L)
-    mcols(seqs)$ORF.length <- orf_len
-    mcols(seqs)$C.length <- orf_len + shadow
+    hasORF <- TRUE
+    orf.length <- mcols(seqs)[,"ORF.length"]
+    utr.length <- ifelse(length.seqs > orf.length, length.seqs - orf.length, 0L)
+    mcols(seqs)$ORF.length <- orf.length
+    mcols(seqs)$C.length <- orf.length + shadow
     shadow <- 0L
   }
-  length.info <- cbind(orf_len, utr_len)
+  length.info <- cbind(orf.length, utr.length)
   if(!is.null(names(seqs))) row.names(length.info) <- names(seqs)
 
   ret <- match.arg(ret)
@@ -224,10 +226,15 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
       m <- lapply(m, FUN=function(x) readRDS(x))
     }
 
+    if(hasORF) {
+      tx_info <- as.data.frame(length.info)
+    } else {
+      tx_info <- data.frame(length = length.info[,2])
+    }
     if(ret=="GRanges"){
       m <- .unlistGRL(m, .id="miRNA")
       metadata(m)$call.params <- params
-      metadata(m)$length.info <- length.info
+      metadata(m)$tx_info <- tx_info
       names(m) <- row.names(m) <- NULL
       mcols(m)$miRNA <- Rle(as.factor(mcols(m)$miRNA))
     }else{
@@ -239,6 +246,7 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
       }
       m$miRNA <- as.factor(m$miRNA)
       attr(m, "call.params") <- params
+      attr(m, "tx_info") <- tx_info
       row.names(m) <- NULL
       m$transcript <- as.factor(m$transcript)
       m <- as.data.frame(m)

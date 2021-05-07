@@ -107,27 +107,27 @@ aggregateMatches <- function(m, a=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403,
     m <- merge(m,ll,by = "transcript", all.x = TRUE)
 
     # get the utr score
-    m$utr_len <- log10(m$utr_len)
-    m$utr_len[is.infinite(m$utr_len) || is.na(m$utr_len)] <- 0
-    qu_un <- m[!duplicated(m$transcript),"utr_len"]
+    m$utr.length <- log10(m$utr.length)
+    m$utr.length[is.infinite(m$utr.length) || is.na(m$utr.length)] <- 0
+    qu_un <- m[!duplicated(m$transcript),"utr.length"]
     qu <- quantile(qu_un, probs = c(0.05,0.95), na.rm = TRUE)
-    m$utr_score <- (m$utr_len - qu[1]) / (qu[2] - qu[1])
+    m$utr_score <- (m$utr.length - qu[1]) / (qu[2] - qu[1])
     m$utr_score[is.na(m$utr_score)] <- 0
 
     # get the orf score
-    if(sum(m$orf_len, na.rm = TRUE) > 0){
-      m$orf_len <- log10(m$orf_len)
-      m$orf_len[is.infinite(m$orf_len) || is.na(m$orf_len)] <- 0
-      qu_un <- m[!duplicated(m$transcript),"orf_len"]
+    if(sum(m$orf.length, na.rm = TRUE) > 0){
+      m$orf.length <- log10(m$orf.length)
+      m$orf.length[is.infinite(m$orf.length) || is.na(m$orf.length)] <- 0
+      qu_un <- m[!duplicated(m$transcript),"orf.length"]
       qu <- quantile(qu_un, probs = c(0.05,0.95), na.rm = TRUE)
-      m$orf_score <- (m$orf_len - qu[1]) / (qu[2] - qu[1])
+      m$orf_score <- (m$orf.length - qu[1]) / (qu[2] - qu[1])
       m$orf_score[is.na(m$orf_score)] <- 0
     }else{
       m$orf_score <- 0
     }
   m$repression <- m$repression + coef_utr*m$utr_score*m$repression +
     coef_orf*m$orf_score*m$repression
-  m <- subset(m, select = - c(orf_len,utr_len,utr_score,orf_score))
+  m <- subset(m, select = - c(orf.length,utr.length,utr_score,orf_score))
   }
   if(toInt) m$repression <- as.integer(round(1000*m$repression))
   m$repression <- ifelse(m$repression >= 0, 0, m$repression)
