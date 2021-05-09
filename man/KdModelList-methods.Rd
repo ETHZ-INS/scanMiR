@@ -5,10 +5,7 @@
 \alias{KdModelList-methods,KdModelList-method}
 \alias{summary,KdModelList-method}
 \alias{[,KdModelList,ANY-method}
-<<<<<<< HEAD
-=======
 \alias{[,KdModelList-methods,KdModelList-method}
->>>>>>> b8f112f27f7e62f94c5e845832df824e1363fa1d
 \title{Methods for the \code{\link{KdModelList}} classes}
 \usage{
 \S4method{summary}{KdModelList}(object)
