@@ -1,5 +1,8 @@
 #' aggregateMatches
 #'
+#' Aggregates miRNA binding sites with log_kd values to predict transcript
+#' repression. See the vignette for more detail.
+#'
 #' @param m A GRanges or data.frame of matches as returned by `findSeedMatches`.
 #' @param a The relative concentration of unbound AGO-miRNA complexes.
 #' @param b Factor specifying the additional repression by a single bound AGO.
@@ -41,16 +44,28 @@ aggregateMatches <- function(m, a=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403,
                            p3.range=c(3L,8L), keepSiteInfo = TRUE, toInt=FALSE,
                            BP=NULL){
   if(is.null(BP)) BP <- BiocParallel::SerialParam()
+  ll <- NULL # length info
   if(is(m,"GRanges")){
+    if(!is.null(ll <- metadata(m)$tx_info)){
+      ll <- ll[,c("ORF.length", "UTR.length")]
+      colnames(ll) <- tolower(colnames(ll))
+      ll$transcript <- row.names(ll)
+    }
     m$transcript <- as.factor(seqnames(m))
     m <- mcols(m)
     if(!is.null(m$miRNA)) m$miRNA <- as.factor(m$miRNA)
     m <- as.data.frame(m)
+  }else{
+    if(!is.null(ll <- attr(m, "tx_info"))){
+      ll <- ll[,c("ORF.length", "UTR.length")]
+      colnames(ll) <- tolower(colnames(ll))
+      ll$transcript <- row.names(ll)
+    }
   }
   if(!is.null(m$miRNA)){
     m <- split(m, m$miRNA)
     m <- bplapply(m, BPPARAM=BP, FUN=function(x){
-      .aggregate_miRNA(x, a=a, b=b, c=c, p3=p3,coef_utr = coef_utr,
+      .aggregate_miRNA(x, ll=ll, a=a, b=b, c=c, p3=p3,coef_utr = coef_utr,
                        coef_orf = coef_orf, keepSiteInfo = keepSiteInfo,
                        toInt=toInt, p3.range=p3.range)
     })
@@ -59,7 +74,7 @@ aggregateMatches <- function(m, a=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403,
       if(is.numeric(m[[f]])) m[[f]][is.na(m[[f]])] <- 0L
     }
   }else{
-    m <- .aggregate_miRNA(m, a=a, b=b, c=c, p3=p3,coef_utr = coef_utr,
+    m <- .aggregate_miRNA(m, ll=ll, a=a, b=b, c=c, p3=p3,coef_utr = coef_utr,
                           coef_orf = coef_orf, keepSiteInfo = keepSiteInfo,
                           toInt=toInt, p3.range=p3.range)
   }
@@ -196,7 +211,7 @@ aggregateMatches <- function(m, a=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403,
   }
   ind_7mer <- grep("7mer", names(sites))
   if(length(ind_7mer)>0) {
-    sites[, "7mer" := rowSums(.SD, na.rm=TRUE), .SDcols = ind_7mer]  
+    sites[, "7mer" := rowSums(.SD, na.rm=TRUE), .SDcols = ind_7mer]
   }
   for(col in setdiff(c("8mer", "7mer", "6mer", "non-canonical"), names(sites))){
     sites[, (col):=0L]
@@ -227,7 +242,7 @@ aggregateMatches <- function(m, a=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403,
     } else {
       cols <- c("transcript", "miRNA", "8mer", "7mer", "6mer", "non-canonical")
     }
-    
+
   }
   for (i in names(sites))
     sites[is.na(get(i)), (i):=0L]

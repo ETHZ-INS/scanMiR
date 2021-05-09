@@ -52,7 +52,8 @@ a data.frame containing aggregated repression values and/or
 information about the numbers and types of matches
 }
 \description{
-aggregateMatches
+Aggregates miRNA binding sites with log_kd values to predict transcript
+repression. See the vignette for more detail.
 }
 \examples{
 # we create mock RNA sequences and seeds:

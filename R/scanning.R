@@ -78,12 +78,13 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
                              useTmpFiles=FALSE, keepTmpFiles=FALSE){
   p3.params <- .check3pParams(p3.params)
   if(length(maxLogKd)==1) maxLogKd <- rep(maxLogKd,2)
-  length.seqs <- width(seqs)
   seqtype <- .guessSeqType(seqs)
   if(seqtype=="RNA")
     stop("Target sequences should be in DNA format.")
   if(is.character(seqs)) seqs <- DNAStringSet(seqs)
-  if(is.null(mcols(seqs)$ORF.length)){
+  mcols(seqs)$length <- length.seqs <- width(seqs)
+  tx_info <- mcols(seqs)
+  if(is.null(tx_info$ORF.length)){
     hasORF <- FALSE
     utr.length <- length.seqs
     orf.length <- 0L
@@ -91,12 +92,13 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
     mcols(seqs)$C.length <- orf.length
   }else{
     hasORF <- TRUE
-    orf.length <- mcols(seqs)[,"ORF.length"]
+    orf.length <- tx_info$ORF.length
     utr.length <- ifelse(length.seqs > orf.length, length.seqs - orf.length, 0L)
     mcols(seqs)$ORF.length <- orf.length
     mcols(seqs)$C.length <- orf.length + shadow
     shadow <- 0L
   }
+  tx_info$UTR.length <- utr.length
   length.info <- cbind(orf.length, utr.length)
   if(!is.null(names(seqs))) row.names(length.info) <- names(seqs)
 
@@ -215,7 +217,7 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
       seeds <- vapply(seeds, FUN=function(x){
         if(is.null(x$name)) return(x$canonical.seed)
         x$name
-        }, character(1))
+      }, character(1))
     }
     names(m) <- seeds
 
@@ -226,15 +228,8 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
       m <- lapply(m, FUN=function(x) readRDS(x))
     }
 
-    if(hasORF) {
-      tx_info <- as.data.frame(length.info)
-    } else {
-      tx_info <- data.frame(length = length.info[,2])
-    }
     if(ret=="GRanges"){
       m <- .unlistGRL(m, .id="miRNA")
-      metadata(m)$call.params <- params
-      metadata(m)$tx_info <- tx_info
       names(m) <- row.names(m) <- NULL
       mcols(m)$miRNA <- Rle(as.factor(mcols(m)$miRNA))
     }else{
@@ -245,12 +240,17 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
         if(is.numeric(m[[f]])) m[[f]][is.na(m[[f]])] <- 0L
       }
       m$miRNA <- as.factor(m$miRNA)
-      attr(m, "call.params") <- params
-      attr(m, "tx_info") <- tx_info
       row.names(m) <- NULL
       m$transcript <- as.factor(m$transcript)
-      m <- as.data.frame(m)
     }
+  }
+  if(ret=="GRanges"){
+    metadata(m)$call.params <- params
+    metadata(m)$tx_info <- as.data.frame(tx_info)
+  }else{
+    m <- as.data.frame(m)
+    attr(m, "call.params") <- params
+    attr(m, "tx_info") <- as.data.frame(tx_info)
   }
   if(ret=="aggregated" && onlyCanonical) m[["non-canonical"]] <- NULL
   if(useTmpFiles && !keepTmpFiles) unlink(ff)
