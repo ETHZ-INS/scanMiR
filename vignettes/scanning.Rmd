@@ -209,10 +209,12 @@ following equation:
 $$
 \begin{equation}
 N_{m,g} = 
-  \sum_{i=1}^{p}\left(\frac{a_g}{a_g + c_{\text{ORF}} K_{d,i}^{\text{ORF}}}\right) +
+  \sum_{i=1}^{p}\left(\frac{a_g}{a_g + c_{\text{ORF}} 
+  K_{d,i}^{\text{ORF}}}\right) +
   \sum_{j=1}^{q}\left(\frac{a_g}{a_g + K_{d,j}^{\text{3'UTR}}}\right)
 \end{equation}
 $$
+
 The corresponding background occupancy is estimated by substituting the average 
 affinity of nonspecifically bound sites (i.e. $K_d = 1.0$):
 $$
@@ -222,15 +224,44 @@ N_{m,g,\text{background}} =
   \sum_{j=1}^{q}\left(\frac{a_g}{a_g + 1}\right)
 \end{equation}
 $$
+In addition to this original model, `scanMiR` includes a coefficient `e` which 
+adjusts the Kd values based on the supplementary 3' alignment:
+
+$$
+\begin{equation}
+N_{m,g} = 
+  \sum_{i=1}^{p}\left(\frac{a_g}{a_g + e_{i}c_{\text{ORF}} 
+    K_{d,i}^{\text{ORF}}}\right) +
+  \sum_{j=1}^{q}\left(\frac{a_g}{a_g + e_{j}K_{d,j}^{\text{3'UTR}}}\right)
+\end{equation}
+$$
+
+Where `e` is the 3' alignment score (roughly corresponding to the number of 
+matched nucleotides, by default capped to 8 and set to 0 if below 3) multiplied
+by a global parameter `p3`. Of note, the default value of `p3` is very small, 
+leading to a very mild effect of the 3' supplementary binding. The importance of
+3' complementary seems to depend on the miRNA, and at the moment there are no 
+easy way to predict this from the miRNA sequence. We therefore left it a very
+conservative global role, but which might not attribute sufficient importance 
+to factor for some miRNAs.
+
 The repression is then obtained as the log fold change of the two occupancies:
 $$
 \text{repression} = \log(1+bN_{m,g,\text{background}}) - \log(1+bN_{m,g})
 $$
 
-While `b` and `c` are considered global parameters (i.e. the same for different 
-miRNAs and transcripts and also across experimental contexts), `a` is expected 
-to be different for each miRNA-transcript pair in a given experimental 
-condition. However, as shown by 
+Because UTR and ORF lengths have been reported to influence the efficacy of 
+repression, `scanMiR` then includes an additional modifier to terms handling 
+these effects:
+
+$$
+\text{repression}_{\text{adj}} = \text{repression}\cdot
+(1+f\cdot\text{UTR.length}+h\cdot\text{ORF.length})
+$$
+While `b`, `c`, `p3`, `f` and `h` are considered global parameters (i.e. the 
+same for different miRNAs and transcripts and also across experimental 
+contexts), `a` is expected to be different for each miRNA in a 
+given experimental condition. However, as shown by 
 [McGeary, Lin et al. (2019)](https://dx.doi.org/10.1126/science.aav1741), the 
 model performance is robust to changes in `a` over several orders of magnitude. 
 Aggregation for all miRNA-transcript pairs for a given data set is therefore 
@@ -248,17 +279,18 @@ miRNA-transcript pair along with a count table of the different site types. If
 `matches` does not contain a `log_kd` column, only the count table will be 
 returned.
 
- `r Biocpkg("scanMiR")` uses the following 
+`r Biocpkg("scanMiR")` uses the following 
 default parameter values for aggregation that have been determined by fitting 
 and validating the model using several experimental data sets:
 ```{r}
-scanMiR:::.defaultAggParams()
+unlist(scanMiR:::.defaultAggParams())
 ```
-The parameters `p3`, `coef_utr`, and `coef_orf` are additionally used to 
-account for the influence of 3' pairing, and the lengths of the UTR and ORF 
-regions, respectively. To disable these features, they can simply be set to 
+Where `coef_utr` and `coef_orf` respectively correspond to the `f` and `h` in
+the above formula. To disable these features, they can simply be set to 
 zero. `keepSiteInfo` lets you choose whether the site count table should be 
-returned. 
+returned. The parameters can be passed directly to `aggregateMatches`, or passed
+to `findSeedMatch` when doing aggregation on-the-fly using the `agg.params` 
+argument.
 
 # Dealing with very large scans
 
