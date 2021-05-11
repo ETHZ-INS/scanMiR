@@ -236,14 +236,14 @@ N_{m,g} =
 \end{equation}
 $$
 
-Where `e` is the 3' alignment score (roughly corresponding to the number of 
-matched nucleotides, by default capped to 8 and set to 0 if below 3) multiplied
-by a global parameter `p3`. Of note, the default value of `p3` is very small, 
-leading to a very mild effect of the 3' supplementary binding. The importance of
-3' complementary seems to depend on the miRNA, and at the moment there are no 
-easy way to predict this from the miRNA sequence. We therefore left it a very
-conservative global role, but which might not attribute sufficient importance 
-to factor for some miRNAs.
+with $e_i = \exp(\text{p3}\cdot\text{p3.score}_i)$. `p3` is a global parameter, 
+and $p3.score_i$ is the 3' alignment score (roughly corresponding to the number
+of  matched nucleotides, by default capped to 8 and set to 0 if below 3). Of
+note,  the default value of `p3` is very small, leading to a very mild  effect.
+The importance of complementary binding seems to depend on the miRNA, and at the
+moment there is no easy way to predict this from the miRNA sequence. Our
+conservative estimate might not attribute sufficient importance  to this factor
+for some miRNAs.
 
 The repression is then obtained as the log fold change of the two occupancies:
 $$
@@ -251,7 +251,7 @@ $$
 $$
 
 Because UTR and ORF lengths have been reported to influence the efficacy of 
-repression, `scanMiR` then includes an additional modifier to terms handling 
+repression, `scanMiR` also includes an additional modifier to terms handling 
 these effects:
 
 $$
