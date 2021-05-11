@@ -39,7 +39,7 @@
 #'
 #' # aggregate matches
 #' aggregateMatches(matches)
-aggregateMatches <- function(m, a=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403,
+aggregateMatches <- function(m, a=0.007726 , b=0.5735, c=0.1810, p3=0.04403,
                            coef_utr = -0.28019, coef_orf = -0.08622,
                            p3.range=c(3L,8L), keepSiteInfo = TRUE, toInt=FALSE,
                            BP=NULL){
@@ -82,7 +82,7 @@ aggregateMatches <- function(m, a=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403,
 }
 
 
-.aggregate_miRNA <- function(m, ll = NULL, a=-4.863126 , b=0.5735, c=-1.7091,
+.aggregate_miRNA <- function(m, ll = NULL, a=0.007726, b=0.5735, c=0.1810,
                              p3=0.04403, coef_utr = -0.28019,
                              coef_orf = -0.08622, p3.range=c(3L,8L),
                              keepSiteInfo = FALSE, toInt=FALSE){
@@ -112,9 +112,9 @@ aggregateMatches <- function(m, a=-4.863126 , b=0.5735, c=-1.7091, p3=0.04403,
   m$p3.score <- ifelse(m$type == "non-canonical" , 0L, m$p3.score)
   m$p3.score[m$p3.score>max(p3.range)] <- as.integer(max(p3.range))
   m$p3.score[m$p3.score<min(p3.range)] <- 0L
-  m$N <- 1 / (1 + exp(-1 * (a + m$log_kd + c*m$ORF + p3*m$p3.score) ))
+  m$N <- 1 / (1 + exp(-1 * (log(a) + m$log_kd + log(c)*m$ORF + p3*m$p3.score) ))
   m$log_kd <- NULL
-  m$N_bg <- 1 / (1 + exp(-1 * (a  + c*m$ORF) ))
+  m$N_bg <- 1 / (1 + exp(-1 * (log(a)  + log(c)*m$ORF) ))
   m <- as.data.frame(rowsum(as.matrix(m[,c("N","N_bg")]), group=m$transcript))
   m <- data.frame( transcript=as.factor(row.names(m)),
                    repression=log2(1+exp(b)*m$N_bg) - log2(1 + exp(b)*m$N))

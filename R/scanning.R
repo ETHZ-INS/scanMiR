@@ -657,9 +657,9 @@ getMatchTypes <- function(x, seed){
 }
 
 .defaultAggParams <- function(){
-  list(a=-4.8631,
+  list(a=0.007726,
     b=0.5735,
-    c=-1.7091,
+    c=0.1810,
     p3=0.04403,
     coef_utr = -0.28019,
     coef_orf = -0.08622,
