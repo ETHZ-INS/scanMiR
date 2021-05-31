@@ -127,3 +127,23 @@ dummyKdData <- function(mod=NULL){
   mer12 <- paste0(getKmers(2),getSeed8mers(mod$canonical.seed),getKmers(2))
   data.frame(X12mer=mer12, log_kd=mod$mer8/1000)
 }
+
+                    
+#' get8merRange
+#'
+#' Returns the minimum and maximum 8-mer log-kd values
+#'
+#' @param mod A `KdModel`
+#'
+#' @return A numeric vector of length two
+#' @export
+#' @examples
+#' data("SampleKdModel")
+#' get8merRange(SampleKdModel)
+get8merRange <- function(mod){
+  stopifnot(is(mod,"KdModel"))
+  mer8 <- getSeed8mers(mod$canonical.seed)
+  mer8 <- which(mer8==mod$canonical.seed)
+  fl <- rowSums(apply(.flankingValues(), 2, FUN=range))
+  fl*mod$fl[mer8]+mod$mer8[mer8]
+}
