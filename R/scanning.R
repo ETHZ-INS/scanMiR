@@ -486,18 +486,18 @@ get3pAlignment <- function(seqs, mirseq, mir3p.start=9L, allow.mismatch=TRUE,
 }
 
 .TDMD <- function(m,mirseq){
-  is78 <- which(m$type %in% c("8mer","7mer-m8","7mer-a1"))
+  is78 <- which(m$type %in% c("8mer","7mer-m8","7mer-a1","g-bulged 8mer"))
   m2 <- m[is78,]
+  isBulged <- m2$type=="g-bulged 8mer"
   m2$TDMD <- rep(1L,nrow(m2))
   absbulgediff <- abs(m2$p3.mir.bulge-m2$p3.target.bulge)
-  w <- which(m2$p3.mismatch==0L & m2$p3.mir.bulge <= 5L &
-             m2$p3.mir.bulge>0L & absbulgediff <= 4L & m2$p3.score >= 6L)
+  w <- which( m2$p3.mismatch==0L & m2$p3.mir.bulge <= 5L & !isBulged &
+              m2$p3.mir.bulge>0L & absbulgediff <= 4L & m2$p3.score >= 6L )
   m2$TDMD[w] <- 2L
   w <- which(m2$TDMD == 2L & m2$p3.mir.bulge < 5L & absbulgediff <= 2L)
   m2$TDMD[w] <- 3L
-  is78 <- which(m$type %in% c("8mer","7mer-m8","g-bulged 8mer"))
-  w <- which(is78 & m2$p3.score >= 7L & m2$p3.mir.bulge == 0L &
-               absbulgediff == 0L)
+  w <- which( m$type %in% c("8mer","7mer-m8","g-bulged 8mer") &
+              m2$p3.score >= 7L & m2$p3.mir.bulge == 0L & absbulgediff == 0L )
   m2$TDMD[w] <- 4L
   m2$not.bound <- nchar(mirseq) - 8L - m2$p3.score
   w <- which(m2$TDMD == 4L & m2$p3.mismatch <= 1L & m2$not.bound <= 1L)
