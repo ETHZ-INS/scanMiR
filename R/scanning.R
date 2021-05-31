@@ -496,13 +496,12 @@ get3pAlignment <- function(seqs, mirseq, mir3p.start=9L, allow.mismatch=TRUE,
   w <- which(m2$p3.mismatch==0L & m2$p3.mir.bulge < 5L &
              m2$p3.mir.bulge>0L & absbulgediff <= 2L & m2$p3.score >= 6L)
   m2$TDMD[w] <- 3L
-  is8 <- m2$type == "8mer"
-  m2$not.bound <- nchar(mirseq) - 8L - m2$p3.score
-  w <- which(is8 & m2$p3.mismatch<=1L & m2$p3.mir.bulge == 0L &
-               absbulgediff == 0L & m2$not.bound <= 6L)
+  is78 <- which(m$type %in% c("8mer","7mer-m8","g-bulged 8mer"))
+  w <- which(is78 & m2$p3.score >= 7L & m2$p3.mir.bulge == 0L &
+               absbulgediff == 0L)
   m2$TDMD[w] <- 4L
-  w <- which(is8 & m2$p3.mismatch == 0L & m2$p3.mir.bulge == 0L &
-               absbulgediff == 0L & m2$not.bound == 0L)
+  m2$not.bound <- nchar(mirseq) - 8L - m2$p3.score
+  w <- which(m2$TDMD == 4L & m2$p3.mismatch <= 1L & m2$not.bound <= 1L)
   m2$TDMD[w] <- 5L
   TDMD <- rep(1L,nrow(m))
   TDMD[is78] <- m2$TDMD
