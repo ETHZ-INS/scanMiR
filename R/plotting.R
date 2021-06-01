@@ -149,7 +149,7 @@ viewTargetAlignment <- function(m, miRNA, seqs=NULL, flagBulgeMatches=FALSE,
     minBulge <- 0
   }
   mm <- .matchStrings(substr(mirseq2,1,8+bulged+minBulge),
-                      substr(target,3,10+bulged+minBulge), FALSE )
+                      substr(target,3,10+bulged+minBulge), UGsub=UGsub )
   if(!flagBulgeMatches && m$p3.mir.bulge==m$p3.target.bulge){
     mm <- c(mm,rep(" ",m$p3.mir.bulge))
   }else if(m$p3.mir.bulge<m$p3.target.bulge){
@@ -209,7 +209,7 @@ viewTargetAlignment <- function(m, miRNA, seqs=NULL, flagBulgeMatches=FALSE,
   s2 <- strsplit(s2,"")[[1]]
   mm <- ifelse(s1==s2, "|", " ")
   if(UGsub){
-    mm[s1!=s2 & s1 %in% c("U","C") & s2 %in% c("U","C")] <- "-"
+    mm[s1!=s2 & ((s1=="A" & s2=="G") | (s1=="C" & s2=="U"))] <- "-"
   }
   mm <- gsub("\\-$"," ",paste(mm,collapse=""))
   mm <- gsub("\\-[^|]|[^|]\\-","  ", mm)
