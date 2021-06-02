@@ -29,6 +29,8 @@
 plotKdModel <- function(mod, what=c("both","seeds","logo"), n=10){
   what <- match.arg(what)
   if(what=="seeds"){
+    mirseq2 <- strsplit(gsub("T","U",mod$mirseq),"")[[1]]
+    mirseq2 <- paste0("3'-",stringi::stri_reverse(gsub("T","U",mod$mirseq)),"-5'")
     mer8 <- getSeed8mers(mod$canonical.seed)
     wA <- which(substr(mer8,8,8)=="A")
     mer7 <- substr(mer8,1,7)
@@ -41,13 +43,14 @@ plotKdModel <- function(mod, what=c("both","seeds","logo"), n=10){
                     type=getMatchTypes(names(mer.mean),mod$canonical.seed),
                     row.names=NULL)
     d <- d[head(order(d$base+d$A, decreasing=TRUE),n=n),]
+    d$seed <- gsub("T","U",d$seed)
     d$seed <- factor(as.character(d$seed), rev(as.character(d$seed)))
     levels(d$type) <- .matchLevels(FALSE)
     d2 <- data.frame(seed=rep(d$seed,2), log_kd=c(d$base,d$A),
                      type=c(as.character(d$type), rep("+A",n)))
     p <- ggplot(d2, aes(seed, log_kd, fill=type)) + geom_col() + coord_flip() +
       ylab("-log(KD)") + xlab("7-mer") + ggtitle(mod$name)
-    if(mod$name != mod$mirseq) p <- p + labs(subtitle=gsub("T","U",mod$mirseq))
+    if(mod$name != mod$mirseq) p <- p + labs(subtitle=mirseq2)
     return( p )
   }
 
@@ -150,6 +153,8 @@ viewTargetAlignment <- function(m, miRNA, seqs=NULL, flagBulgeMatches=FALSE,
   }
   mm <- .matchStrings(substr(mirseq2,1,8+bulged+minBulge),
                       substr(target,3,10+bulged+minBulge), UGsub=UGsub )
+  # prevent wobble at first two positions:
+  mm <- gsub("^(.)-","\\1-",gsub("^-"," ",mm))
   if(!flagBulgeMatches && m$p3.mir.bulge==m$p3.target.bulge){
     mm <- c(mm,rep(" ",m$p3.mir.bulge))
   }else if(m$p3.mir.bulge<m$p3.target.bulge){
