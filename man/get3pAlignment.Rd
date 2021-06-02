@@ -12,7 +12,8 @@ get3pAlignment(
   maxMirLoop = 5L,
   maxTargetLoop = 9L,
   maxLoopDiff = 4L,
-  TGsub = TRUE
+  TGsub = TRUE,
+  siteType = NULL
 )
 }
 \arguments{
@@ -32,6 +33,10 @@ of the seed match)}
 \item{maxLoopDiff}{Maximum size difference between miRNA and target loops}
 
 \item{TGsub}{Logical; whether to allow T/G substitutions.}
+
+\item{siteType}{The optional type of seed-complementarity, as returned by 
+\code{\link{getMatchTypes}}. This is needed to identify slicing/TDMD sites.
+If given, should be a vector of the same length as `seqs`.}
 }
 \value{
 A data.frame with one row for each element of `seqs`, indicating the

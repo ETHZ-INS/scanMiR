@@ -195,7 +195,7 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
           ll <- as.data.frame(length.info)
           ll$transcript <- row.names(ll)
           m <- .aggregate_miRNA(m, ll, a=agg.params$a, b=agg.params$b,
-                                c=agg.params$c,p3 = agg.params$p3,
+                                c=agg.params$c, p3 = agg.params$p3,
                                 coef_utr = agg.params$coef_utr,
                                 coef_orf = agg.params$coef_orf,
                                 keepSiteInfo = agg.params$keepSiteInfo,
@@ -356,11 +356,11 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
     ms <- unlist(extractAt(seqs[seqlevels(m)], r))
     rm(r)
     names(ms) <- NULL
-    p3 <- get3pAlignment( subseq(ms,1,plen+1L), mirseq,
+    p3 <- get3pAlignment( subseq(ms,1,plen+1L), mirseq, siteType=mcols(m)$type,
                           allow.mismatch=p3.params$mismatch,
                           maxMirLoop=p3.params$maxMirLoop,
                           maxLoopDiff=p3.params$maxLoopDiff,
-                          maxTargetLoop=p3.params$maxTargetLoop)
+                          maxTargetLoop=p3.params$maxTargetLoop )
     if(p3.extra){
       mcols(m) <- cbind(mcols(m), p3)
       if(keepMatchSeq){
@@ -372,9 +372,10 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
       }
     }else{
       mcols(m)$p3.score <- p3$p3.score
+      mcols(m)$note <- p3$note
     }
     rm(ms)
-    mcols(m)$note <- Rle(.TDMD(cbind(type=mcols(m)$type, p3), mirseq=mirseq))
+    mcols(m)$note <- Rle(mcols(m)$note)
   }
   if(!is.null(mcols(seqs)$C.length) && !all(mcols(seqs)$ORF.length == 0)) {
     mcols(m)$ORF <-
@@ -446,6 +447,9 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
 #' @param seqs A set of sequences in which to look for 3' matches (i.e. upstream
 #' of the seed match)
 #' @param mirseq The sequence of the mature miRNA
+#' @param siteType The optional type of seed-complementarity, as returned by 
+#' \code{\link{getMatchTypes}}. This is needed to identify slicing/TDMD sites.
+#' If given, should be a vector of the same length as `seqs`.
 #' @param mir3p.start The position in `mirseq` in which to start looking
 #' @param allow.mismatch Logical; whether to allow mismatches
 #' @param TGsub Logical; whether to allow T/G substitutions.
@@ -464,10 +468,12 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
 #' get3pAlignment(seqs="NNAGTGTGCCATNN", mirseq="TGGAGTGTGACAATGGTGTTTG")
 get3pAlignment <- function(seqs, mirseq, mir3p.start=9L, allow.mismatch=TRUE,
                            maxMirLoop=5L, maxTargetLoop=9L, maxLoopDiff=4L,
-                           TGsub=TRUE){
+                           TGsub=TRUE, siteType=NULL){
+  if(!is.null(siteType)) stopifnot(length(seqs)==length(siteType))
   mir.3p <- as.character(DNAString(substr(x=mirseq,
                                           start=mir3p.start,
                                           stop=nchar(mirseq))))
+  
   if(!is(seqs, "XStringSet") && !is(seqs, "XString")) seqs <- DNAString(seqs)
   seqs <- reverseComplement(seqs)
   subm <- .default3pSubMatrix(ifelse(allow.mismatch,-3L,-Inf), TG=TGsub)
@@ -482,25 +488,40 @@ get3pAlignment <- function(seqs, mirseq, mir3p.start=9L, allow.mismatch=TRUE,
              diff>maxLoopDiff),
      c("p3.mir.bulge","p3.target.bulge","p3.score")] <- 0L
   if(!is.integer(df$p3.score)) df$p3.score <- as.integer(round(df$p3.score))
+  if(!is.null(siteType)){
+    df$type <- siteType
+    df$note <- .TDMD(df, mirseq, acceptWobble=TGsub)
+    n_9_11 <- substr(as.character(mirseq),nchar(mirseq)-10,nchar(mirseq)-8)
+    if(length(w <- which(df$note %in% c("Slicing","Slicing?")))>0 &&
+       sum(w2 <- !grepl(paste0(n_9_11,"$"), as.character(seqs)[w]))>0){
+      # for slicing sites, ensure that positions 9-11 are complementary
+      df$note[w[which(!w2)]] <- "-"
+    }
+    df$type <- NULL
+  }
   df
 }
 
-.TDMD <- function(m,mirseq){
-  is78 <- which(m$type %in% c("8mer","7mer-m8","7mer-a1","g-bulged 8mer"))
+.TDMD <- function(m, mirseq, acceptWobble=TRUE){
+  tt <- c("8mer","7mer-m8","7mer-a1","g-bulged 8mer")
+  if(acceptWobble) tt <- c(tt, "wobbled 8mer","wobbled 7mer")
+  is78 <- which(m$type %in% tt)
   m2 <- m[is78,]
+  isWobble <- m2$type %in% c("wobbled 8mer","wobbled 7mer")
   isBulged <- m2$type=="g-bulged 8mer"
   m2$TDMD <- rep(1L,nrow(m2))
   absbulgediff <- abs(m2$p3.mir.bulge-m2$p3.target.bulge)
-  w <- which( m2$p3.mismatch <= 1L & m2$p3.mir.bulge <= 5L & !isBulged &
-              m2$p3.mir.bulge>0L & absbulgediff <= 4L & m2$p3.score >= 6L )
+  w <- which(m2$p3.mismatch<=1L & m2$p3.mir.bulge<=5L & !isBulged & !isWobble &
+             m2$p3.mir.bulge > 0L & absbulgediff <= 4L & m2$p3.score >= 6L)
   m2$TDMD[w] <- 2L
   w <- which(m2$TDMD == 2L & m2$p3.mir.bulge < 5L & absbulgediff <= 2L)
   m2$TDMD[w] <- 3L
-  w <- which( m$type %in% c("8mer","7mer-m8","g-bulged 8mer") &
+  w <- which( m2$type != "7mer-a1"  &
               m2$p3.score >= 7L & m2$p3.mir.bulge == 0L & absbulgediff == 0L )
   m2$TDMD[w] <- 4L
   m2$not.bound <- nchar(mirseq) - 8L - m2$p3.score
-  w <- which(m2$TDMD == 4L & m2$p3.mismatch <= 1L & m2$not.bound <= 1L)
+  w <- which(m2$TDMD == 4L & m2$p3.mismatch <= 1L & m2$not.bound <= 1L &
+               !isWobble & !isBulged)
   m2$TDMD[w] <- 5L
   TDMD <- rep(1L,nrow(m))
   TDMD[is78] <- m2$TDMD
@@ -620,7 +641,7 @@ removeOverlappingRanges <- function(x, minDist=7L, retIndices=FALSE,
 #' @examples
 #' x <- c("AACACTCCAG","GACACTCCGC","GTACTCCAT","ACGTACGTAC")
 #' getMatchTypes(x, seed="ACACTCCA")
-getMatchTypes <- function(x, seed){
+getMatchTypes <- function(x, seed, checkWobble=TRUE){
   if(is.factor(x)) return(getMatchTypes(levels(x), seed)[as.integer(x)])
   x <- as.character(x)
   y <- rep(1L,length(x))
@@ -640,18 +661,36 @@ getMatchTypes <- function(x, seed){
     y[grep(paste0(seedGb6,"A|",seedGb7),x)] <- 6L # g-bulged 7mer
     y[grep(paste0(seedGb7,"A"),x,fixed=TRUE)] <- 7L # g-bulged 8mer
   }
-  y[grep(paste0("[ACGTN]",substr(seed,2,8)),x)] <- 8L # 7mer-a1
-  y[grep(substr(seed,1,7),x,fixed=TRUE)] <- 9L # 7mer-m8
-  y[grep(seed,x,fixed=TRUE)] <- 10L # 8mer
-  factor(y, levels=10L:1L, labels=.matchLevels())
+  if(checkWobble){
+    y[.isWobble(x,seed)] <- 8L # wobbled 7-mer
+    y[.isWobble(x,seed,FALSE)] <- 9L # wobbled 8-mer
+  }
+  y[grep(paste0("[ACGTN]",substr(seed,2,8)),x)] <- 10L # 7mer-a1
+  y[grep(substr(seed,1,7),x,fixed=TRUE)] <- 11L # 7mer-m8
+  y[grep(seed,x,fixed=TRUE)] <- 12L # 8mer
+  factor(y, levels=12L:1L, labels=.matchLevels())
+}
+
+.isWobble <- function(x, seed, allow7mer=TRUE, positions=2:5){
+  seed <- strsplit(seed,"")[[1]]
+  if(allow7mer) seed <- head(seed,7)
+  wo <- c(A="G", C="T")
+  seeds <- vapply(intersect(which(seed %in% names(wo)), positions), 
+                  FUN.VALUE=character(1), FUN=function(i){
+    seed[i] <- wo[seed[i]]
+    paste(seed, collapse="")
+  })
+  if(length(seeds)==0) return(rep(FALSE, length(x)))
+  grepl(paste(seeds, collapse="|"), x)
 }
 
 .matchLevels <- function(withA=TRUE){
-  if(withA) return(c("8mer","7mer-m8","7mer-a1","g-bulged 8mer","g-bulged 7mer",
-                     "6mer","g-bulged 6mer","6mer-m8","6mer-a1",
-                     "non-canonical"))
-  c("7mer","7mer","6mer","g-bulged 7mer","g-bulged 6mer","6mer","g-bulged 6mer",
-    "6mer-m8","non-canonical","non-canonical")
+  if(withA) return(c("8mer","7mer-m8","7mer-a1","wobbled 8mer","wobbled 7mer",
+                     "g-bulged 8mer","g-bulged 7mer","6mer","g-bulged 6mer",
+                     "6mer-m8","6mer-a1","non-canonical"))
+  c("7mer","7mer","6mer","wobbled 8mer","wobbled 7mer","g-bulged 7mer",
+    "g-bulged 6mer","6mer","g-bulged 6mer","6mer-m8","non-canonical",
+    "non-canonical")
 }
 
 .defaultAggParams <- function(){

@@ -4,7 +4,7 @@
 \alias{getMatchTypes}
 \title{getMatchTypes}
 \usage{
-getMatchTypes(x, seed)
+getMatchTypes(x, seed, checkWobble = TRUE)
 }
 \arguments{
 \item{x}{A character vector of short sequences.}
