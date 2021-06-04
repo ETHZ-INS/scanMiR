@@ -494,7 +494,7 @@ get3pAlignment <- function(seqs, mirseq, mir3p.start=9L, allow.mismatch=TRUE,
     if(length(w <- which(df$note %in% c("Slicing","Slicing?")))>0 &&
        sum(w2 <- !grepl(paste0(n_9_11,"$"), as.character(seqs)[w]))>0){
       # for slicing sites, ensure that positions 9-11 are complementary
-      df$note[w[which(!w2)]] <- "-"
+      df$note[w[which(w2)]] <- "-"
     }
     df$type <- NULL
   }
@@ -721,7 +721,7 @@ getMatchTypes <- function(x, seed, checkWobble=TRUE){
     if(verbose) message(f)
     x <- lapply(m, FUN=function(x) mcols(x)[[f]])
     if(is(x[[1]],"Rle")){
-      x <- unlist(RleList(x))
+      x <- unlist(RleList(x), use.names=FALSE)
     }else if(is.factor(x[[1]])){
       x <- unlist(FactorList(x), use.names=FALSE)
     }else{
