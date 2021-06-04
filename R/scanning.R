@@ -721,7 +721,9 @@ getMatchTypes <- function(x, seed, checkWobble=TRUE){
   for(f in colnames(mcols(m[[1]]))){
     if(verbose) message(f)
     x <- lapply(m, FUN=function(x) mcols(x)[[f]])
-    if(is.factor(x[[1]])){
+    if(is(x[[1]],"Rle")){
+      x <- unlist(RleList(x))
+    }else if(is.factor(x[[1]])){
       x <- unlist(FactorList(x), use.names=FALSE)
     }else{
       x <- unlist(x)
