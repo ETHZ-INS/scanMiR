@@ -77,6 +77,8 @@ plotKdModel <- function(mod, what=c("both","seeds","logo"), n=10){
 #' @param maxBulgeDiff The maximum difference between miRNA and target bulges
 #' @param min3pMatch The minimum 3' alignment for any to be plotted
 #' @param UGsub Logical; whether to show U-G matches
+#' @param hideSingletons Logical; whether to hide isolated single base-pair 
+#' matches
 #' @param outputType Either 'print' (default, prints to console), 'data.frame',
 #' or 'plot'.
 #' @param ... Passed to `text` if `outputType="plot"`.
@@ -93,8 +95,8 @@ plotKdModel <- function(mod, what=c("both","seeds","logo"), n=10){
 #' m <- findSeedMatches(seq, SampleKdModel, verbose=FALSE)
 #' viewTargetAlignment(m, miRNA=SampleKdModel, seqs=seq)
 viewTargetAlignment <- function(m, miRNA, seqs=NULL, flagBulgeMatches=FALSE,
-                                maxBulgeSize=9L, maxBulgeDiff=4L,
-                                min3pMatch=3L, UGsub=TRUE, ...,
+                                maxBulgeSize=9L, maxBulgeDiff=4L, min3pMatch=3L,
+                                hideSingletons=FALSE, UGsub=TRUE, ...,
                                 outputType=c("print","data.frame",
                                              "plot","ggplot")){
   stopifnot(is(m,"GRanges"))
@@ -159,15 +161,21 @@ viewTargetAlignment <- function(m, miRNA, seqs=NULL, flagBulgeMatches=FALSE,
     mm <- c(mm,rep(" ",m$p3.mir.bulge))
   }else if(m$p3.mir.bulge<m$p3.target.bulge){
     mm <- c(mm,rep(" ",m$p3.target.bulge-minBulge))
+    di <- m$p3.target.bulge-m$p3.mir.bulge
     mirseq <- paste0(
-      paste(substr(mirseq,1,8+bulged+m$p3.mir.bulge),collapse=""),
-      paste(rep("-",m$p3.target.bulge-m$p3.mir.bulge),collapse=""),
+      paste(substr(mirseq,1,8+bulged),collapse=""),
+      paste(rep("-",floor(di/2)),collapse=""),
+      paste(substr(mirseq,9+bulged,8+bulged+m$p3.mir.bulge),collapse=""),
+      paste(rep("-",ceiling(di/2)), collapse=""),
       paste(substr(mirseq,9+bulged+m$p3.mir.bulge,nchar(mirseq)),collapse=""))
   }else{
     mm <- c(mm,rep(" ",m$p3.mir.bulge-minBulge))
+    di <- m$p3.mir.bulge-m$p3.target.bulge
     target <- paste0(
-      paste(substr(target,1,10+m$p3.target.bulge),collapse=""),
-      paste(rep("-",m$p3.mir.bulge-m$p3.target.bulge),collapse=""),
+      paste(substr(target,1,10),collapse=""),
+      paste(rep("-",floor(di/2)),collapse=""),
+      paste(substr(target,11,10+m$p3.target.bulge),collapse=""),
+      paste(rep("-",ceiling(di/2)), collapse=""),
       paste(substr(target,11+m$p3.target.bulge,nchar(target)),collapse=""))
   }
   minl <- min(nchar(target),
@@ -194,6 +202,8 @@ viewTargetAlignment <- function(m, miRNA, seqs=NULL, flagBulgeMatches=FALSE,
                                FUN.VALUE=character(1),
                                FUN=function(x) paste0(rep(" ",x),collapse="")),
                         d$alignment)
+  if(hideSingletons) d$alignment <- gsub(" | ", paste(rep(" ",3),collapse=""), 
+                                         d$alignment, fixed=TRUE)
   if(outputType=="data.frame") return(d)
   d2 <- paste0(paste(c("miRNA ","      ","target"), d$alignment), collapse="\n")
   if(outputType=="ggplot"){
@@ -216,8 +226,8 @@ viewTargetAlignment <- function(m, miRNA, seqs=NULL, flagBulgeMatches=FALSE,
   if(UGsub){
     mm[s1!=s2 & ((s1=="A" & s2=="G") | (s1=="C" & s2=="U"))] <- "-"
   }
-  mm <- gsub("\\-$"," ",paste(mm,collapse=""))
-  mm <- gsub("\\-[^|]|[^|]\\-","  ", mm)
+  mm <- gsub("\\-$", " ", paste(mm, collapse=""))
+  mm <- gsub("\\-[^|]|[^|]\\-", "  ", mm)
   mm
 }
 

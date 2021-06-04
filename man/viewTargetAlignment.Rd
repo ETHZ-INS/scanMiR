@@ -12,6 +12,7 @@ viewTargetAlignment(
   maxBulgeSize = 9L,
   maxBulgeDiff = 4L,
   min3pMatch = 3L,
+  hideSingletons = FALSE,
   UGsub = TRUE,
   ...,
   outputType = c("print", "data.frame", "plot", "ggplot")
@@ -36,6 +37,9 @@ including the model.}
 \item{maxBulgeDiff}{The maximum difference between miRNA and target bulges}
 
 \item{min3pMatch}{The minimum 3' alignment for any to be plotted}
+
+\item{hideSingletons}{Logical; whether to hide isolated single base-pair 
+matches}
 
 \item{UGsub}{Logical; whether to show U-G matches}
 
