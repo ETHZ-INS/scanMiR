@@ -123,10 +123,10 @@ viewTargetAlignment <- function(m, miRNA, seqs=NULL, flagBulgeMatches=FALSE,
     seq2 <- subseq(DNAStringSet(seqs[as.character(seqnames(m))]),
                    max(1L,start(m)-(nchar(miRNA)+maxBulgeSize-8L)), end(m)+2L)
     m <- findSeedMatches(seq2, mod, keepMatchSeq=TRUE, p3.extra=TRUE,
-                         p3.params = list(maxMirLoop=maxBulgeSize,
+                         p3.params = list(maxMirLoop=maxBulgeSize, 
                                           maxTargetLoop=maxBulgeSize,
                                           maxLoopDiff=maxBulgeDiff),
-                         verbose=FALSE)
+                         minDist=-Inf, verbose=FALSE)
   }
   if(!("sequence" %in% colnames(mcols(m)))){
     stopifnot(as.character(seqnames(m)) %in% names(seqs))
