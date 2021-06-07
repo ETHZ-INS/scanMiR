@@ -244,8 +244,10 @@ aggregateMatches <- function(m, a=0.007726 , b=0.5735, c=0.1810, p3=0.04403,
     }
 
   }
-  for (i in names(sites))
+  for(i in names(sites)){
     sites[is.na(get(i)), (i):=0L]
+    if(is.numeric(sites[[i]])) sites[[i]] <- as.integer(sites[[i]])
+  }
   return(sites[,..cols])
 }
 
