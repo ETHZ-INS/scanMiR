@@ -59,3 +59,7 @@ predict repression based on the biochemical model from
 To learn more about the functionalities, see the package's vignettes. To obtain
 predicted `KdModels` for all mouse, human and rat miRbase miRNAs, see the 
 [scanMiRData](https://github.com/ETHZ-INS/scanMiRData) pacakge.
+
+For convenient wrappers connecting to AnnotationHub, fast out-of memory access 
+to large collections, or a web interface to scanMiR, see the 
+[scanMiRApp](https://github.com/ETHZ-INS/scanMiRApp) package.
