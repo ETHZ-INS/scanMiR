@@ -59,7 +59,7 @@
 #' @importFrom GenomeInfoDb seqlevels
 #' @import Biostrings GenomicRanges
 #' @importFrom S4Vectors mcols mcols<- metadata metadata<- Rle DataFrame
-#' @importFrom IRanges IRanges
+#' @importFrom IRanges IRanges RleList
 #' @export
 #'
 #' @examples
