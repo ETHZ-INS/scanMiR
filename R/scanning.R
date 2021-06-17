@@ -88,6 +88,7 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
     hasORF <- FALSE
     utr.length <- length.seqs
     orf.length <- 0L
+    tx_info$ORF.length <- orf.length
     mcols(seqs)$ORF.length <- orf.length
     mcols(seqs)$C.length <- orf.length
   }else{
