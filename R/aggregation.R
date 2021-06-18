@@ -69,7 +69,9 @@ aggregateMatches <- function(m, a=0.007726 , b=0.5735, c=0.1810, p3=0.04403,
                        coef_orf = coef_orf, keepSiteInfo = keepSiteInfo,
                        toInt=toInt, p3.range=p3.range)
     })
-    m <- as.data.frame(data.table::rbindlist(m, use.names=TRUE, fill=TRUE))
+    m <- as.data.frame(data.table::rbindlist(m, use.names=TRUE, fill=TRUE,
+                                             idcol = "miRNA"))
+    m$miRNA <- as.factor(m$miRNA)
     for(f in colnames(m)){
       if(is.numeric(m[[f]])) m[[f]][is.na(m[[f]])] <- 0L
     }
@@ -152,6 +154,7 @@ aggregateMatches <- function(m, a=0.007726 , b=0.5735, c=0.1810, p3=0.04403,
     }else{
       m <- merge(m, m_type_table, by=c("transcript"), all=TRUE)
     }
+    m$miRNA <- NULL
   }
   m
 }
