@@ -125,7 +125,7 @@ aggregateMatches <- function(m, a=0.007726 , b=0.5735, c=0.1810, p3=0.04403,
 
     # get the utr score
     m$utr.length <- log10(m$utr.length)
-    m$utr.length[is.infinite(m$utr.length) || is.na(m$utr.length)] <- 0
+    m$utr.length[is.infinite(m$utr.length) | is.na(m$utr.length)] <- 0
     qu_un <- m[!duplicated(m$transcript),"utr.length"]
     qu <- quantile(qu_un, probs = c(0.05,0.95), na.rm = TRUE)
     m$utr_score <- (m$utr.length - qu[1]) / (qu[2] - qu[1])
@@ -134,7 +134,7 @@ aggregateMatches <- function(m, a=0.007726 , b=0.5735, c=0.1810, p3=0.04403,
     # get the orf score
     if(sum(m$orf.length, na.rm = TRUE) > 0){
       m$orf.length <- log10(m$orf.length)
-      m$orf.length[is.infinite(m$orf.length) || is.na(m$orf.length)] <- 0
+      m$orf.length[is.infinite(m$orf.length) | is.na(m$orf.length)] <- 0
       qu_un <- m[!duplicated(m$transcript),"orf.length"]
       qu <- quantile(qu_un, probs = c(0.05,0.95), na.rm = TRUE)
       m$orf_score <- (m$orf.length - qu[1]) / (qu[2] - qu[1])
