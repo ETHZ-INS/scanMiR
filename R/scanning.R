@@ -447,7 +447,7 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
 #' @param seqs A set of sequences in which to look for 3' matches (i.e. upstream
 #' of the seed match)
 #' @param mirseq The sequence of the mature miRNA
-#' @param siteType The optional type of seed-complementarity, as returned by 
+#' @param siteType The optional type of seed-complementarity, as returned by
 #' \code{\link{getMatchTypes}}. This is needed to identify slicing/TDMD sites.
 #' If given, should be a vector of the same length as `seqs`.
 #' @param mir3p.start The position in `mirseq` in which to start looking
@@ -473,7 +473,7 @@ get3pAlignment <- function(seqs, mirseq, mir3p.start=9L, allow.mismatch=TRUE,
   mir.3p <- as.character(DNAString(substr(x=mirseq,
                                           start=mir3p.start,
                                           stop=nchar(mirseq))))
-  
+
   if(!is(seqs, "XStringSet") && !is(seqs, "XString")) seqs <- DNAString(seqs)
   seqs <- reverseComplement(seqs)
   subm <- .default3pSubMatrix(ifelse(allow.mismatch,-3L,-Inf), TG=TGsub)
@@ -634,6 +634,7 @@ removeOverlappingRanges <- function(x, minDist=7L, retIndices=FALSE,
 #' @param x A character vector of short sequences.
 #' @param seed A 7 or 8 nucleotides string indicating the seed (5' to 3'
 #' sequence of the target RNA). If of length 7, an "A" will be appended.
+#' @param checkWobble Whether to flag wobbled sites
 #'
 #' @return A factor of match types.
 #' @export
@@ -675,7 +676,7 @@ getMatchTypes <- function(x, seed, checkWobble=TRUE){
   seed <- strsplit(seed,"")[[1]]
   if(allow7mer) seed <- head(seed,7)
   wo <- c(A="G", C="T")
-  seeds <- vapply(intersect(which(seed %in% names(wo)), positions), 
+  seeds <- vapply(intersect(which(seed %in% names(wo)), positions),
                   FUN.VALUE=character(1), FUN=function(i){
     seed[i] <- wo[seed[i]]
     paste(seed, collapse="")
