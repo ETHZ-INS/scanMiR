@@ -201,6 +201,7 @@ getKdModel <- function( kd, mirseq=NULL, name=NULL, conservation=NA_integer_,
 #' data(SampleKdModel)
 #' assignKdType(c("CTAGCATTAAGT","ACGTACGTACGT"), SampleKdModel)
 assignKdType <- function(x, mod, mer8=NULL){
+  stopifnot(is(mod,"KdModel"))
   if(is.null(mer8)) mer8 <- getSeed8mers(mod$canonical.seed, addNs=TRUE)
   mod <- .add8merN(mod, mer8)
   fl.score <- as.numeric(.getFlankingScore(x)$score)

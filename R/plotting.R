@@ -27,6 +27,7 @@
 #' data(SampleKdModel)
 #' plotKdModel(SampleKdModel, what="seeds")
 plotKdModel <- function(mod, what=c("both","seeds","logo"), n=10){
+  stopifnot(is(mod,"KdModel"))
   what <- match.arg(what)
   if(what=="seeds"){
     mirseq2 <- strsplit(gsub("T","U",mod$mirseq),"")[[1]]
@@ -77,7 +78,7 @@ plotKdModel <- function(mod, what=c("both","seeds","logo"), n=10){
 #' @param maxBulgeDiff The maximum difference between miRNA and target bulges
 #' @param min3pMatch The minimum 3' alignment for any to be plotted
 #' @param UGsub Logical; whether to show U-G matches
-#' @param hideSingletons Logical; whether to hide isolated single base-pair 
+#' @param hideSingletons Logical; whether to hide isolated single base-pair
 #' matches
 #' @param outputType Either 'print' (default, prints to console), 'data.frame',
 #' or 'plot'.
@@ -125,7 +126,7 @@ viewTargetAlignment <- function(m, miRNA, seqs=NULL, flagBulgeMatches=FALSE,
                    internStart, end(m)+2L)
     tx_start <- start(m)
     m <- findSeedMatches(seq2, mod, keepMatchSeq=TRUE, p3.extra=TRUE,
-                         p3.params = list(maxMirLoop=maxBulgeSize, 
+                         p3.params = list(maxMirLoop=maxBulgeSize,
                                           maxTargetLoop=maxBulgeSize,
                                           maxLoopDiff=maxBulgeDiff),
                          maxLogKd=0, minDist=-Inf, verbose=FALSE)
@@ -205,7 +206,7 @@ viewTargetAlignment <- function(m, miRNA, seqs=NULL, flagBulgeMatches=FALSE,
                                FUN.VALUE=character(1),
                                FUN=function(x) paste0(rep(" ",x),collapse="")),
                         d$alignment)
-  if(hideSingletons) d$alignment <- gsub(" | ", paste(rep(" ",3),collapse=""), 
+  if(hideSingletons) d$alignment <- gsub(" | ", paste(rep(" ",3),collapse=""),
                                          d$alignment, fixed=TRUE)
   if(outputType=="data.frame") return(d)
   d2 <- paste0(paste(c("miRNA ","      ","target"), d$alignment), collapse="\n")
