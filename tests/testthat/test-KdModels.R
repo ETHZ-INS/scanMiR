@@ -14,6 +14,7 @@ test_that("Kd assignment works", {
   expect_type(assignKdType(kmers$kmer, SampleKdModel)$log_kd, "integer")
   expect_equal(assignKdType(kmers$kmer, SampleKdModel)$log_kd,
                kmers$log_kd, tolerance=200)
+  expect_equal(get8merRange(SampleKdModel), c(-5831,-3978), tolerance=200)
 })
 
 test_that("Type assignment works", {
@@ -29,12 +30,17 @@ test_that("KdModel construction works", {
   expect_equal(all(!is.na(mod$mer8) & !is.infinite(mod$mer8)), TRUE)
   expect_equal(all(!is.na(mod$fl) & !is.infinite(mod$fl)), TRUE)
   expect_type(summary(mod), "character")
+  expect_type(capture_output(show(mod)), "character")
   expect_gt(mod$cor,0.9)
   expect_gt(cor(mod$mer8, SampleKdModel$mer8),0.9)
   expect_equal(as.character(assignKdType(kmers$kmer, mod)$type),
                kmers$type)
   expect_equal(assignKdType(c("CTAGCATTAAGT","CTAGCATTACGT"), mod)$log_kd,
                c(-5083,-4108), tolerance=250)
+})
+
+test_that("KdModel plotting works",{
+  expect_s3_class(plotKdModel(SampleKdModel, what="seeds"), "ggplot")
 })
 
 test_that("KdModelList operations work", {
