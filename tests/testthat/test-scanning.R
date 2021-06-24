@@ -54,7 +54,7 @@ gr_md_10 <- findSeedMatches(seq_nc, SampleKdModel, verbose = FALSE,
 test_that("minDist works", {
   expect_identical(length(gr_md_0), 2L)
   expect_identical(length(gr_md_10), 1L)
-  expect_identical(as.character(gr_md$type), "8mer")
+  expect_identical(as.character(gr_md_10$type), "8mer")
 })
 
 char_seq <- setNames(as.character(seq1$seq), "seq")
