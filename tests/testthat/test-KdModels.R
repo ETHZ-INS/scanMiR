@@ -1,5 +1,4 @@
 data("SampleKdModel", package="scanMiR")
-data("SampleTranscript", package="scanMiR")
 
 kmers <- data.frame(
   type=c("8mer", "6mer-m8", "7mer-m8", "7mer-a1", "6mer", "6mer-a1",
@@ -30,6 +29,7 @@ test_that("KdModel construction works", {
   expect_equal(all(!is.na(mod$fl) & !is.infinite(mod$fl)), TRUE)
   expect_type(summary(mod), "character")
   expect_gt(mod$cor,0.9)
+  expect_gt(cor(mod$mer8, SampleKdModel$mer8),0.9)
   expect_equal(as.character(assignKdType(kmers$kmer, mod)$type),
                kmers$type)
   expect_equal(assignKdType(c("CTAGCATTAAGT","CTAGCATTACGT"), mod)$log_kd,
@@ -37,6 +37,7 @@ test_that("KdModel construction works", {
 })
 
 test_that("KdModelList operations work", {
+  expect_s4_class(KdModelList(mod,SampleKdModel), "KdModelList")
   expect_s4_class(ml <- c(mod,SampleKdModel), "KdModelList")
   expect_s4_class(ml[[1]], "KdModel")
   expect_s4_class(ml[2:1], "KdModelList")
