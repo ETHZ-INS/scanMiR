@@ -35,7 +35,7 @@ KdModelList <- function(..., description=NULL, makeUnique=FALSE){
       y <- x[[f]]
       x <- x[-f]
       if(is(y,"KdModelList") ||
-         (is.list(y) && vapply(y, is, logical(1), class2="KdModel"))){
+         (is.list(y) && all(vapply(y, is, logical(1), class2="KdModel")))){
         x <- c(x,as.list(y))
       }else{
         warn <- TRUE
