@@ -21,9 +21,10 @@ test_that("Type assignment works", {
                kmers$type)
 })
 
+mod <- getKdModel(kd=dummyKdData(), mirseq="TTAATGCTAATCGTGATAGGGGTT",
+                  name="my-miRNA")
+
 test_that("KdModel construction works", {
-  mod <- getKdModel(kd=dummyKdData(), mirseq="TTAATGCTAATCGTGATAGGGGTT",
-                    name="my-miRNA")
   expect_s4_class(mod, "KdModel")
   expect_equal(all(!is.na(mod$mer8) & !is.infinite(mod$mer8)), TRUE)
   expect_equal(all(!is.na(mod$fl) & !is.infinite(mod$fl)), TRUE)
