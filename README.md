@@ -1,3 +1,4 @@
+[![](https://img.shields.io/badge/doi-10.1101/2021.06.16.448293-blue.svg)](https://doi.org/10.1101/2021.06.16.448293) [![R build status](https://github.com/ETHZ-INS/scanMiR/workflows/R-CMD-check/badge.svg)](https://github.com/ETHZ-INS/scanMiR/actions)
 <img align="right" style="margin-left: 20px; margin-bottom: 10px;" src="inst/docs/sticker.svg"/>
 
 # scanMiR
@@ -6,9 +7,9 @@
 models (KdModels), enabling efficient and flexible scanning for miRNA binding 
 sites and prediction of target repression.
 
-<br/><br/>
+<br/>
 
-# Getting started
+## Getting started
 
 ### Installation
 
