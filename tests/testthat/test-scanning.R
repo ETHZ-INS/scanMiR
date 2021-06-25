@@ -1,5 +1,5 @@
 data("SampleKdModel", package="scanMiR")
-seq1 <- DNAStringSet(c(seq = paste(c(rep("N", 20), "AGCATTAA", rep("N", 20)), 
+seq1 <- DNAStringSet(c(seq = paste(c(rep("N", 20), "AGCATTAA", rep("N", 20)),
                                    collapse = "")))
 
 gr <- findSeedMatches(seq1, SampleKdModel, verbose = FALSE, ret = "GRanges")
@@ -18,7 +18,7 @@ test_that("Scan returns the right match", {
   expect_identical(as.character(gr$type), "8mer")
 })
 
-seq2 <- DNAStringSet(c(seq = paste(c(rep("N", 5), "AGCATTAA", rep("N", 7),  
+seq2 <- DNAStringSet(c(seq = paste(c(rep("N", 5), "AGCATTAA", rep("N", 7),
                                      "AGCATTAA", rep("N", 20)), collapse = "")))
 gr_s0 <- findSeedMatches(seq2, SampleKdModel, verbose = FALSE, shadow = 0L)
 gr_s15 <- findSeedMatches(seq2, SampleKdModel, verbose = FALSE, shadow = 15L)
@@ -31,9 +31,9 @@ test_that("Shadow works", {
 seq_nc <- DNAStringSet(c(seq = paste(c(rep("N", 5), "AGTATTAA", rep("N", 7),
                                        "AGCATTAA", rep("N", 20)),
                                      collapse = "")))
-gr_withNC <- findSeedMatches(seq_nc, SampleKdModel, verbose = FALSE, 
+gr_withNC <- findSeedMatches(seq_nc, SampleKdModel, verbose = FALSE,
                              onlyCanonical = FALSE)
-gr_withoutNC <- findSeedMatches(seq_nc, SampleKdModel, verbose = FALSE, 
+gr_withoutNC <- findSeedMatches(seq_nc, SampleKdModel, verbose = FALSE,
                                 onlyCanonical = TRUE)
 
 test_that("OnlyCanonical works", {
@@ -58,14 +58,14 @@ test_that("minDist works", {
 })
 
 char_seq <- setNames(as.character(seq1$seq), "seq")
-gr_char <- findSeedMatches(char_seq, SampleKdModel, verbose = FALSE, 
+gr_char <- findSeedMatches(char_seq, SampleKdModel, verbose = FALSE,
                            ret = "GRanges")
 test_that("Scan works for character sequence", {
-  expect_identical(gr_char, gr)  
+  expect_identical(gr_char, gr)
 })
 
 char_seed <- SampleKdModel$canonical.seed
-gr_char_seed <- findSeedMatches(seq1, char_seed, verbose = FALSE, 
+gr_char_seed <- findSeedMatches(seq1, char_seed, verbose = FALSE,
                                 ret = "GRanges")
 test_that("Scan works for character seed", {
   expect_identical(ranges(gr), ranges(gr_char_seed))
@@ -110,7 +110,23 @@ test_that("Correctly removes overlapping ranges", {
   expect_identical(as.character(gr_OR_10$type), "8mer")
 })
 
-al3p <- get3pAlignment(seqs="NNAGTGTGCCATNN", mirseq="TGGAGTGTGACAATGGTGTTTG")
 test_that("3p alignment works correctly", {
-  expect_equal(as.numeric(al3p), c(4,2,6,4))
+  al3p <- get3pAlignment(seqs="TGTTTAAGAACAACAAAATCACCAT",
+                         mirseq="TGGAAGACTAGTGATTTTGTTGTT", siteType="8mer")
+  expect_equal(as.numeric(al3p[1,1:4]), c(2,3,0,14))
+  expect_identical(as.character(al3p$note), "TDMD")
+  al3p <- get3pAlignment( "GCTAAGTTCTCCCAACAACATGAA", "TAGGTAGTTTCATGTTGTTGGG",
+                          siteType="8mer")
+  expect_equal(as.numeric(al3p[1,1:4]), c(0,0,0,14))
+  expect_identical(as.character(al3p$note), "Slicing")
 })
+
+test_that("viewTargetAlignment works", {
+  expect_s3_class(viewTargetAlignment(gr_OR_0[1], SampleKdModel, seq_nc,
+                                      outputType="ggplot"), "ggplot")
+  al <- viewTargetAlignment(gr_OR_0[1], SampleKdModel, seq_nc,
+                            outputType="data.frame")
+  expect_identical(al$alignment[2],
+                   "                   |||-|        ||||||||        ")
+})
+

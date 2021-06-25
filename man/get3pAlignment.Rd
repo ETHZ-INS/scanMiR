@@ -34,7 +34,7 @@ of the seed match)}
 
 \item{TGsub}{Logical; whether to allow T/G substitutions.}
 
-\item{siteType}{The optional type of seed-complementarity, as returned by 
+\item{siteType}{The optional type of seed-complementarity, as returned by
 \code{\link{getMatchTypes}}. This is needed to identify slicing/TDMD sites.
 If given, should be a vector of the same length as `seqs`.}
 }
