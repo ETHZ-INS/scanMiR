@@ -491,9 +491,9 @@ get3pAlignment <- function(seqs, mirseq, mir3p.start=9L, allow.mismatch=TRUE,
   if(!is.null(siteType)){
     df$type <- siteType
     df$note <- .TDMD(df, mirseq, acceptWobble=TGsub)
-    n_9_11 <- substr(as.character(mirseq),nchar(mirseq)-10,nchar(mirseq)-8)
+    n_9_11 <- substr(as.character(mirseq),9,11)
     if(length(w <- which(df$note %in% c("Slicing","Slicing?")))>0 &&
-       sum(w2 <- !grepl(paste0(n_9_11,"$"), as.character(seqs)[w]))>0){
+       sum(w2 <- !grepl(paste0("^",n_9_11), as.character(seqs)[w]))>0){
       # for slicing sites, ensure that positions 9-11 are complementary
       df$note[w[which(w2)]] <- "-"
     }
@@ -513,16 +513,16 @@ get3pAlignment <- function(seqs, mirseq, mir3p.start=9L, allow.mismatch=TRUE,
   absbulgediff <- abs(m2$p3.mir.bulge-m2$p3.target.bulge)
   w <- which(m2$p3.mismatch<=1L & m2$p3.mir.bulge<=5L & !isBulged & !isWobble &
              m2$p3.mir.bulge > 0L & absbulgediff <= 4L & m2$p3.score >= 6L)
-  m2$TDMD[w] <- 2L
+  if(length(w)>0) m2$TDMD[w] <- 2L
   w <- which(m2$TDMD == 2L & m2$p3.mir.bulge < 5L & absbulgediff <= 2L)
-  m2$TDMD[w] <- 3L
+  if(length(w)>0) m2$TDMD[w] <- 3L
   w <- which( m2$type != "7mer-a1"  &
               m2$p3.score >= 7L & m2$p3.mir.bulge == 0L & absbulgediff == 0L )
-  m2$TDMD[w] <- 4L
+  if(length(w)>0) m2$TDMD[w] <- 4L
   m2$not.bound <- nchar(mirseq) - 8L - m2$p3.score
   w <- which(m2$TDMD == 4L & m2$p3.mismatch <= 1L & m2$not.bound <= 1L &
                !isWobble & !isBulged)
-  m2$TDMD[w] <- 5L
+  if(length(w)>0) m2$TDMD[w] <- 5L
   TDMD <- rep(1L,nrow(m))
   TDMD[is78] <- m2$TDMD
   factor(TDMD, levels = 1L:5L, labels = c("-",
