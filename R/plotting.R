@@ -3,10 +3,10 @@
 #' Plots the summary of an affinity model.
 #'
 #' @param mod A `KdModel`
-#' @param what Either 'seeds', 'logo', or 'both' (default). 'logo' and 'both
+#' @param what Either 'seeds', 'logo', or 'both' (default).
 #' @param n The number of top 7-mers to plot (when `what='seeds'`)
 #'
-#' @return If `what="logo"`, returns nothing a plots a position weight matrix.
+#' @return If `what="logo"`, returns nothing and plots a position weight matrix.
 #' Otherwise returns a ggplot.
 #'
 #' @details
@@ -14,7 +14,7 @@
 #' both canonical and non-canonical sites), with or without the final "A"
 #' vis-a-vis the first miRNA nucleotide.
 #' `what='logo'` plots a `seqLogo` (requires the
-#' [seqLogo](https://bioconductor.org/packages/release/bioc/html/seqLogo.html)
+#' [seqLogo]{https://bioconductor.org/packages/release/bioc/html/seqLogo.html}
 #' package) showing the nucleotide-wise information content and preferences for
 #' all 12-mers (centered around the seed). `what="both"` plots both.
 #'
