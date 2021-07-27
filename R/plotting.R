@@ -10,7 +10,7 @@
 #' Otherwise returns a ggplot.
 #'
 #' @details
-#' `what='seeds'` plots the -log(Kd) values of the top `n` 7-mers (including
+#' `what='seeds'` plots the -$log(K_d)$ values of the top `n` 7-mers (including
 #' both canonical and non-canonical sites), with or without the final "A"
 #' vis-a-vis the first miRNA nucleotide.
 #' `what='logo'` plots a `seqLogo` (requires the
@@ -19,9 +19,8 @@
 #' all 12-mers (centered around the seed). `what="both"` plots both.
 #'
 #' @import ggplot2
-#' @importFrom gridExtra grid.arrange
-#' @importFrom grid grid.grabExpr
-#' @importFrom seqLogo seqLogo
+#' @import cowplot
+#' @import ggseqlogo
 #' @export
 #' @examples
 #' data(SampleKdModel)
@@ -30,6 +29,11 @@ plotKdModel <- function(mod, what=c("both","seeds","logo"), n=10){
   stopifnot(is(mod,"KdModel"))
   what <- match.arg(what)
   if(what=="seeds"){
+    type_cols <- c("8mer" = "darkred","7mer-m8" = "#44AA99","7mer-a1" = "#117733",
+                   "6mer" = "#4CAF50","6mer-m8" = "#4CAF50", "6mer-a1" = "#4CAF50",
+                   "g-bulged 8mer" = "#88CCEE", "g-bulged 7mer" = "#88CCEE",
+                   "g-bulged 6mer" = "#88CCEE", "wobbled 7mer" = "grey55", "wobbled 8mer" = "grey55",
+                   "non-canonical" = "grey55", "+A" = "darkred", "7mer" = "#117733" )
     mirseq2 <- strsplit(gsub("T","U",mod$mirseq),"")[[1]]
     mirseq2 <- paste0("3'-",stringi::stri_reverse(gsub("T","U",mod$mirseq)),"-5'")
     mer8 <- getSeed8mers(mod$canonical.seed)
@@ -50,16 +54,29 @@ plotKdModel <- function(mod, what=c("both","seeds","logo"), n=10){
     d2 <- data.frame(seed=rep(d$seed,2), log_kd=c(d$base,d$A),
                      type=c(as.character(d$type), rep("+A",n)))
     p <- ggplot(d2, aes(seed, log_kd, fill=type)) + geom_col() + coord_flip() +
-      ylab("-log(KD)") + xlab("7-mer") + ggtitle(mod$name)
-    if(mod$name != mod$mirseq) p <- p + labs(subtitle=mirseq2)
+      ylab(bquote("-"*log(K[d]))) + xlab("7-mer") + ggtitle(mod$name) + theme(axis.text.x = element_text(size=11),
+                                                                              axis.text.y = element_text(size=11),
+                                                                              axis.title.x = element_text(size=15),
+                                                                              axis.title.y = element_text(size=15))
+    p <- p + scale_fill_manual(values = type_cols[p$data$type])
+    if(mod$name != mod$mirseq) p <- p + labs(subtitle=mirseq2) 
     return( p )
   }
 
-  if(what=="logo")
-    return(seqLogo::seqLogo(mod$pwm, xfontsize=12, yfontsize=12, xaxis=FALSE))
-  gridExtra::grid.arrange(plotKdModel(mod, "seeds"),
-                          grid::grid.grabExpr(plotKdModel(mod, "logo")),
-                          nrow=2, heights=c(6,4))
+  if(what=="logo"){
+    p <- ggplot() + geom_logo(data = mod$pwm) + theme_logo() + 
+                ylab("Information Content") +
+                scale_x_continuous(name = "miRNA Nt position",breaks = c(1:12), labels = c(10:1,rep("",2))) +
+      theme(axis.text.x = element_text(size=11),axis.text.y = element_text(size=11),
+            axis.title.x = element_text(size=15),axis.title.y = element_text(size=15))
+    return(p)
+  }
+  plot_grid(plotKdModel(mod, "seeds"),plotKdModel(mod, "logo"),
+            ncol = 1,rel_heights = c(6,4))
+  
+  # gridExtra::grid.arrange(plotKdModel(mod, "seeds"),
+  #                         grid::grid.grabExpr(plotKdModel(mod, "logo")),
+  #                         nrow=2, heights=c(6,4))
 }
 
 

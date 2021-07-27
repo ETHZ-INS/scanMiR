@@ -9,23 +9,23 @@ plotKdModel(mod, what = c("both", "seeds", "logo"), n = 10)
 \arguments{
 \item{mod}{A `KdModel`}
 
-\item{what}{Either 'seeds', 'logo', or 'both' (default). 'logo' and 'both}
+\item{what}{Either 'seeds', 'logo', or 'both' (default).}
 
 \item{n}{The number of top 7-mers to plot (when `what='seeds'`)}
 }
 \value{
-If `what="logo"`, returns nothing a plots a position weight matrix.
+If `what="logo"`, returns nothing and plots a position weight matrix.
 Otherwise returns a ggplot.
 }
 \description{
 Plots the summary of an affinity model.
 }
 \details{
-`what='seeds'` plots the -log(Kd) values of the top `n` 7-mers (including
+`what='seeds'` plots the -$log(K_d)$ values of the top `n` 7-mers (including
 both canonical and non-canonical sites), with or without the final "A"
 vis-a-vis the first miRNA nucleotide.
 `what='logo'` plots a `seqLogo` (requires the
-[seqLogo](https://bioconductor.org/packages/release/bioc/html/seqLogo.html)
+[seqLogo]{https://bioconductor.org/packages/release/bioc/html/seqLogo.html}
 package) showing the nucleotide-wise information content and preferences for
 all 12-mers (centered around the seed). `what="both"` plots both.
 }

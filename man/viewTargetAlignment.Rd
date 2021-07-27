@@ -38,7 +38,7 @@ including the model.}
 
 \item{min3pMatch}{The minimum 3' alignment for any to be plotted}
 
-\item{hideSingletons}{Logical; whether to hide isolated single base-pair 
+\item{hideSingletons}{Logical; whether to hide isolated single base-pair
 matches}
 
 \item{UGsub}{Logical; whether to show U-G matches}
