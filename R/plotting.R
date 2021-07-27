@@ -30,9 +30,9 @@ plotKdModel <- function(mod, what=c("both","seeds","logo"), n=10){
   what <- match.arg(what)
   if(what=="seeds"){
     type_cols <- c("8mer" = "darkred","7mer-m8" = "#44AA99","7mer-a1" = "#117733",
-                   "6mer" = "#4CAF50","6mer-m8" = "#4CAF50", "6mer-a1" = "#4CAF50",
-                   "g-bulged 8mer" = "#88CCEE", "g-bulged 7mer" = "#88CCEE",
-                   "g-bulged 6mer" = "#88CCEE", "wobbled 7mer" = "grey55", "wobbled 8mer" = "grey55",
+                   "6mer" = "#4CAF50","6mer-m8" = "#449d48", "6mer-a1" = "#3c8c40",
+                   "g-bulged 8mer" = "#5bb9e8", "g-bulged 7mer" = "#88CCEE",
+                   "g-bulged 6mer" = "#b5dff4", "wobbled 7mer" = "grey85", "wobbled 8mer" = "grey75",
                    "non-canonical" = "grey55", "+A" = "darkred", "7mer" = "#117733" )
     mirseq2 <- strsplit(gsub("T","U",mod$mirseq),"")[[1]]
     mirseq2 <- paste0("3'-",stringi::stri_reverse(gsub("T","U",mod$mirseq)),"-5'")
