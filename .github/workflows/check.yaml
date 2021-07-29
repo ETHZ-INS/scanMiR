@@ -17,8 +17,8 @@ jobs:
       - name: Check out repo
         uses: actions/checkout@v2
 
-      - name: Install latest BiocCheck
-        run: BiocManager::install(c("BiocCheck"))
+      - name: Install latest BiocCheck and extras
+        run: BiocManager::install(c("BiocCheck","cowplot","ggseqlogo"))
         shell: Rscript {0}
 
       - name: Check

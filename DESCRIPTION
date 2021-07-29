@@ -24,8 +24,8 @@ Imports:
     utils,
     graphics,
     grid,
-    gridExtra,
-    seqLogo
+    ggseqlogo,
+    cowplot
 Suggests: 
     knitr,
     rmarkdown,
