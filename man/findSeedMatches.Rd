@@ -13,7 +13,7 @@ findSeedMatches(
   keepMatchSeq = FALSE,
   minDist = 7L,
   p3.extra = FALSE,
-  p3.params = list(maxMirLoop = 5L, maxTargetLoop = 9L, maxLoopDiff = 4L, mismatch =
+  p3.params = list(maxMirLoop = 7L, maxTargetLoop = 9L, maxLoopDiff = 4L, mismatch =
     TRUE),
   agg.params = .defaultAggParams(),
   ret = c("GRanges", "data.frame", "aggregated"),
@@ -56,7 +56,7 @@ alignment. Disable (default) this when running large scans, otherwise you
 might hit your system's memory limits.}
 
 \item{p3.params}{Named list of parameters for 3' alignment with slots
-`maxMirLoop` (integer, default = 5), `maxTargetLoop` (integer, default = 9),
+`maxMirLoop` (integer, default = 7), `maxTargetLoop` (integer, default = 9),
 `maxLoopDiff` (integer, default = 4), and `mismatch`
 (logical, default = TRUE).}
 

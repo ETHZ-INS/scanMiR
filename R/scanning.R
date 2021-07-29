@@ -26,7 +26,7 @@
 #' alignment. Disable (default) this when running large scans, otherwise you
 #' might hit your system's memory limits.
 #' @param p3.params Named list of parameters for 3' alignment with slots
-#' `maxMirLoop` (integer, default = 5), `maxTargetLoop` (integer, default = 9),
+#' `maxMirLoop` (integer, default = 7), `maxTargetLoop` (integer, default = 9),
 #' `maxLoopDiff` (integer, default = 4), and `mismatch`
 #' (logical, default = TRUE).
 #' @param agg.params A named list with slots `a`, `b`, `c`, `p3`, `coef_utr`,
@@ -517,7 +517,7 @@ get3pAlignment <- function(seqs, mirseq, mir3p.start=9L, allow.mismatch=TRUE,
               m2$p3.score >= 7L & m2$p3.mir.bulge == 0L & absbulgediff == 0L )
   if(length(w)>0) m2$TDMD[w] <- 3L
   m2$not.bound <- nchar(mirseq) - 8L - m2$p3.score
-  w <- which(m2$TDMD == 4L & m2$p3.mismatch <= 1L & m2$not.bound <= 1L &
+  w <- which(m2$TDMD == 3L & m2$p3.mismatch <= 1L & m2$not.bound <= 1L &
                !isWobble & !isBulged)
   if(length(w)>0) m2$TDMD[w] <- 4L
   TDMD <- rep(1L,nrow(m))

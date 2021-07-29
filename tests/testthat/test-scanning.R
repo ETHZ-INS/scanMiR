@@ -114,7 +114,7 @@ test_that("3p alignment works correctly", {
   al3p <- get3pAlignment(seqs="TGTTTAAGAACAACAAAATCACCAT",
                          mirseq="TGGAAGACTAGTGATTTTGTTGTT", siteType="8mer")
   expect_equal(as.numeric(al3p[1,1:4]), c(2,3,0,14))
-  expect_identical(as.character(al3p$note), "TDMD")
+  expect_identical(as.character(al3p$note), "TDMD?")
   al3p <- get3pAlignment( "GCTAAGTTCTCCCAACAACATGAA", "TAGGTAGTTTCATGTTGTTGGG",
                           siteType="8mer")
   expect_equal(as.numeric(al3p[1,1:4]), c(0,0,0,14))
