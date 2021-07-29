@@ -70,7 +70,7 @@
 findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
                              maxLogKd=c(-1,-1.5), keepMatchSeq=FALSE,
                              minDist=7L, p3.extra=FALSE,
-                             p3.params=list(maxMirLoop=5L, maxTargetLoop=9L,
+                             p3.params=list(maxMirLoop=7L, maxTargetLoop=9L,
                                             maxLoopDiff=4L, mismatch=TRUE),
                              agg.params=.defaultAggParams(),
                              ret=c("GRanges","data.frame","aggregated"),
@@ -414,7 +414,6 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
   if(include_ORF && !is.null(m$ORF)) d$ORF <- m$ORF
   d$type <- m$type
   d$log_kd <- m$log_kd
-  d$TDMD <- m$TDMD
   d$note <- m$note
   for(f in c("p3.mir.bulge",
              "p3.target.bulge",
@@ -429,7 +428,7 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
 
 .check3pParams <- function(p3.params){
   stopifnot(is.list(p3.params))
-  def <- list(maxMirLoop=5L, maxTargetLoop=9L, maxLoopDiff=4L, mismatch=TRUE)
+  def <- list(maxMirLoop=7L, maxTargetLoop=9L, maxLoopDiff=4L, mismatch=TRUE)
   for(f in names(def)){
     if(!(f %in% names(p3.params))) p3.params[[f]] <- def[[f]]
   }
@@ -467,7 +466,7 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
 #' @examples
 #' get3pAlignment(seqs="NNAGTGTGCCATNN", mirseq="TGGAGTGTGACAATGGTGTTTG")
 get3pAlignment <- function(seqs, mirseq, mir3p.start=9L, allow.mismatch=TRUE,
-                           maxMirLoop=5L, maxTargetLoop=9L, maxLoopDiff=4L,
+                           maxMirLoop=7L, maxTargetLoop=9L, maxLoopDiff=4L,
                            TGsub=TRUE, siteType=NULL){
   if(!is.null(siteType)) stopifnot(length(seqs)==length(siteType))
   mir.3p <- as.character(DNAString(substr(x=mirseq,
@@ -512,22 +511,19 @@ get3pAlignment <- function(seqs, mirseq, mir3p.start=9L, allow.mismatch=TRUE,
   m2$TDMD <- rep(1L,nrow(m2))
   absbulgediff <- abs(m2$p3.mir.bulge-m2$p3.target.bulge)
   w <- which(m2$p3.mismatch<=1L & m2$p3.mir.bulge<=5L & !isBulged & !isWobble &
-             m2$p3.mir.bulge > 0L & absbulgediff <= 4L & m2$p3.score >= 6L)
+             m2$p3.mir.bulge > 1L & absbulgediff <= 4L & m2$p3.score >= 6L)
   if(length(w)>0) m2$TDMD[w] <- 2L
-  w <- which(m2$TDMD == 2L & m2$p3.mir.bulge < 5L & absbulgediff <= 2L)
-  if(length(w)>0) m2$TDMD[w] <- 3L
   w <- which( m2$type != "7mer-a1"  &
               m2$p3.score >= 7L & m2$p3.mir.bulge == 0L & absbulgediff == 0L )
-  if(length(w)>0) m2$TDMD[w] <- 4L
+  if(length(w)>0) m2$TDMD[w] <- 3L
   m2$not.bound <- nchar(mirseq) - 8L - m2$p3.score
   w <- which(m2$TDMD == 4L & m2$p3.mismatch <= 1L & m2$not.bound <= 1L &
                !isWobble & !isBulged)
-  if(length(w)>0) m2$TDMD[w] <- 5L
+  if(length(w)>0) m2$TDMD[w] <- 4L
   TDMD <- rep(1L,nrow(m))
   TDMD[is78] <- m2$TDMD
-  factor(TDMD, levels = 1L:5L, labels = c("-",
+  factor(TDMD, levels = 1L:4L, labels = c("-",
                                           "TDMD?",
-                                          "TDMD",
                                           "Slicing?",
                                           "Slicing"))
 }
