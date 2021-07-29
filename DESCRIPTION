@@ -24,7 +24,7 @@ Imports:
     utils,
     graphics,
     grid,
-    gridExtra,
+    cowplot,
     seqLogo
 Suggests: 
     knitr,

@@ -19,7 +19,7 @@
 #' all 12-mers (centered around the seed). `what="both"` plots both.
 #'
 #' @import ggplot2
-#' @import cowplot
+#' @importFrom cowplot plot_grid
 #' @import ggseqlogo
 #' @export
 #' @examples
@@ -73,10 +73,6 @@ plotKdModel <- function(mod, what=c("both","seeds","logo"), n=10){
   }
   plot_grid(plotKdModel(mod, "seeds"),plotKdModel(mod, "logo"),
             ncol = 1,rel_heights = c(6,4))
-  
-  # gridExtra::grid.arrange(plotKdModel(mod, "seeds"),
-  #                         grid::grid.grabExpr(plotKdModel(mod, "logo")),
-  #                         nrow=2, heights=c(6,4))
 }
 
 
