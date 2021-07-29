@@ -510,7 +510,7 @@ get3pAlignment <- function(seqs, mirseq, mir3p.start=9L, allow.mismatch=TRUE,
   isBulged <- m2$type=="g-bulged 8mer"
   m2$TDMD <- rep(1L,nrow(m2))
   absbulgediff <- abs(m2$p3.mir.bulge-m2$p3.target.bulge)
-  w <- which(m2$p3.mismatch<=1L & m2$p3.mir.bulge<=5L & !isBulged & !isWobble &
+  w <- which(m2$p3.mismatch<=1L & m2$p3.mir.bulge<=7L & !isBulged & !isWobble &
              m2$p3.mir.bulge > 1L & absbulgediff <= 4L & m2$p3.score >= 6L)
   if(length(w)>0) m2$TDMD[w] <- 2L
   w <- which( m2$type != "7mer-a1"  &
