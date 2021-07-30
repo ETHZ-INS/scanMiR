@@ -103,7 +103,7 @@ plotKdModel <- function(mod, what=c("both","seeds","logo"), n=10){
 #'
 #' @return Returns nothing `outputType="print"`. If `outputType="data.frame"`,
 #' returns a data.frame containing the alignment strings; if
-#' `outputType="plot"` returns a `ggplot` object.
+#' `outputType="ggplot"` returns a `ggplot` object.
 #' @importFrom stringi stri_reverse
 #' @importFrom graphics par text
 #' @export
@@ -183,11 +183,11 @@ viewTargetAlignment <- function(m, miRNA, seqs=NULL, flagBulgeMatches=FALSE,
   }else if(m$p3.mir.bulge<m$p3.target.bulge){
     mm <- c(mm,rep(" ",m$p3.target.bulge-minBulge))
     di <- m$p3.target.bulge-m$p3.mir.bulge
+    di1 <- paste(rep("-",ifelse(flagBulgeMatches,0,floor(di/2))),collapse="")
+    di2 <- paste(rep("-",ifelse(flagBulgeMatches,di,ceiling(di/2))),collapse="")
     mirseq <- paste0(
-      paste(substr(mirseq,1,8+bulged),collapse=""),
-      paste(rep("-",floor(di/2)),collapse=""),
-      paste(substr(mirseq,9+bulged,8+bulged+m$p3.mir.bulge),collapse=""),
-      paste(rep("-",ceiling(di/2)), collapse=""),
+      paste(substr(mirseq,1,8+bulged),collapse=""), di1,
+      paste(substr(mirseq,9+bulged,8+bulged+m$p3.mir.bulge),collapse=""), di2,
       paste(substr(mirseq,9+bulged+m$p3.mir.bulge,nchar(mirseq)),collapse=""))
   }else{
     mm <- c(mm,rep(" ",m$p3.mir.bulge-minBulge))

@@ -163,7 +163,6 @@ aggregateMatches <- function(m, a=0.007726 , b=0.5735, c=0.1810, p3=0.04403,
   hasORF <- !is.null(m$ORF)
   if(is.null(m$ORF)) m[,ORF:=0]
   if(is.null(m$miRNA)){
-    cols <- c("transcript", "8mer", "7mer", "6mer", "non-canonical")
     if(any(m$ORF==0)) {
       sites <- dcast(m[ORF==0,.(N=.N), by=c("transcript","type")],
                       formula=transcript~type, value.var="N", fill=0L )
@@ -208,6 +207,26 @@ aggregateMatches <- function(m, a=0.007726 , b=0.5735, c=0.1810, p3=0.04403,
     sites[,"non-canonical":= rowSums(.SD, na.rm = TRUE), .SDcols = ind_nc]
     sites[, grep("bulged", names(sites)):=NULL]
   }
+  ind_wobbled <- grep("wobbled", names(sites))
+  if(length(ind_wobbled)>0) {
+    ind_nc2 <- c(ind_wobbled, grep("non-canonical", names(sites)))
+    sites[,"non-canonical":= rowSums(.SD, na.rm = TRUE), .SDcols = ind_nc2]
+    sites[, grep("wobbled", names(sites)):=NULL]
+  }
+  if(hasORF) {
+    ind_bulged_orf <- grep("bulged", names(sites_ORF))
+    if(length(ind_bulged_orf)>0) {
+      ind_nc_orf <- c(ind_bulged_orf, grep("non-canonical", names(sites_ORF)))
+      sites_ORF[,"non-canonical":= rowSums(.SD, na.rm = TRUE), .SDcols = ind_nc_orf]
+      sites_ORF[, grep("bulged", names(sites_ORF)):=NULL]
+    }
+    ind_wobbled_orf <- grep("wobbled", names(sites_ORF))
+    if(length(ind_wobbled_orf)>0) {
+      ind_nc2_orf <- c(ind_wobbled_orf, grep("non-canonical", names(sites_ORF)))
+      sites_ORF[,"non-canonical":= rowSums(.SD, na.rm = TRUE), .SDcols = ind_nc2_orf]
+      sites_ORF[, grep("wobbled", names(sites_ORF)):=NULL]
+    }
+  }
   ind_6mer <- grep("6mer", names(sites))
   if(length(ind_6mer)>0) {
     sites[, "6mer" := rowSums(.SD, na.rm=TRUE), .SDcols = ind_6mer]
@@ -224,14 +243,15 @@ aggregateMatches <- function(m, a=0.007726 , b=0.5735, c=0.1810, p3=0.04403,
     if(length(cols)==0) {
       sites_ORF[, ORF.canonical:=0L]
     } else {
-      sites_ORF[, "ORF.canonical":=rowSums(.SD, na.rm=TRUE), .SDcols = cols]
+      sites_ORF[, "ORF.canonical":=rowSums(.SD, na.rm=TRUE), .SDcols = cols[which(cols != "non-canonical")]]
+      sites_ORF[, "ORF.non-canonical":=rowSums(.SD, na.rm=TRUE), .SDcols = cols[which(cols == "non-canonical")]]
       sites_ORF[, (cols):=NULL]
     }
   }
   if(is.null(m$miRNA)) {
     if(hasORF) {
       cols <- c("transcript", "8mer", "7mer", "6mer", "non-canonical",
-                "ORF.canonical")
+                "ORF.canonical","ORF.non-canonical")
       sites <- merge(sites, sites_ORF, by="transcript", all=TRUE)
     }
     else {
@@ -240,7 +260,7 @@ aggregateMatches <- function(m, a=0.007726 , b=0.5735, c=0.1810, p3=0.04403,
   } else{
     if(hasORF) {
       cols <- c("transcript", "miRNA", "8mer", "7mer", "6mer", "non-canonical",
-                "ORF.canonical")
+                "ORF.canonical","ORF.non-canonical")
       sites <- merge(sites, sites_ORF, by=c("transcript", "miRNA"), all=TRUE)
     } else {
       cols <- c("transcript", "miRNA", "8mer", "7mer", "6mer", "non-canonical")

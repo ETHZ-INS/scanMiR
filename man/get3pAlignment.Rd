@@ -9,7 +9,7 @@ get3pAlignment(
   mirseq,
   mir3p.start = 9L,
   allow.mismatch = TRUE,
-  maxMirLoop = 5L,
+  maxMirLoop = 7L,
   maxTargetLoop = 9L,
   maxLoopDiff = 4L,
   TGsub = TRUE,
