@@ -29,11 +29,7 @@ plotKdModel <- function(mod, what=c("both","seeds","logo"), n=10){
   stopifnot(is(mod,"KdModel"))
   what <- match.arg(what)
   if(what=="seeds"){
-    type_cols <- c("8mer" = "darkred","7mer-m8" = "#44AA99","7mer-a1" = "#117733",
-                   "6mer" = "#4CAF50","6mer-m8" = "#449d48", "6mer-a1" = "#3c8c40",
-                   "g-bulged 8mer" = "#5bb9e8", "g-bulged 7mer" = "#88CCEE",
-                   "g-bulged 6mer" = "#b5dff4", "wobbled 7mer" = "grey85", "wobbled 8mer" = "grey75",
-                   "non-canonical" = "grey55", "+A" = "darkred", "7mer" = "#117733" )
+    type_cols <- .typeColors()
     mirseq2 <- strsplit(gsub("T","U",mod$mirseq),"")[[1]]
     mirseq2 <- paste0("3'-",stringi::stri_reverse(gsub("T","U",mod$mirseq)),"-5'")
     mer8 <- getSeed8mers(mod$canonical.seed)
@@ -59,12 +55,12 @@ plotKdModel <- function(mod, what=c("both","seeds","logo"), n=10){
                                                                               axis.title.x = element_text(size=15),
                                                                               axis.title.y = element_text(size=15))
     p <- p + scale_fill_manual(values = type_cols[p$data$type])
-    if(mod$name != mod$mirseq) p <- p + labs(subtitle=mirseq2) 
+    if(mod$name != mod$mirseq) p <- p + labs(subtitle=mirseq2)
     return( p )
   }
 
   if(what=="logo"){
-    p <- ggplot() + geom_logo(data = mod$pwm) + theme_logo() + 
+    p <- ggplot() + geom_logo(data = mod$pwm) + theme_logo() +
                 ylab("Information Content") +
                 scale_x_continuous(name = "miRNA Nt position",breaks = c(1:12), labels = c(10:1,rep("",2))) +
       theme(axis.text.x = element_text(size=11),axis.text.y = element_text(size=11),
@@ -73,6 +69,14 @@ plotKdModel <- function(mod, what=c("both","seeds","logo"), n=10){
   }
   plot_grid(plotKdModel(mod, "seeds"),plotKdModel(mod, "logo"),
             ncol = 1,rel_heights = c(6,4))
+}
+
+.typeColors <- function(){
+  c("8mer"="darkred","7mer-m8"="#44AA99","7mer-a1"="#117733", "7mer"="#117733",
+    "6mer"="#4CAF50","6mer-m8"="#449d48", "6mer-a1"="#3c8c40",
+    "g-bulged 8mer"="#5bb9e8", "g-bulged 7mer"="#88CCEE",
+    "g-bulged 6mer"="#b5dff4", "wobbled 7mer"="grey85",
+    "wobbled 8mer"="grey75", "non-canonical"="grey55", "+A"="darkred")
 }
 
 
