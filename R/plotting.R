@@ -91,8 +91,7 @@ plotKdModel <- function(mod, what=c("both","seeds","logo"), n=10){
 #' `m` contains the target sequences.
 #' @param flagBulgeMatches Logical; whether to flag matches inside the bulge
 #' (default FALSE)
-#' @param maxBulgeSize The maximum bulge size to consider (default none)
-#' @param maxBulgeDiff The maximum difference between miRNA and target bulges
+#' @param p3.params See \code{\link{findSeedMatches}}.
 #' @param min3pMatch The minimum 3' alignment for any to be plotted
 #' @param UGsub Logical; whether to show U-G matches
 #' @param hideSingletons Logical; whether to hide isolated single base-pair
@@ -113,13 +112,14 @@ plotKdModel <- function(mod, what=c("both","seeds","logo"), n=10){
 #' m <- findSeedMatches(seq, SampleKdModel, verbose=FALSE)
 #' viewTargetAlignment(m, miRNA=SampleKdModel, seqs=seq)
 viewTargetAlignment <- function(m, miRNA, seqs=NULL, flagBulgeMatches=FALSE,
-                                maxBulgeSize=9L, maxBulgeDiff=4L, min3pMatch=3L,
+                                p3.params=list(), min3pMatch=3L,
                                 hideSingletons=FALSE, UGsub=TRUE, ...,
                                 outputType=c("print","data.frame",
                                              "plot","ggplot")){
   stopifnot(is(m,"GRanges"))
   stopifnot(length(m)==1)
   outputType <- match.arg(outputType)
+  p3.params <- .check3pParams(p3.params)
   if(is.list(miRNA) && is(miRNA[[1]],"KdModelList") && !is.null(m$miRNA)){
     stopifnot(as.character(m$miRNA) %in% names(miRNA))
     miRNA <- miRNA[[as.character(m$miRNA)]]
@@ -138,14 +138,13 @@ viewTargetAlignment <- function(m, miRNA, seqs=NULL, flagBulgeMatches=FALSE,
   }
   if(!("p3.mir.bulge" %in% colnames(mcols(m)))){
     # re-scan to get additional data
+    maxBulgeSize <- max(p3.params$maxMirLoop, p3.params$maxTargetLoop)
     internStart <- max(1L,start(m)-(nchar(miRNA)+maxBulgeSize-8L))
     seq2 <- subseq(DNAStringSet(seqs[as.character(seqnames(m))]),
                    internStart, end(m)+2L)
     tx_start <- start(m)
     m <- findSeedMatches(seq2, mod, keepMatchSeq=TRUE, p3.extra=TRUE,
-                         p3.params = list(maxMirLoop=maxBulgeSize,
-                                          maxTargetLoop=maxBulgeSize,
-                                          maxLoopDiff=maxBulgeDiff),
+                         p3.params=p3.params,
                          maxLogKd=0, minDist=-Inf, verbose=FALSE)
     m <- m[tx_start==start(m)+internStart-1L]
   }
@@ -157,8 +156,9 @@ viewTargetAlignment <- function(m, miRNA, seqs=NULL, flagBulgeMatches=FALSE,
     m$sequence <- as.character(unlist(extractAt(seqs, r)))
   }
   do3p <- TRUE
-  if(m$p3.mir.bulge>maxBulgeSize | m$p3.target.bulge>maxBulgeSize |
-     abs(m$p3.mir.bulge-m$p3.target.bulge) > maxBulgeDiff ){
+  if(m$p3.mir.bulge>p3.params$maxMirLoop |
+     m$p3.target.bulge>p3.params$maxTargetLoop |
+     abs(m$p3.mir.bulge-m$p3.target.bulge) > p3.params$maxLoopDiff ){
     m$p3.mir.bulge <- m$p3.target.bulge <- 3L
     do3p <- FALSE
   }

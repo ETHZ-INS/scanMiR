@@ -9,8 +9,7 @@ viewTargetAlignment(
   miRNA,
   seqs = NULL,
   flagBulgeMatches = FALSE,
-  maxBulgeSize = 9L,
-  maxBulgeDiff = 4L,
+  p3.params = list(),
   min3pMatch = 3L,
   hideSingletons = FALSE,
   UGsub = TRUE,
@@ -32,9 +31,7 @@ including the model.}
 \item{flagBulgeMatches}{Logical; whether to flag matches inside the bulge
 (default FALSE)}
 
-\item{maxBulgeSize}{The maximum bulge size to consider (default none)}
-
-\item{maxBulgeDiff}{The maximum difference between miRNA and target bulges}
+\item{p3.params}{See \code{\link{findSeedMatches}}.}
 
 \item{min3pMatch}{The minimum 3' alignment for any to be plotted}
 
@@ -51,7 +48,7 @@ or 'plot'.}
 \value{
 Returns nothing `outputType="print"`. If `outputType="data.frame"`,
 returns a data.frame containing the alignment strings; if
-`outputType="plot"` returns a `ggplot` object.
+`outputType="ggplot"` returns a `ggplot` object.
 }
 \description{
 viewTargetAlignment
