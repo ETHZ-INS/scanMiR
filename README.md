@@ -58,8 +58,9 @@ predict repression based on the biochemical model from
 [McGeary, Lin et al. (2019)](https://dx.doi.org/10.1126/science.aav1741). For 
 more information, see our [preprint](https://doi.org/10.1101/2021.06.16.448293).
 
-To learn more about the functionalities, see the package's vignettes. To obtain
-predicted `KdModels` for all mouse, human and rat miRbase miRNAs, see the 
+To learn more about the functionalities, see the package's 
+[vignettes](https://www.bioconductor.org/packages/devel/bioc/vignettes/scanMiR/inst/doc/scanning.html).
+To obtain predicted `KdModels` for all mouse, human and rat miRbase miRNAs, see the 
 [scanMiRData](https://github.com/ETHZ-INS/scanMiRData) pacakge.
 
 For convenient wrappers connecting to AnnotationHub, fast out-of memory access 
