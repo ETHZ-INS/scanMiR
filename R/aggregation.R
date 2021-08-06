@@ -39,10 +39,9 @@
 #'
 #' # aggregate matches
 #' aggregateMatches(matches)
-aggregateMatches <- function(m, a=0.007726 , b=0.5735, c=0.1810, p3=0.04403,
-                           coef_utr=0, coef_orf=0,
-                           p3.range=c(3L,8L), keepSiteInfo = TRUE, toInt=FALSE,
-                           BP=NULL){
+aggregateMatches <- function(m, a=0.007726 , b=0.5735, c=0.1810, p3=0.051,
+                           coef_utr=0, coef_orf=0, p3.range=c(3L,8L),
+                           keepSiteInfo = TRUE, toInt=FALSE, BP=NULL){
   if(is.null(BP)) BP <- BiocParallel::SerialParam()
   ll <- NULL # length info
   if(is(m,"GRanges")){
@@ -85,8 +84,8 @@ aggregateMatches <- function(m, a=0.007726 , b=0.5735, c=0.1810, p3=0.04403,
 
 
 .aggregate_miRNA <- function(m, ll = NULL, a=0.007726, b=0.5735, c=0.1810,
-                             p3=0.04403, coef_utr = -0.28019,
-                             coef_orf = -0.08622, p3.range=c(3L,8L),
+                             p3=0.051, coef_utr = -0.17106,
+                             coef_orf = -0.21546, p3.range=c(3L,8L),
                              keepSiteInfo = FALSE, toInt=FALSE){
   if(is(m,"GRanges")){
     m$transcript <- as.factor(seqnames(m))

@@ -27,8 +27,8 @@
 #' might hit your system's memory limits.
 #' @param p3.params Named list of parameters for 3' alignment with slots
 #' `maxMirLoop` (integer, default = 7), `maxTargetLoop` (integer, default = 9),
-#' `maxLoopDiff` (integer, default = 4), and `mismatch`
-#' (logical, default = TRUE).
+#' `maxLoopDiff` (integer, default = 4), `mismatch`
+#' (logical, default = TRUE) and `GUwob` (logical, default = TRUE).
 #' @param agg.params A named list with slots `a`, `b`, `c`, `p3`, `coef_utr`,
 #' `coef_orf` and `keepSiteInfo` indicating the parameters for the aggregation.
 #' Ignored if `ret!="aggregated"`. For further details see documentation of
@@ -71,7 +71,8 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
                              maxLogKd=c(-1,-1.5), keepMatchSeq=FALSE,
                              minDist=7L, p3.extra=FALSE,
                              p3.params=list(maxMirLoop=7L, maxTargetLoop=9L,
-                                            maxLoopDiff=4L, mismatch=TRUE),
+                                            maxLoopDiff=4L, mismatch=TRUE,
+                                            GUwob=TRUE),
                              agg.params=.defaultAggParams(),
                              ret=c("GRanges","data.frame","aggregated"),
                              BP=NULL, verbose=NULL, n_seeds=NULL,
@@ -360,7 +361,8 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
                           allow.mismatch=p3.params$mismatch,
                           maxMirLoop=p3.params$maxMirLoop,
                           maxLoopDiff=p3.params$maxLoopDiff,
-                          maxTargetLoop=p3.params$maxTargetLoop )
+                          maxTargetLoop=p3.params$maxTargetLoop,
+                          TGsub = p3.params$GUwob)
     if(p3.extra){
       mcols(m) <- cbind(mcols(m), p3)
       if(keepMatchSeq){
@@ -428,11 +430,12 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
 
 .check3pParams <- function(p3.params){
   stopifnot(is.list(p3.params))
-  def <- list(maxMirLoop=7L, maxTargetLoop=9L, maxLoopDiff=4L, mismatch=TRUE)
+  def <- list(maxMirLoop=7L, maxTargetLoop=9L, maxLoopDiff=4L, mismatch=TRUE, GUwob=TRUE)
   for(f in names(def)){
     if(!(f %in% names(p3.params))) p3.params[[f]] <- def[[f]]
   }
   stopifnot(is.logical(p3.params$mismatch))
+  stopifnot(is.logical(p3.params$GUwob))
   stopifnot(is.numeric(unlist(p3.params[names(def)[seq_len(3)]])))
   for(f in names(def)[seq_len(3)]) p3.params[[f]] <- as.integer(p3.params[[f]])
   p3.params
@@ -694,9 +697,9 @@ getMatchTypes <- function(x, seed, checkWobble=TRUE){
   list(a=0.007726,
     b=0.5735,
     c=0.1810,
-    p3=0.04403,
-    coef_utr = -0.28019,
-    coef_orf = -0.08622,
+    p3=0.051,
+    coef_utr = -0.17106,
+    coef_orf = -0.21546,
     keepSiteInfo = TRUE
     )
 }

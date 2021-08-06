@@ -50,7 +50,7 @@ plotKdModel <- function(mod, what=c("both","seeds","logo"), n=10){
     d2 <- data.frame(seed=rep(d$seed,2), log_kd=c(d$base,d$A),
                      type=c(as.character(d$type), rep("+A",n)))
     p <- ggplot(d2, aes(seed, log_kd, fill=type)) + geom_col() + coord_flip() +
-      ylab(bquote("-"*log(K[d]))) + xlab("7-mer") + ggtitle(mod$name) + theme(axis.text.x = element_text(size=11),
+      ylab(bquote("-"*log(K[D]))) + xlab("7-mer") + ggtitle(mod$name) + theme(axis.text.x = element_text(size=11),
                                                                               axis.text.y = element_text(size=11),
                                                                               axis.title.x = element_text(size=15),
                                                                               axis.title.y = element_text(size=15))
