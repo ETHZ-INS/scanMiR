@@ -14,7 +14,7 @@ findSeedMatches(
   minDist = 7L,
   p3.extra = FALSE,
   p3.params = list(maxMirLoop = 7L, maxTargetLoop = 9L, maxLoopDiff = 4L, mismatch =
-    TRUE),
+    TRUE, GUwob = TRUE),
   agg.params = .defaultAggParams(),
   ret = c("GRanges", "data.frame", "aggregated"),
   BP = NULL,
@@ -57,8 +57,8 @@ might hit your system's memory limits.}
 
 \item{p3.params}{Named list of parameters for 3' alignment with slots
 `maxMirLoop` (integer, default = 7), `maxTargetLoop` (integer, default = 9),
-`maxLoopDiff` (integer, default = 4), and `mismatch`
-(logical, default = TRUE).}
+`maxLoopDiff` (integer, default = 4), `mismatch`
+(logical, default = TRUE) and `GUwob` (logical, default = TRUE).}
 
 \item{agg.params}{A named list with slots `a`, `b`, `c`, `p3`, `coef_utr`,
 `coef_orf` and `keepSiteInfo` indicating the parameters for the aggregation.
