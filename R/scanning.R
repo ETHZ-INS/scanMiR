@@ -430,7 +430,7 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
 
 .check3pParams <- function(p3.params){
   stopifnot(is.list(p3.params))
-  def <- list(maxMirLoop=7L, maxTargetLoop=9L, maxLoopDiff=4L, mismatch=TRUE,GUwob=TRUE)
+  def <- list(maxMirLoop=7L, maxTargetLoop=9L, maxLoopDiff=4L, mismatch=TRUE, GUwob=TRUE)
   for(f in names(def)){
     if(!(f %in% names(p3.params))) p3.params[[f]] <- def[[f]]
   }
