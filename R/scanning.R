@@ -291,7 +291,7 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
     pat <- substr(seed,2,7)
     if(!onlyCanonical)
       pat <- paste0(pat,"|",substr(seed,2,3),"G",substr(seed,4,7))
-    pos <- gregexpr(paste0("(?=.",substr(seed,2,7),".)"), seqs, perl=TRUE)
+    pos <- gregexpr(paste0("(?=.",pat,".)"), seqs, perl=TRUE)
   }else{
     mod <- seed
     seed <- mod$canonical.seed
