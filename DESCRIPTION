@@ -40,6 +40,6 @@ Description:
     for the visual representation of miRNA-target alignment).
 License: GPL-3
 VignetteBuilder: knitr
-RoxygenNote: 7.1.1
+RoxygenNote: 7.1.2
 biocViews: miRNA, SequenceMatching, Alignment
 Config/testthat/edition: 3

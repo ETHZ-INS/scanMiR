@@ -20,7 +20,7 @@
 #'
 #' @import ggplot2
 #' @importFrom cowplot plot_grid
-#' @import ggseqlogo
+#' @importFrom ggseqlogo ggseqlogo
 #' @export
 #' @examples
 #' data(SampleKdModel)
@@ -50,25 +50,27 @@ plotKdModel <- function(mod, what=c("both","seeds","logo"), n=10){
     d2 <- data.frame(seed=rep(d$seed,2), log_kd=c(d$base,d$A),
                      type=c(as.character(d$type), rep("+A",n)))
     p <- ggplot(d2, aes(seed, log_kd, fill=type)) + geom_col() + coord_flip() +
-      ylab(bquote("-"*log(K[D]))) + xlab("7-mer") + ggtitle(mod$name) + theme(axis.text.x = element_text(size=11),
-                                                                              axis.text.y = element_text(size=11),
-                                                                              axis.title.x = element_text(size=15),
-                                                                              axis.title.y = element_text(size=15))
+      ylab(bquote("-"*log(K[D]))) + xlab("7-mer") + ggtitle(mod$name) + 
+      theme(axis.text.x = element_text(size=11),
+            axis.text.y = element_text(size=11, family="mono"),
+            axis.title.x = element_text(size=14),
+            axis.title.y = element_text(size=14))
     p <- p + scale_fill_manual(values = type_cols[p$data$type])
     if(mod$name != mod$mirseq) p <- p + labs(subtitle=mirseq2)
     return( p )
   }
 
   if(what=="logo"){
-    p <- ggplot() + geom_logo(data = mod$pwm) + theme_logo() +
-                ylab("Information Content") +
-                scale_x_continuous(name = "miRNA Nt position",breaks = c(1:12), labels = c(10:1,rep("",2))) +
-      theme(axis.text.x = element_text(size=11),axis.text.y = element_text(size=11),
-            axis.title.x = element_text(size=15),axis.title.y = element_text(size=15))
+    p <- suppressWarnings(ggseqlogo( mod$pwm )) + 
+      labs(y="Information (bits)", x="miRNA 5' position")
+    p$scales$scales[[1]] <- scale_x_continuous(breaks=1:12,labels=c(10:1,"",""))
+    p <- p + 
+      theme(axis.text.x=element_text(size=11), axis.text.y=element_text(size=11),
+            axis.title.x=element_text(size=14), axis.title.y=element_text(size=14))
     return(p)
   }
   plot_grid(plotKdModel(mod, "seeds"),plotKdModel(mod, "logo"),
-            ncol = 1,rel_heights = c(6,4))
+            ncol=1, rel_heights = c(6,4))
 }
 
 .typeColors <- function(){
