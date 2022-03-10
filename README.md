@@ -1,4 +1,5 @@
-[![](https://img.shields.io/badge/doi-10.1101/2021.06.16.448293-blue.svg)](https://doi.org/10.1101/2021.06.16.448293) [![R build status](https://github.com/ETHZ-INS/scanMiR/workflows/R-CMD-check/badge.svg)](https://github.com/ETHZ-INS/scanMiR/actions)
+[![](https://img.shields.io/badge/doi-10.1093/bioinformatics/btac110-blue.svg)](https://doi.org/10.1093/bioinformatics/btac110) 
+[![R build status](https://github.com/ETHZ-INS/scanMiR/workflows/R-CMD-check/badge.svg)](https://github.com/ETHZ-INS/scanMiR/actions)
 <img align="right" style="margin-left: 20px; margin-bottom: 10px;" src="inst/docs/sticker.svg"/>
 
 # scanMiR
@@ -56,7 +57,7 @@ target 5'-...NUAUAGACGAGUGACCUACGAUAUGCCGCAUUAAUU...-3'
 `scanMiR` can predict TDMD and circRNA slicing sites, and aggregate sites to 
 predict repression based on the biochemical model from 
 [McGeary, Lin et al. (2019)](https://dx.doi.org/10.1126/science.aav1741). For 
-more information, see our [preprint](https://doi.org/10.1101/2021.06.16.448293).
+more information, see our [paper](https://doi.org/10.1093/bioinformatics/btac110).
 
 To learn more about the functionalities, see the package's 
 [vignettes](https://www.bioconductor.org/packages/devel/bioc/vignettes/scanMiR/inst/doc/scanning.html).
