@@ -8,7 +8,7 @@ Authors@R: c(
     person("Pierre-Luc", "Germain", email="pierre-luc.germain@hest.ethz.ch", 
             role="aut", comment=c(ORCID="0000-0003-3418-4218")),
     person("Michael", "Soutschek", email="michael.soutschek@hest.ethz.ch", role="aut"),
-    person("Fridolin", "Gross", email="fridoling@hotmail.ch", role=c("cre", "aut")))
+    person("Fridolin", "Gross", email="fridoling@hotmail.com", role=c("cre", "aut")))
 Imports:
     Biostrings,
     GenomicRanges,
