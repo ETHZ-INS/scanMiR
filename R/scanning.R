@@ -479,6 +479,7 @@ get3pAlignment <- function(seqs, mirseq, mir3p.start=9L, allow.mismatch=TRUE,
   if(!is(seqs, "XStringSet") && !is(seqs, "XString")) seqs <- DNAString(seqs)
   seqs <- reverseComplement(seqs)
   subm <- .default3pSubMatrix(ifelse(allow.mismatch,-3L,-Inf), TG=TGsub)
+  mcols(seqs) <- NULL
   al <- pairwiseAlignment(seqs, mir.3p, type="local", substitutionMatrix=subm)
   df <- data.frame( p3.mir.bulge=start(subject(al))-1L,
                     p3.target.bulge=start(pattern(al))-1L )
