@@ -90,7 +90,7 @@ aggregateMatches <- function(m, a=0.007726 , b=0.5735, c=0.1810, p3=0.051,
   if(is(m,"GRanges")){
     m$transcript <- as.factor(seqnames(m))
     m <- mcols(m)
-    if(!is.null(m$miRNA)) m$miRNA <- as.factor(m$miRNA)
+    if(!is.null(m$miRNA)) m$miRNA <- droplevels(as.factor(m$miRNA))
   }
   m <- as.data.table(m)
   if(is.null(m$log_kd)){
