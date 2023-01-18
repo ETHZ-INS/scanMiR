@@ -241,7 +241,7 @@ aggregateMatches <- function(m, a=0.007726 , b=0.5735, c=0.1810, p3=0.051,
     cols <- names(sites_ORF)[vapply(sites_ORF, is.numeric, logical(1))]
     if(length(cols)==0) {
       sites_ORF[, ORF.canonical:=0L]
-      sites_ORF[, ORF.non-canonical:=0L]
+      sites_ORF[, ORF.nonCanonical:=0L]
     } else {
       sites_ORF[, "ORF.canonical":=rowSums(.SD, na.rm=TRUE), .SDcols = cols[which(cols != "non-canonical")]]
       sites_ORF[, "ORF.nonCanonical":=rowSums(.SD, na.rm=TRUE), .SDcols = cols[which(cols == "non-canonical")]]
