@@ -45,6 +45,7 @@ aggregateMatches <- function(m, a=0.007726 , b=0.5735, c=0.1810, p3=0.051,
   if(is.null(BP)) BP <- BiocParallel::SerialParam()
   ll <- NULL # length info
   if(is(m,"GRanges")){
+    if(length(m)==0) stop("Your search did not result in any match.")
     if(!is.null(ll <- metadata(m)$tx_info)){
       ll <- ll[,c("ORF.length", "UTR.length")]
       colnames(ll) <- tolower(colnames(ll))
@@ -55,6 +56,7 @@ aggregateMatches <- function(m, a=0.007726 , b=0.5735, c=0.1810, p3=0.051,
     if(!is.null(m$miRNA)) m$miRNA <- droplevels(as.factor(m$miRNA))
     m <- as.data.frame(m)
   }else{
+    if(nrow(m)==0) stop("Your search did not result in any match.")
     if(!is.null(ll <- attr(m, "tx_info"))){
       ll <- ll[,c("ORF.length", "UTR.length")]
       colnames(ll) <- tolower(colnames(ll))
