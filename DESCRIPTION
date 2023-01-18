@@ -1,9 +1,9 @@
 Package: scanMiR
 Type: Package
 Title: scanMiR
-Version: 1.3.0
+Version: 1.3.1
 Depends: R (>= 4.0)
-Date: 2021-06-25
+Date: 2023-01-18
 Authors@R: c(
     person("Pierre-Luc", "Germain", email="pierre-luc.germain@hest.ethz.ch", 
             role="aut", comment=c(ORCID="0000-0003-3418-4218")),
