@@ -8,6 +8,8 @@
 models (KdModels), enabling efficient and flexible scanning for miRNA binding 
 sites and prediction of target repression.
 
+This repository details the R package; for the web interface [click here](http://ethz-ins.org/scanMiR/).
+
 <br/>
 
 ## Getting started

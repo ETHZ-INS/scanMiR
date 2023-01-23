@@ -45,6 +45,7 @@ aggregateMatches <- function(m, a=0.007726 , b=0.5735, c=0.1810, p3=0.051,
   if(is.null(BP)) BP <- BiocParallel::SerialParam()
   ll <- NULL # length info
   if(is(m,"GRanges")){
+    if(length(m)==0) stop("Your search did not result in any match.")
     if(!is.null(ll <- metadata(m)$tx_info)){
       ll <- ll[,c("ORF.length", "UTR.length")]
       colnames(ll) <- tolower(colnames(ll))
@@ -52,9 +53,10 @@ aggregateMatches <- function(m, a=0.007726 , b=0.5735, c=0.1810, p3=0.051,
     }
     m$transcript <- as.factor(seqnames(m))
     m <- mcols(m)
-    if(!is.null(m$miRNA)) m$miRNA <- as.factor(m$miRNA)
+    if(!is.null(m$miRNA)) m$miRNA <- droplevels(as.factor(m$miRNA))
     m <- as.data.frame(m)
   }else{
+    if(nrow(m)==0) stop("Your search did not result in any match.")
     if(!is.null(ll <- attr(m, "tx_info"))){
       ll <- ll[,c("ORF.length", "UTR.length")]
       colnames(ll) <- tolower(colnames(ll))
@@ -90,7 +92,7 @@ aggregateMatches <- function(m, a=0.007726 , b=0.5735, c=0.1810, p3=0.051,
   if(is(m,"GRanges")){
     m$transcript <- as.factor(seqnames(m))
     m <- mcols(m)
-    if(!is.null(m$miRNA)) m$miRNA <- as.factor(m$miRNA)
+    if(!is.null(m$miRNA)) m$miRNA <- droplevels(as.factor(m$miRNA))
   }
   m <- as.data.table(m)
   if(is.null(m$log_kd)){
@@ -241,16 +243,17 @@ aggregateMatches <- function(m, a=0.007726 , b=0.5735, c=0.1810, p3=0.051,
     cols <- names(sites_ORF)[vapply(sites_ORF, is.numeric, logical(1))]
     if(length(cols)==0) {
       sites_ORF[, ORF.canonical:=0L]
+      sites_ORF[, ORF.nonCanonical:=0L]
     } else {
       sites_ORF[, "ORF.canonical":=rowSums(.SD, na.rm=TRUE), .SDcols = cols[which(cols != "non-canonical")]]
-      sites_ORF[, "ORF.non-canonical":=rowSums(.SD, na.rm=TRUE), .SDcols = cols[which(cols == "non-canonical")]]
+      sites_ORF[, "ORF.nonCanonical":=rowSums(.SD, na.rm=TRUE), .SDcols = cols[which(cols == "non-canonical")]]
       sites_ORF[, (cols):=NULL]
     }
   }
   if(is.null(m$miRNA)) {
     if(hasORF) {
       cols <- c("transcript", "8mer", "7mer", "6mer", "non-canonical",
-                "ORF.canonical","ORF.non-canonical")
+                "ORF.canonical","ORF.nonCanonical")
       sites <- merge(sites, sites_ORF, by="transcript", all=TRUE)
     }
     else {
@@ -259,7 +262,7 @@ aggregateMatches <- function(m, a=0.007726 , b=0.5735, c=0.1810, p3=0.051,
   } else{
     if(hasORF) {
       cols <- c("transcript", "miRNA", "8mer", "7mer", "6mer", "non-canonical",
-                "ORF.canonical","ORF.non-canonical")
+                "ORF.canonical","ORF.nonCanonical")
       sites <- merge(sites, sites_ORF, by=c("transcript", "miRNA"), all=TRUE)
     } else {
       cols <- c("transcript", "miRNA", "8mer", "7mer", "6mer", "non-canonical")
@@ -270,6 +273,7 @@ aggregateMatches <- function(m, a=0.007726 , b=0.5735, c=0.1810, p3=0.051,
     sites[is.na(get(i)), (i):=0L]
     if(is.numeric(sites[[i]])) sites[[i]] <- as.integer(sites[[i]])
   }
+  cols <- intersect(cols, colnames(sites))
   return(sites[,..cols])
 }
 
