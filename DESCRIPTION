@@ -1,7 +1,7 @@
 Package: scanMiR
 Type: Package
 Title: scanMiR
-Version: 1.6.0
+Version: 1.7.0
 Depends: R (>= 4.0)
 Date: 2023-01-18
 Authors@R: c(
