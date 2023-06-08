@@ -100,7 +100,7 @@ getSeed8mers <- function(seed, addNs=FALSE){
 
 
 .guessSeqType <- function(x, use.subset=TRUE){
-  if(use.subset = TRUE) seqs <- x[sample.int(length(x),min(length(x),10))]
+  if(use.subset) seqs <- x[sample.int(length(x),min(length(x),10))]
   u <- any(grepl("U",seqs))
   t <- any(grepl("T",seqs))
   if(t && u) stop("Sequences contain both T and U!")
