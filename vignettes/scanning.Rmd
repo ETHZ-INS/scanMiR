@@ -101,6 +101,7 @@ data("SampleKdModel")
 matches <- findSeedMatches(SampleTranscript, SampleKdModel, verbose = FALSE)
 matches
 ```
+
 Running `findSeedMatches` using a `Kdmodel` also returns matches that correspond
 to non-canonical binding sites. These are typically of low affinity, but may 
 affect repression if several of them are found on the same transcript. The scan 
@@ -109,6 +110,24 @@ can be restricted to canonical sites using the option `onlyCanonical = TRUE`.
 `KdModel` collections corresponding to all human, mouse and rat mirbase miRNAs 
 can be obtained through the 
 [scanMiRData](https://github.com/ETHZ-INS/scanMiRData) package.
+
+### About match types
+
+For canonical sites, we use the site types described in [Grimson et al., Molecular Cell 2007](https://www.sciencedirect.com/science/article/pii/S1097276507004078) based on the matching nucleotides form the miRNA seed:
+
+```{r echo = FALSE, out.width="50%", fig.align = 'right', fig.cap="Adapted from Grimson et al. 2007"}
+knitr::include_graphics(system.file('docs', 'sitetypes.jpg', package = 'scanMiR'))
+```
+
+In addition, we include with two additional site types that are classically
+considered non-canonical, but have much stronger evidence of binding
+than other non-canonical ones, namely G-bulged sites that have an extra non-matching
+G in position 5–6 that is bulged out (see [Chi, Hannon & Darnell, 2012](https://www.nature.com/articles/nsmb.2230), and
+wobble sites have a single G:U replacement (see [Becker et al., 2019](https://www.sciencedirect.com/science/article/pii/S1097276519304459)).
+
+Also note that all binding sites are reported as the alignment of the seed 
+region of the miRNA onto the target mRNA, and as such it is always 8 nucleotide
+long, even if only 6 or 7nt are actually matching the seed.
 
 ## Further Options
 
