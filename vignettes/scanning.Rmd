@@ -115,7 +115,7 @@ can be obtained through the
 
 For canonical sites, we use the site types described in [Grimson et al., Molecular Cell 2007](https://www.sciencedirect.com/science/article/pii/S1097276507004078) based on the matching nucleotides form the miRNA seed:
 
-```{r echo = FALSE, out.width="50%", fig.align = 'right', fig.cap="Adapted from Grimson et al. 2007"}
+```{r echo = FALSE, out.width="80%", fig.align = 'right', fig.cap="Adapted from Grimson et al. 2007"}
 knitr::include_graphics(system.file('docs', 'sitetypes.jpg', package = 'scanMiR'))
 ```
 
