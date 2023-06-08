@@ -100,7 +100,7 @@ getSeed8mers <- function(seed, addNs=FALSE){
 
 
 .guessSeqType <- function(x, use.subset=TRUE){
-  seqs <- x[sample.int(length(x),min(length(x),10))]
+  if(use.subset = TRUE) seqs <- x[sample.int(length(x),min(length(x),10))]
   u <- any(grepl("U",seqs))
   t <- any(grepl("T",seqs))
   if(t && u) stop("Sequences contain both T and U!")
@@ -128,7 +128,7 @@ dummyKdData <- function(mod=NULL){
   data.frame(X12mer=mer12, log_kd=mod$mer8/1000)
 }
 
-                    
+
 #' get8merRange
 #'
 #' Returns the minimum and maximum 8-mer log-kd values
