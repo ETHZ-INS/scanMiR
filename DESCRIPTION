@@ -1,14 +1,14 @@
 Package: scanMiR
 Type: Package
 Title: scanMiR
-Version: 1.7.0
+Version: 1.7.1
 Depends: R (>= 4.0)
-Date: 2023-01-18
+Date: 2023-07-03
 Authors@R: c(
     person("Pierre-Luc", "Germain", email="pierre-luc.germain@hest.ethz.ch", 
-            role="aut", comment=c(ORCID="0000-0003-3418-4218")),
+            role=c("cre","aut"), comment=c(ORCID="0000-0003-3418-4218")),
     person("Michael", "Soutschek", email="michael.soutschek@hest.ethz.ch", role="aut"),
-    person("Fridolin", "Gross", email="fridoling@hotmail.com", role=c("cre", "aut")))
+    person("Fridolin", "Gross", email="fridolin.gross@u-bordeaux.fr", role="aut"))
 Imports:
     Biostrings,
     GenomicRanges,
