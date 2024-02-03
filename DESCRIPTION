@@ -3,7 +3,7 @@ Type: Package
 Title: scanMiR
 Version: 1.7.1
 Depends: R (>= 4.0)
-Date: 2023-07-03
+Date: 2024-02-03
 Authors@R: c(
     person("Pierre-Luc", "Germain", email="pierre-luc.germain@hest.ethz.ch", 
             role=c("cre","aut"), comment=c(ORCID="0000-0003-3418-4218")),
@@ -24,7 +24,7 @@ Imports:
     utils,
     graphics,
     grid,
-    ggseqlogo,
+    seqLogo,
     cowplot
 Suggests: 
     knitr,
@@ -40,6 +40,6 @@ Description:
     for the visual representation of miRNA-target alignment).
 License: GPL-3
 VignetteBuilder: knitr
-RoxygenNote: 7.1.2
+RoxygenNote: 7.2.3
 biocViews: miRNA, SequenceMatching, Alignment
 Config/testthat/edition: 3

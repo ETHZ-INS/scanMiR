@@ -27,7 +27,10 @@ vis-a-vis the first miRNA nucleotide.
 `what='logo'` plots a `seqLogo` (requires the
 [seqLogo]{https://bioconductor.org/packages/release/bioc/html/seqLogo.html}
 package) showing the nucleotide-wise information content and preferences for
-all 12-mers (centered around the seed). `what="both"` plots both.
+all 12-mers (centered around the seed, oriented in the direction of the target
+mRNA). `what="both"` plots both.
+Note that if the package `ggseqlogo` is installed, this will be used instead
+to plot the logo, resulting in more detailed plot annotation.
 }
 \examples{
 data(SampleKdModel)

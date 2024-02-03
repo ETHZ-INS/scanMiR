@@ -16,11 +16,14 @@
 #' `what='logo'` plots a `seqLogo` (requires the
 #' [seqLogo]{https://bioconductor.org/packages/release/bioc/html/seqLogo.html}
 #' package) showing the nucleotide-wise information content and preferences for
-#' all 12-mers (centered around the seed). `what="both"` plots both.
+#' all 12-mers (centered around the seed, oriented in the direction of the target
+#' mRNA). `what="both"` plots both.
+#' Note that if the package `ggseqlogo` is installed, this will be used instead
+#' to plot the logo, resulting in more detailed plot annotation.
 #'
 #' @import ggplot2
 #' @importFrom cowplot plot_grid
-#' @importFrom ggseqlogo ggseqlogo
+#' @importFrom seqLogo seqLogo
 #' @export
 #' @examples
 #' data(SampleKdModel)
@@ -62,12 +65,16 @@ plotKdModel <- function(mod, what=c("both","seeds","logo"), n=10){
   }
 
   if(what=="logo"){
-    p <- suppressWarnings(ggseqlogo( mod$pwm )) + 
-      labs(y="Information (bits)", x="miRNA 5' position")
-    p$scales$scales[[1]] <- scale_x_continuous(breaks=1:12,labels=c(10:1,"",""))
-    p <- p + 
+    if(requireNamespace("ggseqlogo", quietly=TRUE)){
+      p <- suppressWarnings(ggseqlogo::ggseqlogo( mod$pwm )) + 
+        labs(y="Information (bits)", x="miRNA 5' position")
+      p$scales$scales[[1]] <- scale_x_continuous(breaks=1:12,labels=c(10:1,"",""))
+      p <- p + 
       theme(axis.text.x=element_text(size=11), axis.text.y=element_text(size=11),
             axis.title.x=element_text(size=14), axis.title.y=element_text(size=14))
+    }else{
+      p <- plot_grid(grid::grid.grabExpr(seqLogo( mod$pwm )))
+    }
     return(p)
   }
   plot_grid(plotKdModel(mod, "seeds"),plotKdModel(mod, "logo"),
