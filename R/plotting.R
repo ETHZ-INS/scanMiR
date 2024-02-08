@@ -66,7 +66,7 @@ plotKdModel <- function(mod, what=c("both","seeds","logo"), n=10){
 
   if(what=="logo"){
     if(requireNamespace("ggseqlogo", quietly=TRUE)){
-      p <- suppressWarnings(ggseqlogo::ggseqlogo( mod$pwm )) + 
+      p <- suppressWarnings(ggseqlogo( mod$pwm )) + 
         labs(y="Information (bits)", x="miRNA 5' position")
       p$scales$scales[[1]] <- scale_x_continuous(breaks=1:12,labels=c(10:1,"",""))
       p <- p + 
