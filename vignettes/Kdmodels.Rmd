@@ -24,6 +24,7 @@ vignette: |
 
 ```{r, include=FALSE}
 library(BiocStyle)
+knitr::opts_chunk$set(crop = NULL)
 ```
 
 # 12-mer dissociation rates

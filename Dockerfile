@@ -8,5 +8,5 @@ COPY . /home/build/package
 
 ENV R_REMOTES_NO_ERRORS_FROM_WARNINGS=true
 
-RUN Rscript -e "BiocManager::install(c('cowplot','ggseqlogo','ensembldb','AnnotationFilter','AnnotationHub','digest','DT','fst','GenomeInfoDb','GenomicFeatures','ggplot2','htmlwidgets','Matrix','plotly','rtracklayer','shiny','shinycssloaders','shinydashboard','waiter','rintrojs'))"
+RUN Rscript -e "BiocManager::install(c('cowplot','ggseqlogo','ensembldb','AnnotationFilter','AnnotationHub','digest','DT','fst','GenomeInfoDb','GenomicFeatures','ggplot2','htmlwidgets','Matrix','plotly','rtracklayer','shiny','shinycssloaders','shinydashboard','waiter','rintrojs', 'txdbmaker'))"
 RUN Rscript -e "devtools::install('.', dependencies=TRUE, repos = BiocManager::repositories(), build_vignettes = TRUE)"
