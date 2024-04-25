@@ -57,8 +57,12 @@
 #'
 #' @importFrom BiocParallel bplapply SerialParam bpnworkers
 #' @importFrom GenomeInfoDb seqlevels
-#' @import Biostrings GenomicRanges
-#' @importFrom S4Vectors mcols mcols<- metadata metadata<- Rle DataFrame
+#' @import GenomicRanges
+#' @importFrom Biostrings DNAString RNAString DNAStringSet subseq complement
+#'             reverseComplement extractAt xscat padAndClip consensusMatrix
+#' @importFrom pwalign pairwiseAlignment type pattern subject
+#'             nucleotideSubstitutionMatrix
+#' @importFrom S4Vectors mcols mcols<- metadata metadata<- Rle DataFrame head
 #' @importFrom IRanges IRanges RleList
 #' @export
 #'
