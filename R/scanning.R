@@ -537,7 +537,7 @@ get3pAlignment <- function(seqs, mirseq, mir3p.start=9L, allow.mismatch=TRUE,
 }
 
 .default3pSubMatrix <- function(mismatch=-3, TG=TRUE){
-  subm <- Biostrings::nucleotideSubstitutionMatrix(match=1, mismatch=mismatch)
+  subm <- nucleotideSubstitutionMatrix(match=1, mismatch=mismatch)
   l <- c("A","C","G","T","N")
   subm <- subm[l,l]
   if(TG) subm["A", "G"] <- subm["C", "T"] <- 0
