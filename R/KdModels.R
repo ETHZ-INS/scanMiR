@@ -208,7 +208,8 @@ assignKdType <- function(x, mod, mer8=NULL){
   mer9 <- factor(as.character(subseq(x, 2, 10)))
   mer8 <- factor(as.character(subseq(x, 3,10)), levels=mer8)
   d <- data.frame(
-    type=getMatchTypes(levels(mer9), mod$canonical.seed)[as.integer(mer9)],
+    type=getMatchTypes(levels(mer9), mod$canonical.seed,
+                       offset=1L)[as.integer(mer9)],
     log_kd=as.integer(round(mod$mer8[mer8] + fl.score*mod$fl[mer8]))
   )
   d$log_kd[is.na(d$log_kd)] <- 0L

@@ -59,9 +59,10 @@
 #' @importFrom Seqinfo seqlevels
 #' @import GenomicRanges
 #' @importFrom Biostrings DNAString RNAString DNAStringSet subseq complement
-#'             reverseComplement extractAt xscat padAndClip consensusMatrix
+#' @importFrom Biostrings reverseComplement extractAt xscat padAndClip 
+#' @importFrom Biostrings consensusMatrix
 #' @importFrom pwalign pairwiseAlignment type pattern subject
-#'             nucleotideSubstitutionMatrix
+#' @importFrom pwalign nucleotideSubstitutionMatrix
 #' @importFrom S4Vectors mcols mcols<- metadata metadata<- Rle DataFrame head
 #' @importFrom IRanges IRanges RleList
 #' @export
@@ -324,7 +325,7 @@ findSeedMatches <- function( seqs, seeds, shadow=0L, onlyCanonical=FALSE,
     r <- split(r, seqnames(m))
     names(r) <- NULL
     ms <- as.factor(unlist(extractAt(seqs[seqlevels(m)], r))) # 8mers
-    mcols(m)$type <- getMatchTypes(as.factor(ms), substr(seed,1,7))
+    mcols(m)$type <- getMatchTypes(as.factor(ms), substr(seed,1,7), offset=0L)
     if(keepMatchSeq && !p3.extra) mcols(m)$sequence <- ms
     m <- m[order(seqnames(m), m$type)]
   }else{
@@ -626,7 +627,7 @@ removeOverlappingRanges <- function(x, minDist=7L, retIndices=FALSE,
   if(is.character(seqs)) seqs <- DNAStringSet(seqs)
   names(seqs) <- seqnms
   shadow <- max(c(0,shadow-1))
-  ret$offset <- max(c(0,pad[1]-max(0,shadow)))
+  ret$offset <- pad[1]
   seqs <- seqs[lengths(seqs)>=(shadow+8)]
   seqs <- padAndClip(seqs, views=IRanges(start=1-ret$offset,
                                          width=lengths(seqs)+ret$offset+pad[2]),
@@ -644,6 +645,9 @@ removeOverlappingRanges <- function(x, minDist=7L, retIndices=FALSE,
 #' @param seed A 7 or 8 nucleotides string indicating the seed (5' to 3'
 #' sequence of the target RNA). If of length 7, an "A" will be appended.
 #' @param checkWobble Whether to flag wobbled sites
+#' @param offset If known, how many nucleotides are in `x` before the seed 
+#'   match. This can be important to distinguish certain match types when 
+#'   including non-canonical ones. If NULL, the match is assumed to be anywhere.
 #'
 #' @return A factor of match types.
 #' @export
@@ -651,8 +655,9 @@ removeOverlappingRanges <- function(x, minDist=7L, retIndices=FALSE,
 #' @examples
 #' x <- c("AACACTCCAG","GACACTCCGC","GTACTCCAT","ACGTACGTAC")
 #' getMatchTypes(x, seed="ACACTCCA")
-getMatchTypes <- function(x, seed, checkWobble=TRUE){
-  if(is.factor(x)) return(getMatchTypes(levels(x), seed)[as.integer(x)])
+getMatchTypes <- function(x, seed, checkWobble=TRUE, offset=NULL){
+  if(is.factor(x))
+    return(getMatchTypes(levels(x), seed, checkWobble, offset)[as.integer(x)])
   x <- as.character(x)
   y <- rep(1L,length(x))
   seed <- as.character(seed)
@@ -676,7 +681,11 @@ getMatchTypes <- function(x, seed, checkWobble=TRUE){
     y[.isWobble(x,seed,FALSE)] <- 9L # wobbled 8-mer
   }
   y[grep(paste0("[ACGTN]",substr(seed,2,8)),x)] <- 10L # 7mer-a1
-  y[substr(x, 2, 8) == substr(seed, 1, 7)] <- 11L # 7mer-m8
+  if(is.null(offset)){
+    y[grep(substr(seed,1,7), x, fixed=TRUE)] <- 11L  # 7mer-m8
+  }else{
+    y[substr(x, offset+1L, offset+7L) == substr(seed,1,7)] <- 11L  # 7mer-m8
+  }
   y[grep(seed,x,fixed=TRUE)] <- 12L # 8mer
   factor(y, levels=12L:1L, labels=.matchLevels())
 }

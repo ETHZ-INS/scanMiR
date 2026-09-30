@@ -4,7 +4,7 @@
 \alias{getMatchTypes}
 \title{getMatchTypes}
 \usage{
-getMatchTypes(x, seed, checkWobble = TRUE)
+getMatchTypes(x, seed, checkWobble = TRUE, offset = NULL)
 }
 \arguments{
 \item{x}{A character vector of short sequences.}
@@ -13,6 +13,10 @@ getMatchTypes(x, seed, checkWobble = TRUE)
 sequence of the target RNA). If of length 7, an "A" will be appended.}
 
 \item{checkWobble}{Whether to flag wobbled sites}
+
+\item{offset}{If known, how many nucleotides are in `x` before the seed 
+match. This can be important to distinguish certain match types when 
+including non-canonical ones. If NULL, the match is assumed to be anywhere.}
 }
 \value{
 A factor of match types.

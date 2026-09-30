@@ -1,7 +1,7 @@
 Package: scanMiR
 Type: Package
 Title: scanMiR
-Version: 1.19.3
+Version: 1.19.4
 Depends: R (>= 4.0)
 Date: 2026-09-15
 Authors@R: c(
@@ -41,6 +41,6 @@ Description:
     for the visual representation of miRNA-target alignment).
 License: GPL-3
 VignetteBuilder: knitr
-RoxygenNote: 7.3.1
 biocViews: miRNA, SequenceMatching, Alignment
 Config/testthat/edition: 3
+Config/roxygen2/version: 8.0.0
